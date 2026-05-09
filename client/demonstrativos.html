@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Demonstrativos Contábeis</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+html,body{overflow:hidden}
+.tab-strip{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:4px;width:fit-content}
+.tab-btn{padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt2);transition:all .14s;white-space:nowrap}
+.tab-btn.on{background:var(--blue);color:#fff}
+.tab-btn:hover:not(.on){background:rgba(255,255,255,.06);color:var(--txt)}
+/* DEMONSTRATIVO */
+.dem-section{margin-bottom:20px}
+.dem-hd{font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;padding:8px 14px;border-radius:var(--rs);margin-bottom:8px}
+.dem-hd.ativo{background:rgba(0,201,167,.1);color:var(--green)}
+.dem-hd.passivo{background:rgba(239,68,68,.1);color:var(--red)}
+.dem-hd.pl{background:rgba(26,111,196,.1);color:var(--bl)}
+.dem-hd.rec{background:rgba(0,201,167,.1);color:var(--green)}
+.dem-hd.desp{background:rgba(239,68,68,.1);color:var(--red)}
+.dem-hd.neutro{background:rgba(255,255,255,.05);color:var(--txt3)}
+.dem-row{display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px;transition:background .1s}
+.dem-row:hover{background:rgba(26,111,196,.04)}
+.dem-row:last-child{border-bottom:none}
+.dem-row.sub{padding-left:28px;font-size:12px;color:var(--txt2)}
+.dem-row.subsub{padding-left:42px;font-size:11.5px;color:var(--txt3)}
+.dem-row.total{background:rgba(0,0,0,.15);font-weight:700;font-size:13px;border-top:2px solid var(--bd2);padding:10px 14px}
+.dem-row.resultado{background:rgba(0,0,0,.2);font-family:'Syne',sans-serif;font-size:16px;font-weight:800;border-top:3px solid var(--bd2);padding:14px}
+.money{font-family:'JetBrains Mono',monospace;font-size:12px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}.money.a{color:var(--amber)}
+/* GRID */
+.dem-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dem-full{grid-column:1/-1}
+/* BADGE */
+.var-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;margin-left:8px}
+.var-badge.pos{background:rgba(0,201,167,.12);color:var(--green)}
+.var-badge.neg{background:rgba(239,68,68,.12);color:var(--red)}
+/* PRINT — nunca usar window.print() direto, sempre via imprimirRelatorio() */
+@media print{ body{ display:none!important } }
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}
+.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}
+.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+
+  <header class="topbar">
+    <span class="topbar-title">📊 Demonstrativos Contábeis</span>
+    <span class="tb-badge blue" id="tbEmp">—</span>
+    <span class="tb-badge green" id="tbComp">—</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="selEmp" style="height:32px;font-size:11px;width:220px" onchange="trocarEmpresa()">
+      <option value="">Selecione a empresa...</option>
+    </select>
+    <select class="fin" id="selComp" style="height:32px;font-size:11px;width:145px" onchange="load()"></select>
+    <select class="fin" id="selExerc" style="height:32px;font-size:11px;width:100px" onchange="load()"></select>
+    <button class="btn sm primary" onclick="load()">↻ Gerar</button>
+    <button class="btn sm" onclick="imprimirRelatorio()">🖨️ Imprimir / PDF</button>
+  </header>
+
+  <div class="filter-bar" style="gap:8px">
+    <div class="tab-strip">
+      <button class="tab-btn on" id="tab-bp"      onclick="setTab('bp')">⚖️ BP</button>
+      <button class="tab-btn"    id="tab-dre"     onclick="setTab('dre')">📈 DRE</button>
+      <button class="tab-btn"    id="tab-dfc"     onclick="setTab('dfc')">💧 DFC</button>
+      <button class="tab-btn"    id="tab-dva"     onclick="setTab('dva')">🏭 DVA</button>
+      <button class="tab-btn"    id="tab-cpv"     onclick="setTab('cpv')">📦 CPV</button>
+      <button class="tab-btn"    id="tab-pricing" onclick="setTab('pricing')">💰 Pricing</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+      <label style="font-size:11px;color:var(--txt3)">Comparativo:</label>
+      <select class="fin" id="selCompare" style="height:28px;font-size:11px;width:155px" onchange="load()">
+        <option value="">Sem comparativo</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+
+    <!-- Aviso sem empresa -->
+    <div id="avisoEmp" class="empty">
+      <div class="empty-ic">📊</div>
+      <div class="empty-t">Selecione uma empresa</div>
+      <div class="empty-s">Escolha a empresa e a competência para gerar os demonstrativos</div>
+    </div>
+
+    <!-- ─── BALANÇO PATRIMONIAL ─── -->
+    <div id="pane-bp" style="display:none">
+      <div class="dem-2col" id="bpContent"></div>
+    </div>
+
+    <!-- ─── DRE ─── -->
+    <div id="pane-dre" style="display:none">
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px" id="dreContent"></div>
+    </div>
+
+    <!-- ─── DFC ─── -->
+    <div id="pane-dfc" style="display:none">
+      <div id="dfcContent"></div>
+    </div>
+
+    <!-- ─── DVA ─── -->
+    <div id="pane-dva" style="display:none">
+      <div id="dvaContent"></div>
+    </div>
+
+    <!-- ─── CPV ─── -->
+    <div id="pane-cpv" style="display:none">
+      <div id="cpvContent"></div>
+    </div>
+
+    <!-- ─── PRICING ─── -->
+    <div id="pane-pricing" style="display:none">
+      <div id="pricingContent"></div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let curTab='bp', curEmpId='', curEmpNome='', txs=[], txsComp=[], chartDRE=null;
+const cur  = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const curK = v => v>=1000?'R$\u00a0'+(v/1000).toFixed(1)+'k':cur(v);
+const pct  = (v,t) => t>0?((v/t)*100).toFixed(1)+'%':'0%';
+const r2   = v => Math.round((v||0)*100)/100;
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// INIT
+(()=>{
+  const now=new Date();
+  let oc='',oe='',ocp='';
+  for(let i=-1;i<24;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const v=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    oc+=`<option value="${v}"${i===0?' selected':''}>${ui.competence(v)}</option>`;
+    ocp+=`<option value="${v}">vs ${ui.competence(v)}</option>`;
+  }
+  for(let y=now.getFullYear();y>=now.getFullYear()-5;y--) oe+=`<option value="${y}"${y===now.getFullYear()?' selected':''}>${y}</option>`;
+  document.getElementById('selComp').innerHTML=oc;
+  document.getElementById('selExerc').innerHTML=oe;
+  document.getElementById('selCompare').innerHTML='<option value="">Sem comparativo</option>'+ocp;
+})();
+
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  document.getElementById('selEmp').innerHTML='<option value="">Selecione a empresa...</option>'+
+    r.companies.map(c=>`<option value="${c._id}" data-nome="${c.tradeName||c.legalName}" data-regime="${c.taxRegime}" data-sector="${c.sector||''}">${c.tradeName||c.legalName}</option>`).join('');
+});
+
+function trocarEmpresa(){
+  curEmpId=document.getElementById('selEmp').value;
+  const opt=document.querySelector(`#selEmp option[value="${curEmpId}"]`);
+  curEmpNome=opt?.getAttribute('data-nome')||'';
+  document.getElementById('tbEmp').textContent=curEmpNome||'—';
+  if(curEmpId) load(); else document.getElementById('avisoEmp').style.display='block';
+}
+
+function setTab(tab){
+  curTab=tab;
+  ['bp','dre','dfc','dva','cpv','pricing'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('on',t===tab);
+    document.getElementById('pane-'+t).style.display=t===tab?'block':'none';
+  });
+  renderTab();
+}
+
+// LOAD — busca todos os lançamentos
+async function load(){
+  if(!curEmpId){ document.getElementById('avisoEmp').style.display='block'; return; }
+  document.getElementById('avisoEmp').style.display='none';
+
+  const comp  = document.getElementById('selComp').value;
+  const exerc = document.getElementById('selExerc').value;
+  const compare = document.getElementById('selCompare').value;
+
+  document.getElementById('tbComp').textContent = ui.competence(comp);
+
+  // ── USA O MOTOR INTEGRADO ──────────────────────────────────
+  // Busca DRE calculada pelo engine (inclui Folha + Transações + BPO)
+  const params = new URLSearchParams({company:curEmpId, exercicio:exerc});
+  if(comp) params.set('competence', comp);
+
+  const [dreR, fluxoR, bpR, txR] = await Promise.all([
+    fetch('/api/relatorios/dre?'+params, {headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()).catch(()=>null),
+    fetch('/api/relatorios/fluxo?'+new URLSearchParams({company:curEmpId,year:exerc}), {headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()).catch(()=>null),
+    fetch('/api/relatorios/balanco?'+params, {headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()).catch(()=>null),
+    API.transactions.list({company:curEmpId, limit:2000}),
+  ]);
+
+  // Dados do motor integrado
+  dreData  = dreR?.dre   || null;
+  fluxoData= fluxoR?.fluxo || [];
+  bpData   = bpR?.balanco  || null;
+
+  // Transações para fallback e detalhamento
+  txs = (txR?.transactions||[]).filter(t=>t.status!=='cancelado'&&t.competence?.startsWith(exerc));
+  txsComp = [];
+
+  // Exibe badge de integração
+  const kpiEl = document.getElementById('kpiIntegrado');
+  if(kpiEl){
+    const status = dreData?.totalLancamentos > 0
+      ? `<span class="tb-badge green">✅ ${dreData.totalLancamentos} lançamentos integrados</span>`
+      : `<span class="tb-badge amber">⚠️ Sem lançamentos — cadastre em Lançamentos</span>`;
+    kpiEl.innerHTML = status;
+  }
+
+  renderTab();
+}
+
+// RENDERIZA ABA ATUAL
+function renderTab(){
+  if(!txs.length&&curEmpId){
+    ['bp','dre','dfc','dva','cpv'].forEach(t=>{ const el=document.getElementById(t+'Content'); if(el) el.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-ic">📒</div><div class="empty-t">Sem lançamentos no período</div><div class="empty-s">Cadastre lançamentos contábeis em Lançamentos</div></div>'; });
+  }
+  if(curTab==='bp')      renderBP();
+  if(curTab==='dre')     renderDRE();
+  if(curTab==='dfc')     renderDFC();
+  if(curTab==='dva')     renderDVA();
+  if(curTab==='cpv')     renderCPV();
+  if(curTab==='pricing') renderPricing();
+}
+
+// ── EXTRATOR DE SALDOS ────────────────────────────────────────
+// Agrupa lançamentos por tipo de conta (baseado no código NBC)
+function extrairSaldos(transactions){
+  const contas={};
+  transactions.forEach(t=>{
+    // Débito aumenta conta devedora (ativo/despesa), Crédito aumenta credora (passivo/PL/receita)
+    [t.debitAccount,t.creditAccount].forEach((conta,lado)=>{
+      if(!conta)return;
+      if(!contas[conta]) contas[conta]={debitos:0,creditos:0};
+      if(lado===0) contas[conta].debitos  +=t.amount;
+      else         contas[conta].creditos +=t.amount;
+    });
+  });
+  // Calcula saldo por natureza da conta (pelo prefixo NBC)
+  const saldos={};
+  Object.entries(contas).forEach(([conta,v])=>{
+    const prefixo=conta.charAt(0);
+    // 1=Ativo (natureza devedora), 2=Passivo (credora), 3=PL (credora), 4=Receita (credora), 5=Custo (devedora), 6=Despesa (devedora)
+    const devedora=['1','5','6'].includes(prefixo);
+    saldos[conta]= devedora ? r2(v.debitos-v.creditos) : r2(v.creditos-v.debitos);
+  });
+  return saldos;
+}
+
+// Agrupa contas por grupo NBC
+function agruparContas(saldos, filtro){
+  const grupos={};
+  Object.entries(saldos).forEach(([conta,saldo])=>{
+    if(!filtro(conta))return;
+    // Agrupa pelo segundo nível (ex: 1.1, 1.2, 2.1)
+    const partes=conta.split('.');
+    const grupo=partes.slice(0,2).join('.')||partes[0];
+    if(!grupos[grupo]) grupos[grupo]={label:grupo,contas:{},total:0};
+    grupos[grupo].contas[conta]=saldo;
+    grupos[grupo].total=r2(grupos[grupo].total+saldo);
+  });
+  return grupos;
+}
+
+// ── BALANÇO PATRIMONIAL ───────────────────────────────────────
+function renderBP(){
+  const exerc=document.getElementById('selExerc').value;
+  const saldos=extrairSaldos(txs);
+
+  // ATIVO — contas iniciadas com 1
+  const ativoCirc=Object.entries(saldos).filter(([c])=>c.startsWith('1.1')).reduce((a,[,v])=>a+v,0);
+  const ativoNCirC=Object.entries(saldos).filter(([c])=>c.startsWith('1.2')).reduce((a,[,v])=>a+v,0);
+  const totalAtivo=r2(ativoCirc+ativoNCirC);
+
+  // PASSIVO — contas iniciadas com 2
+  const passCirc=Object.entries(saldos).filter(([c])=>c.startsWith('2.1')).reduce((a,[,v])=>a+v,0);
+  const passNCirC=Object.entries(saldos).filter(([c])=>c.startsWith('2.2')).reduce((a,[,v])=>a+v,0);
+  const totalPass=r2(passCirc+passNCirC);
+
+  // PL — contas iniciadas com 3
+  const capSocial=Object.entries(saldos).filter(([c])=>c.startsWith('3.1')).reduce((a,[,v])=>a+v,0);
+  const reservas=Object.entries(saldos).filter(([c])=>c.startsWith('3.2')||c.startsWith('3.3')).reduce((a,[,v])=>a+v,0);
+  // Resultado do exercício = Receitas - Despesas - Custos
+  const receitas=Object.entries(saldos).filter(([c])=>c.startsWith('4')).reduce((a,[,v])=>a+v,0);
+  const despesas=Object.entries(saldos).filter(([c])=>c.startsWith('6')||c.startsWith('5')).reduce((a,[,v])=>a+Math.abs(v),0);
+  const resultadoExerc=r2(receitas-despesas);
+  const totalPL=r2(capSocial+reservas+resultadoExerc);
+  const totalPassPL=r2(totalPass+totalPL);
+
+  // Contas detalhadas do Ativo
+  const detAtivo=Object.entries(saldos).filter(([c])=>c.startsWith('1')).sort(([a],[b])=>a.localeCompare(b)).slice(0,20);
+  const detPassivo=Object.entries(saldos).filter(([c])=>c.startsWith('2')).sort(([a],[b])=>a.localeCompare(b)).slice(0,15);
+  const detPL=Object.entries(saldos).filter(([c])=>c.startsWith('3')).sort(([a],[b])=>a.localeCompare(b));
+
+  const rowDet=(conta,saldo,nivel=0)=>`
+    <div class="dem-row ${nivel===2?'subsub':nivel===1?'sub':''}">
+      <span>${conta}</span>
+      <span class="money ${saldo>=0?'g':'r'}">${cur(saldo)}</span>
+    </div>`;
+
+  document.getElementById('bpContent').innerHTML=`
+    <!-- ATIVO -->
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="padding:14px 16px">
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--txt);margin-bottom:4px">BALANÇO PATRIMONIAL</div>
+          <div style="font-size:11px;color:var(--txt3)">${curEmpNome} · Exercício ${exerc}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="dem-hd ativo">ATIVO</div>
+
+        <div class="dem-row" style="font-weight:600;color:var(--green)">
+          <span>ATIVO CIRCULANTE</span><span class="money g">${cur(ativoCirc)}</span>
+        </div>
+        ${detAtivo.filter(([c])=>c.startsWith('1.1')).map(([c,v])=>rowDet(c,v,1)).join('')}
+
+        <div class="dem-row" style="font-weight:600;color:var(--green)">
+          <span>ATIVO NÃO CIRCULANTE</span><span class="money g">${cur(ativoNCirC)}</span>
+        </div>
+        ${detAtivo.filter(([c])=>!c.startsWith('1.1')).map(([c,v])=>rowDet(c,v,1)).join('')}
+
+        <div class="dem-row total">
+          <span>TOTAL DO ATIVO</span>
+          <span class="money g" style="font-size:14px">${cur(totalAtivo)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSIVO + PL -->
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="padding:14px 16px">
+          <div style="font-size:12px;color:var(--txt2)">Equação fundamental:</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--bl);margin-top:4px">
+            Ativo = Passivo + Patrimônio Líquido<br>
+            ${cur(totalAtivo)} = ${cur(totalPassPL)}
+            <span class="var-badge ${Math.abs(totalAtivo-totalPassPL)<0.01?'pos':'neg'}">
+              ${Math.abs(totalAtivo-totalPassPL)<0.01?'✅ Balanceia':'⚠️ Diferença: '+cur(totalAtivo-totalPassPL)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="dem-hd passivo">PASSIVO</div>
+
+        <div class="dem-row" style="font-weight:600;color:var(--red)">
+          <span>PASSIVO CIRCULANTE</span><span class="money r">${cur(passCirc)}</span>
+        </div>
+        ${detPassivo.filter(([c])=>c.startsWith('2.1')).map(([c,v])=>rowDet(c,v,1)).join('')}
+
+        <div class="dem-row" style="font-weight:600;color:var(--red)">
+          <span>PASSIVO NÃO CIRCULANTE</span><span class="money r">${cur(passNCirC)}</span>
+        </div>
+        ${detPassivo.filter(([c])=>!c.startsWith('2.1')).map(([c,v])=>rowDet(c,v,1)).join('')}
+
+        <div class="dem-row total" style="background:rgba(239,68,68,.08)">
+          <span>TOTAL DO PASSIVO</span><span class="money r">${cur(totalPass)}</span>
+        </div>
+
+        <div class="dem-hd pl" style="margin-top:14px">PATRIMÔNIO LÍQUIDO</div>
+        <div class="dem-row sub"><span>Capital Social</span><span class="money g">${cur(capSocial)}</span></div>
+        <div class="dem-row sub"><span>Reservas de Capital/Lucros</span><span class="money g">${cur(reservas)}</span></div>
+        <div class="dem-row sub"><span>Resultado do Exercício</span><span class="money ${resultadoExerc>=0?'g':'r'}">${cur(resultadoExerc)}</span></div>
+        ${detPL.map(([c,v])=>rowDet(c,v,2)).join('')}
+        <div class="dem-row total" style="background:rgba(26,111,196,.08)">
+          <span>TOTAL DO PL</span><span class="money b">${cur(totalPL)}</span>
+        </div>
+
+        <div class="dem-row resultado">
+          <span>TOTAL PASSIVO + PL</span>
+          <span class="money ${totalPassPL>=0?'g':'r'}">${cur(totalPassPL)}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── DRE ───────────────────────────────────────────────────────
+function renderDRE(){
+  const exerc=document.getElementById('selExerc').value;
+  const saldos=extrairSaldos(txs);
+  const saldosComp=txsComp.length?extrairSaldos(txsComp):{};
+  const somaGrupo=(s,prefixo)=>Object.entries(s).filter(([c])=>c.startsWith(prefixo)).reduce((a,[,v])=>a+Math.abs(v),0);
+
+  // ── USA DADOS DO MOTOR INTEGRADO SE DISPONÍVEL ────────────
+  if(dreData && dreData.totalLancamentos !== undefined) {
+    const d=dreData;
+    // Sobrescreve com dados mais precisos do engine (inclui folha)
+    const recEng  = d.totalReceitas;
+    const custEng = d.totalCustos;
+    const despEng = d.totalDespesas;
+    const lbEng   = d.lucroBruto;
+    const ebitEng = d.ebitda;
+    const liqEng  = d.lucroLiquido;
+    // Exibe badge de qualidade dos dados
+    const el=document.getElementById('dreContent');
+    if(el){
+      // Renderiza banner de integração
+      const banner = recEng > 0
+        ? `<div style="padding:8px 16px;background:rgba(0,201,167,.06);border-bottom:1px solid rgba(0,201,167,.2);font-size:11px;color:var(--green);display:flex;align-items:center;gap:8px">
+            <span>✅ Motor integrado ativo</span>
+            <span style="color:var(--txt3)">|</span>
+            <span>${d.totalLancamentos} lançamentos + folha integrada (${d.headcount} func. · custo pessoal: ${cur(d.custoPessoal)})</span>
+           </div>`
+        : `<div style="padding:8px 16px;background:rgba(245,158,11,.06);border-bottom:1px solid rgba(245,158,11,.2);font-size:11px;color:var(--amber)">
+            ⚠️ Sem lançamentos no período — cadastre em Lançamentos para ver a DRE real
+           </div>`;
+
+      // Constrói DRE com dados do engine
+      const secao = (titulo, linhas, total, cor, sinal='') => {
+        if(!linhas.length) linhas=[{categoria:'—',valor:0}];
+        return `<div style="background:var(--bg2);border-bottom:1px solid var(--bd)">
+          <div style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${cor}">${titulo}</div>
+          ${linhas.map(l=>`<div style="display:flex;justify-content:space-between;padding:8px 16px 8px 28px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12.5px">
+            <span style="color:var(--txt2)">${l.categoria}</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:${l.valor>0?cor:'var(--txt3)'}">${sinal}${cur(l.valor)}</span>
+          </div>`).join('')}
+          <div style="display:flex;justify-content:space-between;padding:9px 16px;background:rgba(255,255,255,.02);font-size:12px;font-weight:700">
+            <span style="color:${cor}">Total</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:${cor}">${sinal}${cur(total)}</span>
+          </div>
+        </div>`;
+      };
+      const subtotal = (lbl, val, cor, big=false) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:${big?'14px':'10px'} 16px;background:${big?`rgba(${val>=0?'0,201,167':'239,68,68'},.06)`:'rgba(255,255,255,.02)'};border-bottom:1px solid rgba(255,255,255,.06);${big?'border-top:2px solid rgba(255,255,255,.1)':''}">
+          <span style="font-family:'Syne',sans-serif;font-size:${big?'14px':'12.5px'};font-weight:700;color:${big?cor:'var(--txt)'}">${lbl}</span>
+          <div style="text-align:right">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:${big?'16px':'13px'};font-weight:700;color:${cor}">${cur(val)}</div>
+            ${big?`<div style="font-size:10px;color:var(--txt3);margin-top:2px">Margem: ${recEng>0?Math.round(val/recEng*100):0}%</div>`:''}
+          </div>
+        </div>`;
+
+      el.innerHTML = banner +
+        `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1px solid var(--bd)">
+          ${[
+            {l:'Receita Bruta',v:cur(recEng),c:'var(--green)'},
+            {l:'(-) CPV/Custo',v:cur(custEng),c:'var(--red)'},
+            {l:'Lucro Bruto',v:cur(lbEng),c:lbEng>=0?'var(--green)':'var(--red)'},
+            {l:'EBITDA',v:cur(ebitEng),c:ebitEng>=0?'var(--green)':'var(--red)'},
+            {l:'Margem Líquida',v:dreData.margemLiquida+'%',c:dreData.margemLiquida>=10?'var(--green)':'var(--amber)'},
+          ].map(k=>`<div style="padding:12px 14px;text-align:center;border-right:1px solid var(--bd)">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);margin-bottom:4px">${k.l}</div>
+            <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:${k.c}">${k.v}</div>
+          </div>`).join('')}
+        </div>` +
+        secao('RECEITAS OPERACIONAIS', d.receitas, recEng, 'var(--green)') +
+        subtotal('(=) RECEITA LÍQUIDA', recEng, 'var(--green)') +
+        secao('(-) CUSTO DOS SERVIÇOS / CPV', d.custos.length?d.custos:[{categoria:'Sem custo direto',valor:0}], custEng, 'var(--red)', '(-)') +
+        subtotal('(=) LUCRO BRUTO', lbEng, lbEng>=0?'var(--green)':'var(--red)', true) +
+        secao('(-) DESPESAS OPERACIONAIS', d.despesas, despEng, 'var(--red)', '(-)') +
+        subtotal('(=) EBITDA', ebitEng, ebitEng>=0?'var(--green)':'var(--red)') +
+        subtotal('(-) Tributos Estimados', d.tributos||0, 'var(--amber)') +
+        subtotal('(=) RESULTADO LÍQUIDO DO EXERCÍCIO', liqEng, liqEng>=0?'var(--green)':'var(--red)', true);
+      return;
+    }
+  }
+  // Fallback: usa método anterior baseado em lançamentos brutos
+
+  const recBruta    = somaGrupo(saldos,'4.1');
+  const devAbat     = somaGrupo(saldos,'4.2');
+  const impostoVenda= somaGrupo(saldos,'4.3');
+  const recLiquida  = r2(recBruta-devAbat-impostoVenda);
+  const cpv         = somaGrupo(saldos,'5');
+  const lucBruto    = r2(recLiquida-cpv);
+  const despOp      = somaGrupo(saldos,'6.1');
+  const despAdm     = somaGrupo(saldos,'6.2');
+  const despVendas  = somaGrupo(saldos,'6.3');
+  const recFin      = somaGrupo(saldos,'4.4');
+  const despFin     = somaGrupo(saldos,'6.4');
+  const outrasRec   = somaGrupo(saldos,'4.5');
+  const outrasDesp  = somaGrupo(saldos,'6.5');
+  const ebitda      = r2(lucBruto-despOp-despAdm-despVendas);
+  const depAmort    = somaGrupo(saldos,'6.6');
+  const ebit        = r2(ebitda-depAmort);
+  const lair        = r2(ebit+recFin-despFin+outrasRec-outrasDesp);
+  const ircsll       = somaGrupo(saldos,'6.7');
+  const lucroLiquido= r2(lair-ircsll);
+
+  // Comparativo
+  const cRecBruta   = txsComp.length?somaGrupo(saldosComp,'4.1'):null;
+  const cLucro      = txsComp.length?r2(somaGrupo(saldosComp,'4.1')-somaGrupo(saldosComp,'5')-somaGrupo(saldosComp,'6')):null;
+
+  const row=(label,valor,compValor,nivel=0,cor='')=>{
+    const varPct=compValor!=null&&compValor!==0?r2((valor-compValor)/Math.abs(compValor)*100):null;
+    return `<div class="dem-row ${nivel===1?'sub':nivel===2?'subsub':''}">
+      <span style="${cor?'color:'+cor:''}">${label}</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${compValor!=null?`<span class="money" style="color:var(--txt3);font-size:11px">${cur(compValor)}</span>`:''}
+        ${varPct!=null?`<span class="var-badge ${varPct>=0?'pos':'neg'}">${varPct>=0?'+':''}${varPct}%</span>`:''}
+        <span class="money ${valor>=0?'g':'r'}" style="${cor?'color:'+cor:''}">${cur(valor)}</span>
+      </div>
+    </div>`;
+  };
+
+  // Meses para gráfico
+  const now=new Date();
+  const meses=[]; const recPorMes=[]; const lucPorMes=[];
+  for(let i=11;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const m=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    meses.push(MESES[d.getMonth()]);
+    const txMes=txs.filter(t=>t.competence===m);
+    const sMes=extrairSaldos(txMes);
+    const rMes=somaGrupo(sMes,'4.1');
+    const lMes=r2(rMes-somaGrupo(sMes,'5')-somaGrupo(sMes,'6'));
+    recPorMes.push(rMes);
+    lucPorMes.push(lMes);
+  }
+
+  document.getElementById('dreContent').innerHTML=`
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--txt)">DRE — DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:3px">${curEmpNome} · Exercício ${exerc} ${txsComp.length?'· vs '+ui.competence(document.getElementById('selCompare').value):''}</div>
+        </div>
+        ${row('RECEITA BRUTA DE VENDAS',recBruta,cRecBruta,0,'var(--green)')}
+        ${row('(-) Devoluções e Abatimentos',devAbat,null,1)}
+        ${row('(-) Impostos sobre Vendas',impostoVenda,null,1)}
+        ${row('(=) RECEITA LÍQUIDA',recLiquida,null,0,'var(--green)')}
+        ${row('(-) CUSTO DOS PRODUTOS/SERVIÇOS VENDIDOS (CPV)',cpv,null,0,'var(--red)')}
+        ${row('(=) LUCRO BRUTO',lucBruto,null,0,lucBruto>=0?'var(--green)':'var(--red)')}
+        ${row('(-) Despesas Operacionais',despOp,null,1)}
+        ${row('(-) Despesas Administrativas',despAdm,null,1)}
+        ${row('(-) Despesas com Vendas',despVendas,null,1)}
+        ${row('(=) EBITDA',ebitda,null,0,'var(--bl)')}
+        ${row('(-) Depreciação e Amortização',depAmort,null,1)}
+        ${row('(=) EBIT (Resultado Operacional)',ebit,null,0,'var(--bl)')}
+        ${row('(+) Receitas Financeiras',recFin,null,1)}
+        ${row('(-) Despesas Financeiras',despFin,null,1)}
+        ${row('(+/-) Outras Receitas/Despesas',r2(outrasRec-outrasDesp),null,1)}
+        ${row('(=) LAIR (Lucro Antes do IR)',lair,null,0)}
+        ${row('(-) IR e CSLL',ircsll,null,1)}
+        <div class="dem-row resultado">
+          <span>LUCRO LÍQUIDO DO EXERCÍCIO</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${cLucro!=null?`<span class="money" style="color:var(--txt3);font-size:12px">${cur(cLucro)}</span><span class="var-badge ${lucroLiquido>=cLucro?'pos':'neg'}">${lucroLiquido>=cLucro?'+':''}${cLucro!==0?r2((lucroLiquido-cLucro)/Math.abs(cLucro)*100):0}%</span>`:''}
+            <span class="money ${lucroLiquido>=0?'g':'r'}" style="font-size:16px">${cur(lucroLiquido)}</span>
+          </div>
+        </div>
+        <!-- Indicadores -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px;background:rgba(0,0,0,.1);border-top:1px solid var(--bd)">
+          ${[
+            ['Margem Bruta',    recLiquida>0?pct(lucBruto,recLiquida):'—'],
+            ['Margem EBITDA',   recLiquida>0?pct(ebitda,recLiquida):'—'],
+            ['Margem Líquida',  recLiquida>0?pct(lucroLiquido,recLiquida):'—'],
+          ].map(([l,v])=>`<div style="text-align:center;padding:8px"><div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${l}</div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--bl)">${v}</div></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <!-- Gráfico lateral -->
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h"><span class="card-ht">Evolução Mensal</span></div>
+        <div style="padding:14px;height:220px"><canvas id="chartDRE"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-ht">Indicadores</span></div>
+        <div style="padding:14px 16px">
+          ${[
+            ['Receita Bruta',      cur(recBruta)],
+            ['Receita Líquida',    cur(recLiquida)],
+            ['CPV',                cur(cpv)],
+            ['Lucro Bruto',        cur(lucBruto)],
+            ['EBITDA',             cur(ebitda)],
+            ['EBIT',               cur(ebit)],
+            ['LAIR',               cur(lair)],
+            ['Lucro Líquido',      cur(lucroLiquido)],
+          ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">${l}</span><span class="money">${v}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  // Gráfico
+  setTimeout(()=>{
+    if(chartDRE) chartDRE.destroy();
+    const ctx=document.getElementById('chartDRE')?.getContext('2d');
+    if(!ctx)return;
+    chartDRE=new Chart(ctx,{type:'bar',data:{labels:meses,datasets:[
+      {label:'Receita',data:recPorMes,backgroundColor:'rgba(0,201,167,.5)',borderColor:'#00c9a7',borderWidth:1.5,borderRadius:3},
+      {label:'Lucro',data:lucPorMes,type:'line',borderColor:'#3b90e8',backgroundColor:'rgba(59,144,232,.1)',borderWidth:2,pointRadius:3,tension:.4,fill:true},
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{color:'#6b94b2',font:{size:10},boxWidth:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b94b2',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b94b2',font:{size:9},callback:v=>'R$'+curK(v).replace('R$\u00a0','')}}}}});
+  },100);
+}
+
+// ── DFC ───────────────────────────────────────────────────────
+function renderDFC(){
+  const exerc=document.getElementById('selExerc').value;
+  const saldos=extrairSaldos(txs);
+  const somaGrupo=(s,prefixo)=>Object.entries(s).filter(([c])=>c.startsWith(prefixo)).reduce((a,[,v])=>a+Math.abs(v),0);
+
+  // Método Indireto (mais comum no Brasil)
+  const lucroLiq = r2(somaGrupo(saldos,'4') - somaGrupo(saldos,'5') - somaGrupo(saldos,'6'));
+  const depAmort = somaGrupo(saldos,'6.6');
+  const varClientes = r2(somaGrupo(saldos,'1.2.01')*-1); // estimativa
+  const varFornec   = r2(somaGrupo(saldos,'2.1.02'));
+  const varEstoques = r2(somaGrupo(saldos,'1.1.3')*-1);
+  const fcOp = r2(lucroLiq + depAmort + varClientes + varFornec + varEstoques);
+
+  const investimentos = r2(somaGrupo(saldos,'1.2.2') * -1);
+  const fcInv = investimentos;
+
+  const captacoes  = somaGrupo(saldos,'2.2');
+  const pagamentos = somaGrupo(saldos,'3.2')*-1;
+  const fcFin = r2(captacoes + pagamentos);
+
+  const varCaixa = r2(fcOp + fcInv + fcFin);
+
+  document.getElementById('dfcContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
+            <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--txt)">DFC — DEMONSTRAÇÃO DOS FLUXOS DE CAIXA</div>
+            <div style="font-size:11px;color:var(--txt3);margin-top:3px">${curEmpNome} · Exercício ${exerc} · Método Indireto (NBC TG 03)</div>
+          </div>
+
+          <!-- OPERACIONAL -->
+          <div class="dem-hd ativo" style="margin:14px 14px 8px">ATIVIDADES OPERACIONAIS</div>
+          <div class="dem-row"><span style="font-weight:600">Lucro Líquido do Exercício</span><span class="money ${lucroLiq>=0?'g':'r'}">${cur(lucroLiq)}</span></div>
+          <div style="padding:6px 14px;font-size:11px;color:var(--txt3)">Ajustes para conciliar ao caixa:</div>
+          <div class="dem-row sub"><span>(+) Depreciação e Amortização</span><span class="money g">${cur(depAmort)}</span></div>
+          <div class="dem-row sub"><span>Variação em Contas a Receber</span><span class="money ${varClientes>=0?'g':'r'}">${cur(varClientes)}</span></div>
+          <div class="dem-row sub"><span>Variação em Estoques</span><span class="money ${varEstoques>=0?'g':'r'}">${cur(varEstoques)}</span></div>
+          <div class="dem-row sub"><span>Variação em Fornecedores</span><span class="money ${varFornec>=0?'g':'r'}">${cur(varFornec)}</span></div>
+          <div class="dem-row total"><span>Caixa Gerado pelas Atividades Operacionais</span><span class="money ${fcOp>=0?'g':'r'}" style="font-size:13px">${cur(fcOp)}</span></div>
+
+          <!-- INVESTIMENTO -->
+          <div class="dem-hd passivo" style="margin:14px 14px 8px">ATIVIDADES DE INVESTIMENTO</div>
+          <div class="dem-row sub"><span>Aquisição de Ativo Imobilizado</span><span class="money r">${cur(investimentos)}</span></div>
+          <div class="dem-row total"><span>Caixa Aplicado em Investimentos</span><span class="money ${fcInv>=0?'g':'r'}" style="font-size:13px">${cur(fcInv)}</span></div>
+
+          <!-- FINANCIAMENTO -->
+          <div class="dem-hd pl" style="margin:14px 14px 8px">ATIVIDADES DE FINANCIAMENTO</div>
+          <div class="dem-row sub"><span>Captação de Empréstimos</span><span class="money g">${cur(captacoes)}</span></div>
+          <div class="dem-row sub"><span>Pagamento de Dividendos/Pró-labore</span><span class="money r">${cur(Math.abs(pagamentos))}</span></div>
+          <div class="dem-row total"><span>Caixa das Atividades de Financiamento</span><span class="money ${fcFin>=0?'g':'r'}" style="font-size:13px">${cur(fcFin)}</span></div>
+
+          <div class="dem-row resultado">
+            <span>VARIAÇÃO LÍQUIDA DO CAIXA</span>
+            <span class="money ${varCaixa>=0?'g':'r'}" style="font-size:16px">${cur(varCaixa)}</span>
+          </div>
+        </div>
+      </div>
+      <!-- Painel direito -->
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-h"><span class="card-ht">Resumo do Fluxo</span></div>
+          <div style="padding:14px 16px">
+            ${[
+              ['🔄 FC Operacional', fcOp,   fcOp>=0?'var(--green)':'var(--red)'],
+              ['💼 FC Investimento',fcInv,  fcInv>=0?'var(--green)':'var(--red)'],
+              ['🏦 FC Financiamento',fcFin, fcFin>=0?'var(--green)':'var(--red)'],
+              ['💧 Variação Caixa', varCaixa,varCaixa>=0?'var(--green)':'var(--red)'],
+            ].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:700">${cur(v)}</span></div>`).join('')}
+          </div>
+        </div>
+        <div class="card" style="padding:14px 16px;background:rgba(26,111,196,.06);border-color:rgba(26,111,196,.25)">
+          <div style="font-size:11px;color:var(--bl);font-weight:600;margin-bottom:8px">📌 NBC TG 03 — Método Indireto</div>
+          <div style="font-size:11px;color:var(--txt3);line-height:1.6">
+            O DFC parte do lucro líquido e ajusta para chegar ao caixa real gerado/consumido em cada atividade: operacional, investimento e financiamento.
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── DVA ───────────────────────────────────────────────────────
+function renderDVA(){
+  const exerc=document.getElementById('selExerc').value;
+  const saldos=extrairSaldos(txs);
+  const somaGrupo=(s,p)=>Object.entries(s).filter(([c])=>c.startsWith(p)).reduce((a,[,v])=>a+Math.abs(v),0);
+
+  const recBruta     = somaGrupo(saldos,'4.1');
+  const insumosAdq   = somaGrupo(saldos,'5') + somaGrupo(saldos,'6.1');
+  const valorAdic    = r2(recBruta - insumosAdq);
+  const retencoes    = somaGrupo(saldos,'6.6'); // depreciação
+  const vaBruto      = r2(valorAdic - retencoes);
+
+  // Distribuição
+  const pessoal      = somaGrupo(saldos,'6.2.1')||somaGrupo(saldos,'6.3');
+  const impostos     = somaGrupo(saldos,'6.7') + somaGrupo(saldos,'4.3');
+  const jurosCapital = somaGrupo(saldos,'6.4');
+  const lucroDistrib = r2(Math.max(0, vaBruto - pessoal - impostos - jurosCapital));
+  const totalDistrib = r2(pessoal+impostos+jurosCapital+lucroDistrib);
+
+  document.getElementById('dvaContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+      <div class="card">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--txt)">DVA — DEMONSTRAÇÃO DO VALOR ADICIONADO</div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:3px">${curEmpNome} · Exercício ${exerc} · NBC TG 09</div>
+        </div>
+
+        <div class="dem-hd rec">GERAÇÃO DE RIQUEZA</div>
+        <div class="dem-row"><span>Receita Bruta</span><span class="money g">${cur(recBruta)}</span></div>
+        <div class="dem-row sub"><span>(-) Insumos Adquiridos de Terceiros</span><span class="money r">(${cur(insumosAdq)})</span></div>
+        <div class="dem-row total"><span>Valor Adicionado Bruto</span><span class="money g">${cur(valorAdic)}</span></div>
+        <div class="dem-row sub"><span>(-) Depreciação e Amortização</span><span class="money r">(${cur(retencoes)})</span></div>
+        <div class="dem-row total" style="background:rgba(0,201,167,.08)">
+          <span>VALOR ADICIONADO LÍQUIDO</span>
+          <span class="money g" style="font-size:14px">${cur(vaBruto)}</span>
+        </div>
+
+        <div class="dem-hd neutro" style="margin-top:14px">DISTRIBUIÇÃO DA RIQUEZA</div>
+        <div class="dem-row"><span style="font-weight:600">👥 Pessoal e Encargos</span><span class="money">${cur(pessoal)} <span style="font-size:10px;color:var(--txt3)">(${pct(pessoal,totalDistrib)})</span></span></div>
+        <div class="dem-row"><span style="font-weight:600">🏛️ Governo (Impostos, Taxas)</span><span class="money">${cur(impostos)} <span style="font-size:10px;color:var(--txt3)">(${pct(impostos,totalDistrib)})</span></span></div>
+        <div class="dem-row"><span style="font-weight:600">🏦 Capital de Terceiros (Juros)</span><span class="money">${cur(jurosCapital)} <span style="font-size:10px;color:var(--txt3)">(${pct(jurosCapital,totalDistrib)})</span></span></div>
+        <div class="dem-row"><span style="font-weight:600">🏢 Capital Próprio (Lucro/Div.)</span><span class="money g">${cur(lucroDistrib)} <span style="font-size:10px;color:var(--txt3)">(${pct(lucroDistrib,totalDistrib)})</span></span></div>
+        <div class="dem-row resultado">
+          <span>TOTAL DISTRIBUÍDO</span>
+          <span class="money g" style="font-size:16px">${cur(totalDistrib)}</span>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:600">Distribuição %</div>
+          ${[['Pessoal',pessoal,totalDistrib,'var(--bl)'],['Governo',impostos,totalDistrib,'var(--red)'],['Capital 3º',jurosCapital,totalDistrib,'var(--amber)'],['Capital Próprio',lucroDistrib,totalDistrib,'var(--green)']].map(([l,v,t,c])=>`
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--txt2)">${l}</span><span style="color:${c};font-weight:600">${pct(v,t)}</span></div>
+              <div style="background:var(--bg4);border-radius:20px;height:5px;overflow:hidden"><div style="height:100%;border-radius:20px;background:${c};width:${pct(v,t)}"></div></div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── CPV ───────────────────────────────────────────────────────
+function renderCPV(){
+  const exerc=document.getElementById('selExerc').value;
+  const saldos=extrairSaldos(txs);
+  const somaGrupo=(s,p)=>Object.entries(s).filter(([c])=>c.startsWith(p)).reduce((a,[,v])=>a+Math.abs(v),0);
+
+  const estoqueFinal   = somaGrupo(saldos,'1.1.3');
+  const comprasMerc    = somaGrupo(saldos,'5.1');
+  const matPrima       = somaGrupo(saldos,'5.2');
+  const moObra         = somaGrupo(saldos,'5.3');
+  const gastosFabric   = somaGrupo(saldos,'5.4');
+  const cpvTotal       = r2(comprasMerc+matPrima+moObra+gastosFabric);
+  const recBruta       = somaGrupo(saldos,'4.1');
+  const margemBruta    = r2(recBruta-cpvTotal);
+
+  document.getElementById('cpvContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--bd)">
+            <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--txt)">CPV — CUSTO DOS PRODUTOS/SERVIÇOS VENDIDOS</div>
+            <div style="font-size:11px;color:var(--txt3);margin-top:3px">${curEmpNome} · Exercício ${exerc}</div>
+          </div>
+
+          <div class="dem-hd desp">CUSTOS DE PRODUÇÃO/SERVIÇOS</div>
+          <div class="dem-row"><span>Estoque Inicial de Mercadorias</span><span class="money">${cur(estoqueFinal)}</span></div>
+          <div class="dem-row sub"><span>(+) Compras de Mercadorias</span><span class="money">${cur(comprasMerc)}</span></div>
+          <div class="dem-row sub"><span>(+) Matéria Prima / Materiais</span><span class="money">${cur(matPrima)}</span></div>
+          <div class="dem-row sub"><span>(+) Mão de Obra Direta</span><span class="money">${cur(moObra)}</span></div>
+          <div class="dem-row sub"><span>(+) Gastos Gerais de Fabricação</span><span class="money">${cur(gastosFabric)}</span></div>
+          <div class="dem-row total">
+            <span>TOTAL CPV</span>
+            <span class="money r" style="font-size:14px">${cur(cpvTotal)}</span>
+          </div>
+
+          <div class="dem-hd rec" style="margin-top:14px">RESULTADO BRUTO</div>
+          <div class="dem-row"><span>Receita Bruta</span><span class="money g">${cur(recBruta)}</span></div>
+          <div class="dem-row sub"><span>(-) CPV Total</span><span class="money r">(${cur(cpvTotal)})</span></div>
+          <div class="dem-row resultado">
+            <span>LUCRO BRUTO</span>
+            <span class="money ${margemBruta>=0?'g':'r'}" style="font-size:16px">${cur(margemBruta)}</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:600">Indicadores CPV</div>
+          ${[
+            ['Receita Bruta',    cur(recBruta),'var(--green)'],
+            ['CPV Total',        cur(cpvTotal),'var(--red)'],
+            ['Lucro Bruto',      cur(margemBruta),margemBruta>=0?'var(--green)':'var(--red)'],
+            ['Margem Bruta',     recBruta>0?pct(margemBruta,recBruta):'—','var(--bl)'],
+            ['CPV / Receita',    recBruta>0?pct(cpvTotal,recBruta):'—','var(--amber)'],
+          ].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:600">${v}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── PRICING ───────────────────────────────────────────────────
+function renderPricing(){
+  document.getElementById('pricingContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+      <!-- CALCULADORA DE PREÇO DE VENDA -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">💰 Formação de Preço de Venda</span></div>
+        <div style="padding:14px 16px">
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:12px">Preencha os custos e margens para calcular o preço ideal</div>
+          <div class="fg2">
+            <div class="fgp"><label class="fbl">Custo Direto (R$)</label><input class="fin" type="number" id="pCusto" min="0" step="0.01" value="100" oninput="calcPreco()"></div>
+            <div class="fgp"><label class="fbl">% Despesas Fixas</label><input class="fin" type="number" id="pDF" min="0" max="100" step="0.1" value="15" oninput="calcPreco()"></div>
+            <div class="fgp"><label class="fbl">% Despesas Variáveis</label><input class="fin" type="number" id="pDV" min="0" max="100" step="0.1" value="5" oninput="calcPreco()"></div>
+            <div class="fgp"><label class="fbl">% Impostos s/ Venda</label><input class="fin" type="number" id="pImp" min="0" max="100" step="0.1" value="8.65" oninput="calcPreco()"></div>
+            <div class="fgp"><label class="fbl">% Comissão</label><input class="fin" type="number" id="pCom" min="0" max="100" step="0.1" value="3" oninput="calcPreco()"></div>
+            <div class="fgp"><label class="fbl">% Margem de Lucro</label><input class="fin" type="number" id="pML" min="0" max="200" step="0.1" value="20" oninput="calcPreco()"></div>
+            <div class="fgp"><label class="fbl">Regime Tributário</label>
+              <select class="fin" id="pRegime" onchange="preencherImpostos()">
+                <option value="simples">Simples Nacional</option>
+                <option value="presumido">Lucro Presumido</option>
+                <option value="real">Lucro Real</option>
+                <option value="mei">MEI</option>
+              </select>
+            </div>
+          </div>
+          <div id="pricingResult" style="margin-top:16px;padding:16px;background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.3);border-radius:var(--r)"></div>
+        </div>
+      </div>
+
+      <!-- MARKUP E ANÁLISE -->
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-h"><span class="card-ht">📊 Análise de Markup</span></div>
+          <div style="padding:14px 16px" id="markupAnalise"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📋 Referência — Impostos por Regime</span></div>
+          <div style="padding:14px 16px;font-size:12px">
+            ${[
+              ['Simples Nacional','Serviços Tabela III',6,'—'],
+              ['Simples Nacional','Comércio Tabela I',4,'—'],
+              ['Lucro Presumido','PIS+COFINS+IR+CSLL',8.65,'—'],
+              ['Lucro Real','PIS+COFINS+IR+CSLL',9.25,'Não cumulativo'],
+              ['MEI','DAS fixo','~5','Mensal'],
+            ].map(([r,desc,aliq,obs])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)"><div><div style="color:var(--txt)">${r}</div><div style="font-size:10px;color:var(--txt3)">${desc}</div></div><div style="text-align:right"><div style="font-family:'JetBrains Mono',monospace;color:var(--amber)">${aliq}%</div><div style="font-size:10px;color:var(--txt3)">${obs}</div></div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  calcPreco();
+}
+
+function preencherImpostos(){
+  const regime=document.getElementById('pRegime')?.value;
+  const imp={simples:8.65,presumido:8.65,real:9.25,mei:5}[regime]||8.65;
+  const el=document.getElementById('pImp'); if(el) el.value=imp;
+  calcPreco();
+}
+
+function calcPreco(){
+  const custo    = parseFloat(document.getElementById('pCusto')?.value)||0;
+  const df       = parseFloat(document.getElementById('pDF')?.value)||0;
+  const dv       = parseFloat(document.getElementById('pDV')?.value)||0;
+  const imp      = parseFloat(document.getElementById('pImp')?.value)||0;
+  const com      = parseFloat(document.getElementById('pCom')?.value)||0;
+  const ml       = parseFloat(document.getElementById('pML')?.value)||0;
+
+  // Markup divisor: PV = Custo / (1 - (DF+DV+Imp+Com+ML)/100)
+  const divisor  = 1 - (df+dv+imp+com+ml)/100;
+  if(divisor<=0){ document.getElementById('pricingResult').innerHTML='<div style="color:var(--red);font-size:12px">⚠️ Soma das % ultrapassa 100%. Ajuste os valores.</div>'; return; }
+
+  const pv       = r2(custo/divisor);
+  const lucroR   = r2(pv*ml/100);
+  const markup   = r2((pv/custo-1)*100);
+
+  document.getElementById('pricingResult').innerHTML=`
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Preço de Venda Sugerido</div>
+      <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--green)">${cur(pv)}</div>
+      <div style="font-size:11px;color:var(--txt3)">Markup: ${markup}% sobre o custo</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${[
+        ['Custo Direto',    cur(custo),     'var(--txt)'],
+        ['Desp. Fixas',     cur(r2(pv*df/100)), 'var(--amber)'],
+        ['Desp. Variáveis', cur(r2(pv*dv/100)), 'var(--amber)'],
+        ['Impostos',        cur(r2(pv*imp/100)),'var(--red)'],
+        ['Comissão',        cur(r2(pv*com/100)),'var(--amber)'],
+        ['Lucro Líquido',   cur(lucroR),    'var(--green)'],
+      ].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;background:rgba(0,0,0,.15);border-radius:5px;font-size:11.5px"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:600">${v}</span></div>`).join('')}
+    </div>`;
+
+  // Markup analysis
+  const el=document.getElementById('markupAnalise');
+  if(el) el.innerHTML=`
+    ${[1.1,1.3,1.5,2.0,2.5,3.0].map(m=>{
+      const p=r2(custo*m);
+      const l=r2(p-custo);
+      const atual=Math.abs(pv-p)<0.5;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);${atual?'background:rgba(0,201,167,.06);border-radius:5px;padding:7px 8px':''}">
+        <span style="font-size:11px;color:var(--txt3);width:45px">×${m.toFixed(1)}</span>
+        <div style="flex:1"><div style="background:var(--bg4);border-radius:20px;height:4px;overflow:hidden"><div style="height:100%;border-radius:20px;background:${atual?'var(--green)':'var(--bl)'};width:${Math.min(m/3*100,100)}%"></div></div></div>
+        <span class="money" style="width:80px;text-align:right;font-size:11px">${cur(p)}</span>
+        <span class="money g" style="width:70px;text-align:right;font-size:11px">${cur(l)}</span>
+        ${atual?'<span style="font-size:9px;background:rgba(0,201,167,.15);color:var(--green);padding:2px 6px;border-radius:10px">atual</span>':'<span style="width:46px"></span>'}
+      </div>`;
+    }).join('')}`;
+}
+
+// ── IMPRESSÃO ISOLADA ────────────────────────────────────────
+// Abre janela nova com APENAS o conteúdo do demonstrativo ativo
+function imprimirRelatorio(){
+  const pane = document.getElementById('pane-'+curTab);
+  if(!pane || pane.style.display==='none'){
+    ui.toast('⚠️','Selecione uma empresa e gere o demonstrativo primeiro');
+    return;
+  }
+
+  const nomePanes = {
+    bp:'Balanço Patrimonial', dre:'DRE — Demonstração do Resultado',
+    dfc:'DFC — Fluxo de Caixa', dva:'DVA — Valor Adicionado',
+    cpv:'CPV — Custo dos Produtos Vendidos', pricing:'Pricing — Formação de Preço',
+  };
+
+  const titulo = nomePanes[curTab]||'Demonstrativo';
+  const empresa = curEmpNome||'—';
+  const exerc = document.getElementById('selExerc')?.value||'';
+  const comp  = document.getElementById('selComp')?.value||'';
+  const dataGer = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  // Captura o HTML do painel atual
+  const conteudo = pane.innerHTML;
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>${titulo} — ${empresa}</title>
+<style>
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 12px;
+    color: #1a1a2e;
+    background: #fff;
+    padding: 24px;
+  }
+  /* HEADER DO RELATÓRIO */
+  .rpt-header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    border-bottom: 3px solid #1a6fc4; padding-bottom:12px; margin-bottom:20px;
+  }
+  .rpt-logo{ font-family:'Arial Black',sans-serif; font-size:18px; font-weight:900; color:#1a6fc4; }
+  .rpt-logo span{ font-size:11px; display:block; font-weight:400; color:#666; }
+  .rpt-meta{ text-align:right; font-size:11px; color:#666; line-height:1.6; }
+  .rpt-meta strong{ color:#1a1a2e; font-size:13px; display:block; }
+  /* CONTEÚDO */
+  .dem-2col{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .card{
+    border:1px solid #dde3ec; border-radius:8px; overflow:hidden;
+    margin-bottom:14px; break-inside:avoid;
+  }
+  .card-h{ padding:10px 14px; border-bottom:1px solid #eee; background:#f8fafc; font-weight:600; font-size:12px; }
+  .dem-hd{
+    font-size:10px; text-transform:uppercase; letter-spacing:.08em;
+    font-weight:700; padding:8px 14px; margin-bottom:0;
+  }
+  .dem-hd.ativo{ background:#e8faf6; color:#0e7a5e; }
+  .dem-hd.passivo{ background:#fef2f2; color:#b91c1c; }
+  .dem-hd.pl{ background:#eff6ff; color:#1d4ed8; }
+  .dem-hd.rec{ background:#e8faf6; color:#0e7a5e; }
+  .dem-hd.desp{ background:#fef2f2; color:#b91c1c; }
+  .dem-hd.neutro{ background:#f8f8f8; color:#666; }
+  .dem-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:6px 14px; border-bottom:1px solid #f0f0f0; font-size:12px;
+  }
+  .dem-row.sub{ padding-left:28px; font-size:11.5px; color:#555; }
+  .dem-row.subsub{ padding-left:42px; font-size:11px; color:#777; }
+  .dem-row.total{
+    background:#f0f4f8; font-weight:700; font-size:13px;
+    border-top:2px solid #dde3ec; padding:10px 14px;
+  }
+  .dem-row.resultado{
+    background:#1a6fc4; color:#fff; font-weight:800;
+    font-size:15px; padding:14px; border-top:3px solid #0d4f9e;
+  }
+  .dem-row.resultado span:last-child{ color:#7dd3fc; }
+  .money{ font-family:'Courier New',monospace; font-size:11.5px; }
+  .money.g{ color:#0e7a5e; }
+  .money.r{ color:#b91c1c; }
+  .money.a{ color:#92400e; }
+  /* Indicadores */
+  .bal-row{
+    display:grid; grid-template-columns:2fr 1fr 1fr 1fr;
+    gap:8px; padding:6px 10px; border-bottom:1px solid #f0f0f0;
+    font-size:11.5px; align-items:center;
+  }
+  .bal-row.bal-hd{
+    background:#eff6ff; font-weight:600; color:#1d4ed8;
+    border-radius:6px; margin-bottom:4px; padding:8px 10px;
+  }
+  .bal-row.bal-total{
+    background:#f0f4f8; font-weight:700; border-top:2px solid #dde3ec;
+    padding:10px; font-size:13px;
+  }
+  /* Grid 2 col para DRE */
+  .dem-2col-print{ display:grid; grid-template-columns:2fr 1fr; gap:14px; }
+  /* Var badge */
+  .var-badge{
+    font-size:10px; padding:2px 7px; border-radius:20px;
+    font-weight:600; margin-left:8px;
+  }
+  .var-badge.pos{ background:#dcfce7; color:#166534; }
+  .var-badge.neg{ background:#fee2e2; color:#991b1b; }
+  /* Indicadores grid */
+  .ind-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:14px; background:#f8fafc; border-top:1px solid #eee; }
+  .ind-item{ text-align:center; padding:8px; }
+  .ind-lbl{ font-size:10px; color:#666; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+  .ind-val{ font-size:18px; font-weight:800; color:#1d4ed8; }
+  /* Ocultar elementos de UI */
+  button, .no-print, canvas, .tab-strip, select,
+  [id$="Result"], .pricing-calc{ display:none!important; }
+  /* Mostrar gráficos como placeholder */
+  canvas + *{ display:block; }
+  /* Footer */
+  .rpt-footer{
+    margin-top:24px; padding-top:12px; border-top:1px solid #dde3ec;
+    font-size:10px; color:#999; display:flex; justify-content:space-between;
+  }
+  /* Print */
+  @page{ margin:15mm; size:A4; }
+  @media print{
+    body{ padding:0; }
+    .card{ break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="rpt-header">
+    <div>
+      <div class="rpt-logo">DTP Contábil <span>ERP Multi-Empresa</span></div>
+    </div>
+    <div class="rpt-meta">
+      <strong>${titulo}</strong>
+      Empresa: ${empresa}<br>
+      Exercício: ${exerc} · Competência: ${comp}<br>
+      Gerado em: ${dataGer}
+    </div>
+  </div>
+
+  ${conteudo}
+
+  <div class="rpt-footer">
+    <span>DTP Contábil ERP — Relatório gerado automaticamente</span>
+    <span>Gerado em ${dataGer}</span>
+  </div>
+</body>
+</html>`;
+
+  abrirJanelaImpressao(titulo, empresa, 'Exercício: ' + exerc + ' · ' + comp, conteudo);
+}
+
+// INICIA
+
+// ── IMPRESSÃO ISOLADA — abre janela limpa só com o relatório ──
+function abrirJanelaImpressao(titulo, empresa, subtitulo, htmlConteudo) {
+  const dataGer = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const estilos = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;background:#fff;padding:20px 28px}
+    .rpt-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:20px}
+    .rpt-logo{font-size:20px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}
+    .rpt-logo span{font-size:11px;display:block;font-weight:400;color:#666;margin-top:2px}
+    .rpt-meta{text-align:right;font-size:11px;color:#666;line-height:1.8}
+    .rpt-meta strong{color:#1a1a2e;font-size:14px;display:block;margin-bottom:4px}
+    .rpt-footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ec;font-size:10px;color:#999;display:flex;justify-content:space-between}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11.5px}
+    th{background:#eff6ff;color:#1d4ed8;padding:8px 10px;text-align:left;border:1px solid #dde3ec;font-weight:600}
+    td{padding:7px 10px;border:1px solid #eef0f5;color:#333;vertical-align:top}
+    tr:nth-child(even) td{background:#f8fafc}
+    .tbl thead th{background:#1a6fc4;color:#fff}
+    h2{font-size:14px;font-weight:700;color:#1a1a2e;margin:16px 0 8px;padding-bottom:6px;border-bottom:2px solid #1a6fc4}
+    h3{font-size:12px;font-weight:600;color:#1d4ed8;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+    .dem-row{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #f0f0f0;font-size:12px}
+    .dem-row.sub{padding-left:26px;color:#555;font-size:11.5px}
+    .dem-row.total{font-weight:700;background:#f0f4f8;border-top:2px solid #dde3ec;padding:10px 12px;font-size:13px}
+    .dem-row.resultado{background:#1a6fc4;color:#fff;font-weight:800;font-size:14px;padding:12px}
+    .dem-hd{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:7px 12px;margin-bottom:0}
+    .dem-hd.ativo,.dem-hd.rec{background:#e8faf6;color:#0e7a5e}
+    .dem-hd.passivo,.dem-hd.desp{background:#fef2f2;color:#b91c1c}
+    .dem-hd.pl{background:#eff6ff;color:#1d4ed8}
+    .dem-hd.neutro{background:#f8f8f8;color:#555}
+    .card{border:1px solid #dde3ec;border-radius:8px;overflow:hidden;margin-bottom:16px;break-inside:avoid}
+    .card-h{padding:10px 14px;border-bottom:1px solid #eee;background:#f8fafc;font-weight:600;font-size:12px}
+    .dem-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .hr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+    .hr-section{border:1px solid #eee;border-radius:6px;overflow:hidden}
+    .hr-hd{padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #eee}
+    .hr-hd.gn{background:#e8faf6;color:#0e7a5e}.hr-hd.rd{background:#fef2f2;color:#b91c1c}
+    .hr-row{display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid #f5f5f5;font-size:11.5px}
+    .hr-total{display:flex;justify-content:space-between;padding:8px 10px;border-top:2px solid #dde3ec;font-weight:700;font-size:12px}
+    .enc-banner{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#eff6ff;border:1px solid #dbeafe;border-radius:6px;padding:10px;margin-top:8px}
+    .enc-item{text-align:center}
+    .enc-lbl{font-size:10px;color:#555;margin-bottom:3px}
+    .enc-val{font-size:13px;font-weight:700;color:#1d4ed8}
+    .money{font-family:'Courier New',monospace;font-size:11.5px}
+    .money.g{color:#0e7a5e}.money.r{color:#b91c1c}.money.a{color:#92400e}
+    .st-pill,.badge,.pill,.nav-badge,.rb,.ra,.btn,.tab-btn,.tab-strip,
+    select,input,button,.m-tabs,.view-btn,.filter-bar,.topbar,
+    aside,.sb-footer,.side-panel,#overlay,.ov,
+    [onclick],[style*="cursor:pointer"]{pointer-events:none}
+    .card-pag,.pagArea,#pagArea,#pagBtns,#pagInfo{display:none!important}
+    canvas{max-width:100%}
+    @page{margin:15mm;size:A4}
+    @media print{body{padding:0}.card{break-inside:avoid}}
+  `;
+  const janela = window.open('','_blank','width=960,height=750,scrollbars=yes');
+  janela.document.write(
+    '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<title>' + titulo + ' — ' + empresa + '</title>' +
+    '<style>' + estilos + '</style></head><body>' +
+    '<div class="rpt-header">' +
+      '<div><div class="rpt-logo">DTP Contábil <span>ERP Multi-Empresa</span></div></div>' +
+      '<div class="rpt-meta"><strong>' + titulo + '</strong>' + empresa + '<br>' + subtitulo + '<br>Gerado em: ' + dataGer + '</div>' +
+    '</div>' +
+    htmlConteudo +
+    '<div class="rpt-footer"><span>DTP Contábil ERP — Relatório gerado automaticamente</span><span>' + dataGer + '</span></div>' +
+    '</body></html>'
+  );
+  janela.document.close();
+  setTimeout(function(){ janela.focus(); janela.print(); }, 800);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP Contábil — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#09151f;--bg2:#0d1c2a;--bg3:#112233;--bg4:#162b3e;--blue:#1a6fc4;--bl:#3b90e8;--green:#00c9a7;--txt:#cfe0ef;--txt2:#6b94b2;--txt3:#2d5270;--bd:rgba(255,255,255,.055);--rs:8px}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;align-items:center;justify-content:center}
+.bg-glow{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 18% 50%,rgba(26,111,196,.18) 0%,transparent 55%),radial-gradient(ellipse at 82% 20%,rgba(0,201,167,.06) 0%,transparent 50%)}
+.bg-grid{position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(26,111,196,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(26,111,196,.03) 1px,transparent 1px);background-size:52px 52px}
+.card{position:relative;z-index:10;display:flex;width:840px;max-width:97vw;border-radius:18px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.7);border:1px solid rgba(26,111,196,.18)}
+.brand{width:42%;background:linear-gradient(150deg,var(--bg4) 0%,var(--bg2) 100%);padding:44px 36px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;border-right:1px solid var(--bd)}
+.brand::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(26,111,196,.15),transparent 70%)}
+.brand-top{position:relative;z-index:2}
+.brand-icon{width:46px;height:46px;background:linear-gradient(135deg,#1a6fc4,#00c9a7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#fff;margin-bottom:18px;box-shadow:0 8px 24px rgba(26,111,196,.3)}
+.brand-name{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--txt);line-height:1.2;margin-bottom:5px}
+.brand-sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt3)}
+.brand-mid{position:relative;z-index:2}
+.brand-mid h2{font-family:'Syne',sans-serif;font-size:15px;color:var(--txt);margin-bottom:14px;line-height:1.5}
+.feat-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.feat-list li{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--txt2)}
+.feat-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.brand-bot{position:relative;z-index:2;font-size:10px;color:var(--txt3)}
+.form-panel{flex:1;background:var(--bg2);padding:44px 40px;display:flex;flex-direction:column;justify-content:center}
+.form-panel h2{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:var(--txt);margin-bottom:4px}
+.form-panel p{font-size:12.5px;color:var(--txt3);margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:10.5px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.fw{position:relative}
+.fw .fi{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;color:var(--txt3)}
+.fw input{width:100%;height:38px;padding:0 38px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .18s}
+.fw input:focus{border-color:rgba(26,111,196,.6);box-shadow:0 0 0 3px rgba(26,111,196,.08)}
+.fw input::placeholder{color:var(--txt3)}
+.toggle{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:14px;cursor:pointer;color:var(--txt3)}
+.remember{display:flex;align-items:center;gap:8px;margin-bottom:22px;font-size:12px;color:var(--txt2);cursor:pointer}
+.remember input{accent-color:var(--blue)}
+.btn-login{width:100%;height:38px;background:var(--blue);border:none;border-radius:var(--rs);color:#fff;font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;transition:all .18s}
+.btn-login:hover{background:var(--bl);box-shadow:0 6px 20px rgba(26,111,196,.35)}
+.btn-login:disabled{opacity:.6;cursor:not-allowed}
+.alert{display:none;padding:10px 13px;border-radius:var(--rs);font-size:12.5px;margin-bottom:16px;align-items:center;gap:9px}
+.alert.show{display:flex}
+.alert.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5}
+.alert.ok{background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.2);color:var(--green)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@media(max-width:640px){.brand{display:none}.form-panel{padding:32px 22px}}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div><div class="bg-grid"></div>
+<div class="card">
+  <div class="brand">
+    <div class="brand-top">
+      <div class="brand-icon">DTP</div>
+      <div class="brand-name">DTP Contábil</div>
+      <div class="brand-sub">ERP Multi-Empresa · v4.0</div>
+    </div>
+    <div class="brand-mid">
+      <h2>Gestão completa do seu escritório contábil</h2>
+      <ul class="feat-list">
+        <li><span class="feat-dot"></span>Carteira de empresas integrada</li>
+        <li><span class="feat-dot"></span>Escrituração contábil e fiscal</li>
+        <li><span class="feat-dot"></span>Obrigações fiscais e prazos</li>
+        <li><span class="feat-dot"></span>Folha de pagamento com INSS/IRRF</li>
+        <li><span class="feat-dot"></span>BPO Financeiro e honorários</li>
+        <li><span class="feat-dot"></span>MongoDB Atlas — dados na nuvem</li>
+      </ul>
+    </div>
+    <div class="brand-bot">DTP Soluções Contábeis · Daniel Teotonio Pinto · CRC-SC</div>
+  </div>
+  <div class="form-panel">
+    <h2>Bem-vindo de volta</h2>
+    <p>Acesse o sistema com suas credenciais</p>
+    <div class="alert" id="alertBox"><span id="alertIco"></span><span id="alertMsg"></span></div>
+    <div class="field">
+      <label>E-mail</label>
+      <div class="fw"><span class="fi">✉</span><input type="email" id="email" placeholder="seu@email.com.br" autocomplete="email"></div>
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <div class="fw">
+        <span class="fi">🔒</span>
+        <input type="password" id="password" placeholder="Sua senha" autocomplete="current-password">
+        <span class="toggle" id="togglePw">👁</span>
+      </div>
+    </div>
+    <label class="remember"><input type="checkbox" id="remember"> Manter conectado</label>
+    <button class="btn-login" id="btnLogin">Entrar no Sistema</button>
+    <a href="/cliente/login.html" style="display:block;text-align:center;margin-top:14px;font-size:12px;color:rgba(59,144,232,.7);text-decoration:none;transition:color .15s" onmouseover="this.style.color='#3b90e8'" onmouseout="this.style.color='rgba(59,144,232,.7)'">→ Acesso do cliente (Portal)</a>
+  </div>
+</div>
+<script src="/js/auth.js"></script>
+<script>
+auth.redirectIfLogged();
+document.getElementById('togglePw').onclick = function(){
+  const i = document.getElementById('password');
+  i.type = i.type==='password'?'text':'password';
+  this.textContent = i.type==='password'?'👁':'🙈';
+};
+document.getElementById('password').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('btnLogin').onclick = doLogin;
+
+function showAlert(msg,type='err'){
+  const b=document.getElementById('alertBox');
+  b.className='alert show '+type;
+  document.getElementById('alertIco').textContent = type==='err'?'⚠':'✓';
+  document.getElementById('alertMsg').textContent = msg;
+}
+
+async function doLogin(){
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const remember = document.getElementById('remember').checked;
+  const btn      = document.getElementById('btnLogin');
+  if(!email||!password){ showAlert('Preencha e-mail e senha.'); return; }
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Verificando...';
+  try{
+    const r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const d = await r.json();
+    if(d.success){
+      auth.save(d.token,d.user,remember);
+      showAlert(`Olá, ${d.user.name.split(' ')[0]}! Redirecionando...`,'ok');
+      setTimeout(()=>window.location.href=(d.redirectTo||'/welcome.html'),800);
+    } else {
+      showAlert(d.message||'Credenciais inválidas.');
+      btn.disabled=false; btn.innerHTML='Entrar no Sistema';
+    }
+  } catch {
+    showAlert('Erro de conexão. Servidor está rodando?');
+    btn.disabled=false; btn.innerHTML='Entrar no Sistema';
+  }
+}
+</script>
+</body>
+</html>

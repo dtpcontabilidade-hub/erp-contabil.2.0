@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Obrigações Federais</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+.tab-strip{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:4px;width:fit-content}
+.tab-btn{padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt2);transition:all .14s;white-space:nowrap}
+.tab-btn.on{background:var(--blue);color:#fff}
+.tab-btn:hover:not(.on){background:rgba(255,255,255,.06);color:var(--txt)}
+/* CARDS DE AÇÃO */
+.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.action-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:16px;transition:all .15s;cursor:pointer}
+.action-card:hover{border-color:var(--bd2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.action-ico{font-size:28px;margin-bottom:10px}
+.action-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--txt);margin-bottom:4px}
+.action-desc{font-size:11px;color:var(--txt3);line-height:1.5}
+.action-badge{display:inline-block;margin-top:8px;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+.ab-sped{background:rgba(26,111,196,.15);color:var(--bl)}
+.ab-guia{background:rgba(0,201,167,.12);color:var(--green)}
+.ab-esoc{background:rgba(139,92,246,.12);color:var(--purple)}
+.ab-conc{background:rgba(245,158,11,.12);color:var(--amber)}
+/* STATUS EVENTOS */
+.ev-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.ev-row:last-child{border-bottom:none}
+.ev-status{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap}
+.ev-pendente{background:rgba(245,158,11,.12);color:var(--amber)}
+.ev-enviado{background:rgba(0,201,167,.12);color:var(--green)}
+.ev-rejeitado{background:rgba(239,68,68,.12);color:var(--red)}
+/* CONCILIAÇÃO */
+.conc-bar{background:var(--bg4);border-radius:20px;height:8px;overflow:hidden;margin:6px 0}
+.conc-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--green),var(--teal));transition:width .8s ease}
+.diff-ok{color:var(--green);font-weight:700;font-family:'JetBrains Mono',monospace}
+.diff-err{color:var(--red);font-weight:700;font-family:'JetBrains Mono',monospace}
+.money{font-family:'JetBrains Mono',monospace;font-size:12px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}.money.a{color:var(--amber)}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.pulsing{animation:blink 1.5s infinite}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+  <header class="topbar">
+    <span class="topbar-title">🏛️ Obrigações Federais & Integrações</span>
+    <span class="tb-badge blue"  id="tbEsoc">— eventos</span>
+    <span class="tb-badge amber" id="tbPend">— pendentes</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="selEmp" style="height:32px;font-size:11px;width:220px" onchange="load()">
+      <option value="">Selecione a empresa...</option>
+    </select>
+    <select class="fin" id="selComp" style="height:32px;font-size:11px;width:145px" onchange="load()"></select>
+  </header>
+
+  <div class="filter-bar" style="gap:8px">
+    <div class="tab-strip">
+      <button class="tab-btn on" id="tab-sped"   onclick="setTab('sped')">📁 SPED</button>
+      <button class="tab-btn"    id="tab-guias"  onclick="setTab('guias')">📄 Guias</button>
+      <button class="tab-btn"    id="tab-esocial" onclick="setTab('esocial')">👥 e-Social</button>
+      <button class="tab-btn"    id="tab-conc"   onclick="setTab('conc')">🏦 Conciliação</button>
+      <button class="tab-btn"    id="tab-nfse"   onclick="setTab('nfse')">📄 NFS-e</button>
+    </div>
+  </div>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+
+    <!-- ── SPED ─────────────────────────────────────────────── -->
+    <div id="pane-sped">
+      <div style="padding:10px 14px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--r);margin-bottom:16px;font-size:12px;color:var(--bl)">
+        📋 Os arquivos SPED gerados devem ser validados e transmitidos pelo <strong>PVA (Programa Validador e Assinador)</strong> da Receita Federal com seu <strong>eCNPJ A1</strong>.
+        <a href="https://sped.rfb.gov.br" target="_blank" style="color:var(--bl);margin-left:8px">🔗 sped.rfb.gov.br</a>
+      </div>
+      <div class="action-grid">
+        <div class="action-card" onclick="gerarSPED('ecd')">
+          <div class="action-ico">📒</div>
+          <div class="action-title">SPED ECD</div>
+          <div class="action-desc">Escrituração Contábil Digital — Bloco 0, I, J, 9. Lançamentos e plano de contas.</div>
+          <span class="action-badge ab-sped">IN RFB 1.774/2017</span>
+        </div>
+        <div class="action-card" onclick="gerarSPED('efd')">
+          <div class="action-ico">🧾</div>
+          <div class="action-title">SPED EFD ICMS/IPI</div>
+          <div class="action-desc">Escrituração Fiscal Digital — Notas fiscais, apuração ICMS, blocos A, C, E.</div>
+          <span class="action-badge ab-sped">Ato COTEPE 09/08</span>
+        </div>
+        <div class="action-card" onclick="gerarSPED('efd-contrib')">
+          <div class="action-ico">💰</div>
+          <div class="action-title">EFD-Contribuições</div>
+          <div class="action-desc">PIS e COFINS — apuração cumulativa e não-cumulativa. Blocos A, C, M, P.</div>
+          <span class="action-badge ab-sped">IN RFB 1.252/2012</span>
+        </div>
+        <div class="action-card" onclick="gerarSPED('ecf')">
+          <div class="action-ico">📊</div>
+          <div class="action-title">ECF — IRPJ/CSLL</div>
+          <div class="action-desc">Escrituração Contábil Fiscal — Imposto de Renda e CSLL. Blocos C, E.</div>
+          <span class="action-badge ab-sped">IN RFB 1.422/2013</span>
+        </div>
+        <div class="action-card" onclick="abrirECAC()">
+          <div class="action-ico">🏛️</div>
+          <div class="action-title">eCac — Receita Federal</div>
+          <div class="action-desc">Acesse o portal da Receita Federal para transmissão e consulta de obrigações.</div>
+          <span class="action-badge ab-sped">Portal Receita</span>
+        </div>
+        <div class="action-card" onclick="abrirSPEDPortal()">
+          <div class="action-ico">🔗</div>
+          <div class="action-title">Portal SPED</div>
+          <div class="action-desc">Acesse o portal SPED para download do PVA e consulta de transmissões.</div>
+          <span class="action-badge ab-sped">sped.rfb.gov.br</span>
+        </div>
+      </div>
+      <!-- Histórico de arquivos gerados -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">📋 Arquivos SPED Gerados</span><button class="btn sm" onclick="load()">↻</button></div>
+        <div id="spedHistorico" style="padding:0 16px 14px">
+          <div class="empty"><div class="empty-s">Gere um arquivo SPED acima para ver o histórico</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GUIAS ──────────────────────────────────────────────── -->
+    <div id="pane-guias" style="display:none">
+      <div class="action-grid">
+        <div class="action-card" onclick="gerarGuia('gps')">
+          <div class="action-ico">👷</div>
+          <div class="action-title">GPS — INSS</div>
+          <div class="action-desc">Guia da Previdência Social. Calculado automaticamente da folha de pagamento.</div>
+          <span class="action-badge ab-guia">Vence dia 20</span>
+        </div>
+        <div class="action-card" onclick="abrirModalDARF()">
+          <div class="action-ico">📋</div>
+          <div class="action-title">DARF</div>
+          <div class="action-desc">Documento de Arrecadação de Receitas Federais — IRPJ, CSLL, PIS, COFINS, IRRF.</div>
+          <span class="action-badge ab-guia">Vence dia 25</span>
+        </div>
+        <div class="action-card" onclick="gerarGuia('das')">
+          <div class="action-ico">🟢</div>
+          <div class="action-title">DAS — Simples Nacional</div>
+          <div class="action-desc">Documento de Arrecadação do Simples Nacional. Inclui todos os tributos unificados.</div>
+          <span class="action-badge ab-guia">Vence dia 20</span>
+        </div>
+        <div class="action-card" onclick="gerarGuia('fgts')">
+          <div class="action-ico">🏦</div>
+          <div class="action-title">FGTS Digital</div>
+          <div class="action-desc">Guia de recolhimento do FGTS. Calculado da folha. Requer eCNPJ para transmissão.</div>
+          <span class="action-badge ab-guia">Vence dia 7</span>
+        </div>
+        <div class="action-card" onclick="gerarGuia('pgdas')">
+          <div class="action-ico">📊</div>
+          <div class="action-title">PGDAS-D — Relatório</div>
+          <div class="action-desc">Pré-apuração do Simples Nacional com partilha dos tributos. Acesse o portal para transmitir.</div>
+          <span class="action-badge ab-guia">Simples Nacional</span>
+        </div>
+        <div class="action-card" onclick="abrirSicalc()">
+          <div class="action-ico">🧮</div>
+          <div class="action-title">SICALC — Acréscimos</div>
+          <div class="action-desc">Calcule multas e juros para DARFs em atraso diretamente no portal da Receita.</div>
+          <span class="action-badge ab-guia">Portal Receita</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── E-SOCIAL ──────────────────────────────────────────── -->
+    <div id="pane-esocial" style="display:none">
+      <div style="padding:10px 14px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:var(--r);margin-bottom:16px;font-size:12px;color:var(--purple)">
+        🔐 Transmissão dos XMLs gerados requer <strong>certificado digital eCNPJ A1/A3</strong>.
+        Acesse <a href="https://esocial.gov.br" target="_blank" style="color:var(--purple)">esocial.gov.br</a> para transmitir com seu eCNPJ.
+      </div>
+      <!-- KPIs eSocial -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="esocKpis"></div>
+      <div class="action-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+        <div class="action-card" onclick="gerarEvento('s1000')">
+          <div class="action-ico">🏢</div>
+          <div class="action-title">S-1000 — Empregador</div>
+          <div class="action-desc">Informações do empregador. Primeiro evento a ser enviado — cadastro da empresa.</div>
+          <span class="action-badge ab-esoc">Inicial/Atualização</span>
+        </div>
+        <div class="action-card" onclick="gerarEvento('s1200')">
+          <div class="action-ico">💰</div>
+          <div class="action-title">S-1200 — Remuneração</div>
+          <div class="action-desc">Remuneração de todos os trabalhadores. Gerado automaticamente da folha de pagamento.</div>
+          <span class="action-badge ab-esoc">Mensal — dia 15</span>
+        </div>
+        <div class="action-card" onclick="openAdmissao()">
+          <div class="action-ico">✅</div>
+          <div class="action-title">S-2200 — Admissão</div>
+          <div class="action-desc">Cadastro de novo trabalhador. Deve ser enviado antes do início das atividades.</div>
+          <span class="action-badge ab-esoc">Por evento</span>
+        </div>
+        <div class="action-card" onclick="openDesligamento()">
+          <div class="action-ico">🚪</div>
+          <div class="action-title">S-2299 — Desligamento</div>
+          <div class="action-desc">Rescisão de contrato de trabalho. Enviar em até 10 dias após o desligamento.</div>
+          <span class="action-badge ab-esoc">Por evento</span>
+        </div>
+        <div class="action-card" onclick="gerarEvento('s5001')">
+          <div class="action-ico">📊</div>
+          <div class="action-title">S-5001 — Bases/Contribs.</div>
+          <div class="action-desc">Informações de bases de cálculo e contribuições previdenciárias do período.</div>
+          <span class="action-badge ab-esoc">Mensal</span>
+        </div>
+        <div class="action-card" onclick="window.open('https://esocial.gov.br','_blank')">
+          <div class="action-ico">🔗</div>
+          <div class="action-title">Portal e-Social</div>
+          <div class="action-desc">Transmita os XMLs gerados pelo portal oficial com seu certificado digital eCNPJ.</div>
+          <span class="action-badge ab-esoc">esocial.gov.br</span>
+        </div>
+      </div>
+      <!-- Fila de eventos -->
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">📋 Fila de Eventos e-Social</span>
+          <button class="btn sm" onclick="loadESocial()">↻ Atualizar</button>
+        </div>
+        <div id="esocialEventos" style="padding:0 16px 14px">
+          <div class="empty"><div class="empty-ic">⏳</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONCILIAÇÃO BANCÁRIA ───────────────────────────────── -->
+    <div id="pane-conc" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">🏦 Nova Conciliação</span>
+          </div>
+          <div style="padding:14px 16px">
+            <div class="fg2">
+              <div class="fgp"><label class="fbl">Banco</label><input class="fin" id="concBanco" placeholder="Ex: Nubank, Itaú..."></div>
+              <div class="fgp"><label class="fbl">Conta</label><input class="fin mono" id="concConta" placeholder="00000-0"></div>
+              <div class="fgp"><label class="fbl">Agência</label><input class="fin mono" id="concAgencia" placeholder="0000"></div>
+              <div class="fgp"><label class="fbl">Saldo Inicial (R$)</label><input class="fin" type="number" id="concSaldoIni" placeholder="0,00"></div>
+            </div>
+            <button class="btn primary" style="width:100%;margin-top:12px" onclick="criarConciliacao()">🏦 Criar Conciliação</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📥 Importar Extrato</span></div>
+          <div style="padding:14px 16px">
+            <div class="fg2">
+              <div class="fgp ffu"><label class="fbl">Conciliação</label>
+                <select class="fin" id="concSelId" style="height:32px"></select>
+              </div>
+              <div class="fgp ffu"><label class="fbl">Formato</label>
+                <select class="fin" id="concFormato">
+                  <option value="ofx">OFX / QIF (Bancário)</option>
+                  <option value="csv">CSV (Excel)</option>
+                </select>
+              </div>
+            </div>
+            <div style="border:2px dashed var(--bd);border-radius:var(--rs);padding:20px;text-align:center;margin-top:10px;cursor:pointer" onclick="document.getElementById('concArquivo').click()">
+              <div style="font-size:24px;margin-bottom:6px">📁</div>
+              <div style="font-size:12px;color:var(--txt2)">Clique ou arraste o arquivo OFX/CSV</div>
+              <div style="font-size:11px;color:var(--txt3);margin-top:4px">Exportado do Internet Banking</div>
+            </div>
+            <input type="file" id="concArquivo" accept=".ofx,.qif,.csv" style="display:none" onchange="importarExtrato()">
+            <button class="btn sm" style="width:100%;margin-top:8px" onclick="matchAutomatico()">🤖 Conciliar Automaticamente</button>
+          </div>
+        </div>
+      </div>
+      <!-- Lista de conciliações -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">🏦 Conciliações Bancárias</span><button class="btn sm" onclick="loadConciliacao()">↻</button></div>
+        <div id="concLista" style="padding:0 16px 14px">
+          <div class="empty"><div class="empty-ic">⏳</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NFS-e ──────────────────────────────────────────────── -->
+    <div id="pane-nfse" style="display:none">
+      <div style="padding:10px 14px;background:rgba(0,201,167,.06);border:1px solid rgba(0,201,167,.25);border-radius:var(--r);margin-bottom:16px;font-size:12px;color:var(--green)">
+        🏙️ Selecione a prefeitura do município onde os serviços foram prestados. Os dados serão enviados ao portal vinculado.
+      </div>
+      <div class="action-grid">
+        <div class="action-card" onclick="abrirNFSe('florianopolis')">
+          <div class="action-ico">🌉</div>
+          <div class="action-title">Florianópolis</div>
+          <div class="action-desc">Portal NFS-e da PMF. Acessa com certificado digital ou login/senha.</div>
+          <span class="action-badge ab-guia">nfse.pmf.sc.gov.br</span>
+        </div>
+        <div class="action-card" onclick="abrirNFSe('joinville')">
+          <div class="action-ico">🏭</div>
+          <div class="action-title">Joinville</div>
+          <div class="action-desc">Portal NFS-e de Joinville SC.</div>
+          <span class="action-badge ab-guia">joinville.sc.gov.br</span>
+        </div>
+        <div class="action-card" onclick="abrirNFSe('blumenau')">
+          <div class="action-ico">🌸</div>
+          <div class="action-title">Blumenau</div>
+          <div class="action-desc">Portal NFS-e de Blumenau SC.</div>
+          <span class="action-badge ab-guia">blumenau.sc.gov.br</span>
+        </div>
+        <div class="action-card" onclick="abrirNFSe('chapeco')">
+          <div class="action-ico">🌾</div>
+          <div class="action-title">Chapecó</div>
+          <div class="action-desc">Portal NFS-e de Chapecó SC.</div>
+          <span class="action-badge ab-guia">chapeco.sc.gov.br</span>
+        </div>
+        <div class="action-card" onclick="abrirNFSe('criciuma')">
+          <div class="action-ico">⛏️</div>
+          <div class="action-title">Criciúma</div>
+          <div class="action-desc">Portal NFS-e de Criciúma SC.</div>
+          <span class="action-badge ab-guia">criciuma.sc.gov.br</span>
+        </div>
+        <div class="action-card" onclick="abrirNFSe('nacional')">
+          <div class="action-ico">🇧🇷</div>
+          <div class="action-title">Portal Nacional NFS-e</div>
+          <div class="action-desc">Portal Nacional para municípios que aderiram ao sistema nacional.</div>
+          <span class="action-badge ab-guia">nfse.gov.br</span>
+        </div>
+      </div>
+      <!-- Emitir NFS-e com dados pré-preenchidos -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">📄 Emitir NFS-e — Dados da Nota</span></div>
+        <div style="padding:14px 16px">
+          <div class="fg2">
+            <div class="fgp ffu"><label class="fbl">Tomador do Serviço *</label><select class="fin" id="nfseEmp"><option value="">Selecione...</option></select></div>
+            <div class="fgp"><label class="fbl">Data da Prestação *</label><input class="fin" type="date" id="nfseData"></div>
+            <div class="fgp"><label class="fbl">Código do Serviço (LC 116)</label><input class="fin mono" id="nfseCodigo" placeholder="Ex: 17.01"></div>
+            <div class="fgp ffu"><label class="fbl">Descrição do Serviço *</label><textarea class="fin" id="nfseDesc" rows="2" style="resize:none" placeholder="Descreva os serviços prestados..."></textarea></div>
+            <div class="fgp"><label class="fbl">Valor do Serviço (R$) *</label><input class="fin" type="number" id="nfseValor" min="0.01" step="0.01" oninput="calcNFSe()"></div>
+            <div class="fgp"><label class="fbl">Dedução (R$)</label><input class="fin" type="number" id="nfseDeduc" value="0" min="0" step="0.01" oninput="calcNFSe()"></div>
+            <div class="fgp"><label class="fbl">Alíquota ISS (%)</label><input class="fin" type="number" id="nfseAliq" value="2" min="0" max="5" step="0.01" oninput="calcNFSe()"></div>
+            <div class="fgp"><label class="fbl">ISS Calculado (R$)</label><input class="fin money g" id="nfseISS" readonly></div>
+            <div class="fgp"><label class="fbl">Município da Prestação</label>
+              <select class="fin" id="nfseMunicipio">
+                <option value="florianopolis">Florianópolis — SC</option>
+                <option value="joinville">Joinville — SC</option>
+                <option value="blumenau">Blumenau — SC</option>
+                <option value="chapeco">Chapecó — SC</option>
+                <option value="criciuma">Criciúma — SC</option>
+                <option value="itajai">Itajaí — SC</option>
+                <option value="nacional">Portal Nacional</option>
+              </select>
+            </div>
+            <div class="fgp"><label class="fbl">Retenção ISS na Fonte</label>
+              <select class="fin" id="nfseRetencao"><option value="N">Não retido</option><option value="S">Retido na fonte</option></select>
+            </div>
+          </div>
+          <!-- Preview -->
+          <div id="nfsePreview" style="display:none;margin-top:14px;padding:12px 14px;background:rgba(0,201,167,.06);border:1px solid rgba(0,201,167,.25);border-radius:var(--rs);font-size:12px"></div>
+          <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn primary" onclick="emitirNFSe()" style="flex:1">📄 Abrir Portal e Emitir NFS-e</button>
+            <button class="btn sm" onclick="calcNFSe()">🧮 Calcular</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- MODAL DARF -->
+<div class="ov" id="ovDARF">
+<div class="modal sm">
+  <div class="m-top">
+    <div class="m-ico b">📋</div>
+    <div class="m-hi"><div class="m-tg">DARF</div><div class="m-tt">Gerar DARF</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovDARF')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div class="fg2">
+      <div class="fgp"><label class="fbl">Código da Receita *</label>
+        <select class="fin" id="darfCodigo">
+          <option value="2362">2362 — IRPJ (Lucro Presumido)</option>
+          <option value="2484">2484 — CSLL (Lucro Presumido)</option>
+          <option value="8109">8109 — PIS/COFINS Cumulativo</option>
+          <option value="5856">5856 — PIS Não-Cumulativo</option>
+          <option value="2172">2172 — COFINS Não-Cumulativa</option>
+          <option value="0561">0561 — IRRF s/ Rendimentos do Trabalho</option>
+          <option value="1931">1931 — IRRF s/ Serviços</option>
+          <option value="4600">4600 — IPI</option>
+          <option value="5952">5952 — IRPJ Estimativa Mensal</option>
+        </select>
+      </div>
+      <div class="fgp ffu"><label class="fbl">Descrição</label><input class="fin" id="darfDesc" placeholder="Descrição do tributo"></div>
+      <div class="fgp"><label class="fbl">Valor (R$) *</label><input class="fin" type="number" id="darfValor" min="0.01" step="0.01"></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" onclick="gerarDARF()">📋 Gerar DARF</button>
+    <button class="mfb" onclick="ui.closeModal('ovDARF')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL S-2200 ADMISSÃO -->
+<div class="ov" id="ovAdm">
+<div class="modal">
+  <div class="m-top">
+    <div class="m-ico g">✅</div>
+    <div class="m-hi"><div class="m-tg">e-Social</div><div class="m-tt">S-2200 — Admissão</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovAdm')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div style="padding:8px 0 12px;font-size:12px;color:var(--txt3)">Preencha os dados do novo trabalhador para gerar o XML de admissão.</div>
+    <div class="fg2">
+      <div class="fgp ffu"><label class="fbl">Nome Completo *</label><input class="fin" id="admNome"></div>
+      <div class="fgp"><label class="fbl">CPF *</label><input class="fin mono" id="admCpf" placeholder="000.000.000-00"></div>
+      <div class="fgp"><label class="fbl">PIS/PASEP</label><input class="fin mono" id="admPis" placeholder="000.00000.00-0"></div>
+      <div class="fgp"><label class="fbl">Data de Nascimento</label><input class="fin" type="date" id="admNasc"></div>
+      <div class="fgp"><label class="fbl">Data de Admissão *</label><input class="fin" type="date" id="admData"></div>
+      <div class="fgp"><label class="fbl">Cargo / Função</label><input class="fin" id="admCargo"></div>
+      <div class="fgp"><label class="fbl">CBO</label><input class="fin mono" id="admCBO" placeholder="2522-05"></div>
+      <div class="fgp"><label class="fbl">Salário Base (R$)</label><input class="fin" type="number" id="admSalario"></div>
+      <div class="fgp"><label class="fbl">Sexo</label><select class="fin" id="admSexo"><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="admBtn" onclick="salvarAdmissao()">📄 Gerar XML S-2200</button>
+    <button class="mfb" onclick="ui.closeModal('ovAdm')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+const g   = id => document.getElementById(id)?.value?.trim()||'';
+const sv  = (id,v) => { const e=document.getElementById(id); if(e) e.value=v||''; };
+const gn  = id => parseFloat(document.getElementById(id)?.value)||0;
+const tok = () => auth.getToken();
+const hdr = () => ({Authorization:'Bearer '+tok()});
+const cur = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+
+const PORTAIS_NFSE = {
+  florianopolis:'https://nfse.pmf.sc.gov.br',
+  joinville:'https://nfse.joinville.sc.gov.br',
+  blumenau:'https://issqn.blumenau.sc.gov.br',
+  chapeco:'https://issqn.chapeco.sc.gov.br',
+  criciuma:'https://nfse.criciuma.sc.gov.br',
+  itajai:'https://nfse.itajai.sc.gov.br',
+  nacional:'https://www.nfse.gov.br',
+};
+
+// INIT
+(()=>{
+  const now=new Date();
+  let o='';
+  for(let i=-1;i<24;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const v=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    o+=`<option value="${v}"${i===0?' selected':''}>${ui.competence(v)}</option>`;
+  }
+  document.getElementById('selComp').innerHTML=o;
+  document.getElementById('nfseData').value=now.toISOString().substring(0,10);
+  document.getElementById('admData').value=now.toISOString().substring(0,10);
+})();
+
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  const o=r.companies.map(c=>`<option value="${c._id}" data-regime="${c.taxRegime}">${c.tradeName||c.legalName}</option>`).join('');
+  ['selEmp','nfseEmp'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML+=(id==='selEmp'?'':'')+o; });
+});
+
+function setTab(tab){
+  if(tab==='sped' && typeof loadHistoricoSPED==='function') setTimeout(loadHistoricoSPED, 100);
+  
+  ['sped','guias','esocial','conc','nfse'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('on',t===tab);
+    document.getElementById('pane-'+t).style.display=t===tab?'block':'none';
+  });
+  if(tab==='esocial') loadESocial();
+  if(tab==='conc')    loadConciliacao();
+}
+
+function load(){
+  const tab=document.querySelector('.tab-btn.on')?.id?.replace('tab-','');
+  if(tab==='esocial') loadESocial();
+  if(tab==='conc')    loadConciliacao();
+}
+
+// ── SPED ──────────────────────────────────────────────────────
+async function gerarSPED(tipo){
+  const emp=g('selEmp'), comp=g('selComp');
+  if(!emp){ ui.toast('⚠️','Selecione uma empresa'); return; }
+
+  const params=new URLSearchParams({company:emp});
+  if(['efd','efd-contrib'].includes(tipo)&&comp) params.set('competence',comp);
+  else { const [a]=comp.split('-'); params.set('exercicio',a); params.set('competence',comp); }
+
+  ui.toast('⏳','Gerando arquivo SPED...');
+  try{
+    const res=await fetch(`/api/sped/${tipo}?`+params,{headers:hdr()});
+    if(!res.ok){ const err=await res.json(); ui.toast('❌',err.message||'Erro'); return; }
+    const blob=await res.blob();
+    const conteudo = await blob.text();
+    const cd=res.headers.get('Content-Disposition')||'';
+    const fname=cd.match(/filename="([^"]+)"/)?.[1]||`SPED_${tipo.toUpperCase()}.txt`;
+
+    // Download do arquivo
+    const novoBlob = new Blob([conteudo], {type:'text/plain'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(novoBlob); a.download=fname; a.click();
+
+    // Registra geração + valida automaticamente
+    const tipoMap={ecd:'ECD',efd:'EFD','efd-contrib':'EFD-Contrib',ecf:'ECF'};
+    const reg = await API.spedTransmissoes.registrar({
+      company: emp,
+      tipo: tipoMap[tipo],
+      competence: ['efd','efd-contrib'].includes(tipo) ? comp : undefined,
+      exercicio: ['ecd','ecf'].includes(tipo) ? comp.split('-')[0] : undefined,
+      conteudo,
+      nomeArquivo: fname,
+    });
+
+    if(reg?.success){
+      const v = reg.validacao || {};
+      const numErros = v.erros?.length || 0;
+      const numAvisos = v.avisos?.length || 0;
+      if(v.valido){
+        ui.toast('✅',`${fname} gerado e validado! Pronto para o PVA.`);
+      } else if(numErros){
+        ui.toast('⚠️',`${fname} gerado, mas tem ${numErros} erro(s) de validação. Veja em Histórico.`);
+      } else {
+        ui.toast('✅',`${fname} gerado!`);
+      }
+    } else {
+      ui.toast('✅',`${fname} baixado! Valide no PVA da Receita Federal.`);
+    }
+
+    // Recarrega histórico
+    if(typeof loadHistoricoSPED==='function') loadHistoricoSPED();
+  }catch(e){ ui.toast('❌','Erro ao gerar: '+e.message); }
+}
+
+// ── HISTÓRICO DE TRANSMISSÕES SPED ────────────────────────────
+async function loadHistoricoSPED(){
+  const emp = g('selEmp');
+  const hist = document.getElementById('spedHistorico');
+  if(!hist) return;
+  const r = await API.spedTransmissoes.list(emp ? {company:emp, limit:20} : {limit:20});
+  if(!r?.success){ return; }
+  const items = r.items || [];
+  if(!items.length){
+    hist.innerHTML = '<div class="empty"><div class="empty-ic">📋</div><div class="empty-s">Nenhum SPED gerado ainda</div></div>';
+    return;
+  }
+  hist.innerHTML = items.map(t => {
+    const v = t.validacao || {};
+    const erros = v.erros?.length || 0;
+    const avisos = v.avisos?.length || 0;
+    const stCor = {gerado:'var(--amber)',validado:'var(--bl)',transmitido:'var(--purple)',aceito:'var(--green)',rejeitado:'var(--red)',retificado:'var(--amber)'}[t.status]||'var(--txt3)';
+    const stLbl = {gerado:'Gerado',validado:'Validado',transmitido:'Transmitido',aceito:'Aceito',rejeitado:'Rejeitado',retificado:'Retificado'}[t.status]||t.status;
+    const dataGer = t.arquivo?.dataGeracao ? new Date(t.arquivo.dataGeracao).toLocaleString('pt-BR') : '—';
+    const empNome = t.company?.tradeName || t.company?.legalName || '—';
+    return `<div class="ev-row" style="cursor:pointer" onclick="verDetalhesSPED('${t._id}')">
+      <span style="font-size:18px">📁</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--txt)">${t.tipo} · ${t.arquivo?.nome||'sem nome'}</div>
+        <div style="font-size:11px;color:var(--txt3)">${empNome} · ${dataGer}</div>
+        ${erros>0?`<div style="font-size:10px;color:var(--red);margin-top:2px">⚠️ ${erros} erro(s) de validação</div>`:''}
+        ${avisos>0&&erros===0?`<div style="font-size:10px;color:var(--amber);margin-top:2px">⚡ ${avisos} aviso(s)</div>`:''}
+      </div>
+      <span class="ev-status" style="background:${stCor}20;color:${stCor}">${stLbl}</span>
+    </div>`;
+  }).join('');
+}
+
+async function verDetalhesSPED(id){
+  const r = await API.spedTransmissoes.get(id);
+  if(!r?.success){ ui.toast('❌','Erro ao buscar detalhes'); return; }
+  const t = r.item;
+  const v = t.validacao || {};
+  const erros = v.erros || [];
+  const avisos = v.avisos || [];
+
+  // Modal
+  const html = `
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:24px;max-width:700px;margin:0 auto">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px">
+        <div>
+          <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;color:var(--txt)">${t.tipo} — ${t.arquivo?.nome||''}</div>
+          <div style="font-size:12px;color:var(--txt3);margin-top:3px">${t.company?.legalName||''} · Status: <strong>${t.status}</strong></div>
+        </div>
+        <button class="btn sm" onclick="document.getElementById('detalheSPED').style.display='none'">✕</button>
+      </div>
+
+      ${erros.length?`<div style="margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:8px">⚠️ ${erros.length} Erro(s) de Validação</div>
+        ${erros.map(e=>`<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:12px">
+          <strong style="color:var(--red)">${e.tipo||''}</strong> ${e.registro?'<span style="color:var(--txt3)">(reg. '+e.registro+')</span>':''}
+          <div style="color:var(--txt2);margin-top:3px">${e.mensagem}</div>
+        </div>`).join('')}
+      </div>`:''}
+
+      ${avisos.length?`<div style="margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:8px">⚡ ${avisos.length} Aviso(s)</div>
+        ${avisos.map(a=>`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:12px">
+          <strong style="color:var(--amber)">${a.tipo||''}</strong>
+          <div style="color:var(--txt2);margin-top:3px">${a.mensagem}</div>
+        </div>`).join('')}
+      </div>`:''}
+
+      ${t.status === 'transmitido' || t.status === 'aceito' ? `
+        <div style="background:rgba(0,201,167,.06);border:1px solid rgba(0,201,167,.2);border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px">
+          <strong style="color:var(--green)">✅ Transmitido</strong>
+          <div style="margin-top:4px">Protocolo: <strong>${t.transmissao?.protocolo||'—'}</strong></div>
+          <div>Data: ${t.transmissao?.dataTransmissao?new Date(t.transmissao.dataTransmissao).toLocaleString('pt-BR'):'—'}</div>
+          <div>Por: ${t.transmissao?.transmitidoPorNome||'—'}</div>
+        </div>` : `
+        <div style="background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:8px;padding:14px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:600;color:var(--bl);margin-bottom:10px">📤 Registrar Transmissão no PVA</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div>
+              <label style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em">Protocolo / Recibo</label>
+              <input id="protSPED" class="fin" placeholder="Ex: 1234567890" style="margin-top:4px">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em">Data da Transmissão</label>
+              <input id="dataTransSPED" type="datetime-local" class="fin" style="margin-top:4px">
+            </div>
+          </div>
+          <textarea id="obsSPED" class="fin" placeholder="Observações (opcional)" style="width:100%;min-height:50px;margin-bottom:10px"></textarea>
+          <button class="btn primary sm" onclick="confirmarTransmissaoSPED('${t._id}')">📤 Marcar como Transmitido</button>
+        </div>`}
+
+      <div style="font-size:11px;color:var(--txt3);text-align:right">
+        Total: ${v.totalRegistros||0} registros · Hash: ${(t.arquivo?.hash||'').substring(0,16)}...
+      </div>
+    </div>`;
+
+  let modal = document.getElementById('detalheSPED');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'detalheSPED';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding-top:60px;overflow-y:auto';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = html;
+  modal.style.display = 'flex';
+
+  // Preencher data atual
+  const dataInput = document.getElementById('dataTransSPED');
+  if(dataInput){
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    dataInput.value = now.toISOString().slice(0,16);
+  }
+}
+
+async function confirmarTransmissaoSPED(id){
+  const protocolo = document.getElementById('protSPED').value.trim();
+  const data = document.getElementById('dataTransSPED').value;
+  const observacoes = document.getElementById('obsSPED').value.trim();
+  if(!protocolo){ ui.toast('⚠️','Informe o protocolo'); return; }
+
+  const r = await API.spedTransmissoes.transmitir(id, {
+    protocolo,
+    dataTransmissao: data ? new Date(data).toISOString() : new Date().toISOString(),
+    observacoes,
+  });
+  if(r?.success){
+    ui.toast('✅','Transmissão registrada!');
+    document.getElementById('detalheSPED').style.display='none';
+    loadHistoricoSPED();
+  } else {
+    ui.toast('❌',r?.message||'Erro');
+  }
+}
+
+// ── GUIAS ─────────────────────────────────────────────────────
+async function gerarGuia(tipo){
+  const emp=g('selEmp'), comp=g('selComp');
+  if(!emp){ ui.toast('⚠️','Selecione uma empresa'); return; }
+  const params=new URLSearchParams({company:emp,competence:comp});
+  ui.toast('⏳','Gerando guia...');
+  try{
+    const res=await fetch(`/api/guias/${tipo}?`+params,{headers:hdr()});
+    if(!res.ok){ const err=await res.json().catch(()=>({})); ui.toast('❌',err.message||'Erro'); return; }
+    const html=await res.text();
+    const w=window.open('','_blank','width=900,height=700');
+    w.document.write(html); w.document.close();
+    setTimeout(()=>w.print(),600);
+    ui.toast('✅','Guia gerada! Use Ctrl+P para imprimir ou salvar como PDF.');
+  }catch(e){ ui.toast('❌','Erro: '+e.message); }
+}
+
+function abrirModalDARF(){ ui.openModal('ovDARF'); }
+
+async function gerarDARF(){
+  const emp=g('selEmp'),comp=g('selComp');
+  const cod=g('darfCodigo'),desc=g('darfDesc'),val=g('darfValor');
+  if(!emp||!val){ ui.toast('⚠️','Selecione empresa e informe o valor'); return; }
+  const params=new URLSearchParams({company:emp,competence:comp,codigoReceita:cod,descricao:desc,valor:val});
+  ui.closeModal('ovDARF');
+  const res=await fetch('/api/guias/darf?'+params,{headers:hdr()});
+  if(!res.ok){ ui.toast('❌','Erro'); return; }
+  const html=await res.text();
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(html); w.document.close();
+  setTimeout(()=>w.print(),600);
+  ui.toast('✅','DARF gerado!');
+}
+
+function abrirSicalc(){ window.open('https://www3.bcb.gov.br/CALCJUROS','_blank'); }
+function abrirECAC()   { window.open('https://cav.receita.fazenda.gov.br','_blank'); }
+function abrirSPEDPortal(){ window.open('https://sped.rfb.gov.br','_blank'); }
+
+// ── E-SOCIAL ──────────────────────────────────────────────────
+async function loadESocial(){
+  const emp=g('selEmp');
+  const params=new URLSearchParams(); if(emp) params.set('company',emp);
+
+  const [listR,statsR]=await Promise.all([
+    fetch('/api/esocial?'+params,{headers:hdr()}).then(r=>r.json()).catch(()=>null),
+    fetch('/api/esocial/stats?'+params,{headers:hdr()}).then(r=>r.json()).catch(()=>null),
+  ]);
+
+  if(statsR?.success){
+    const s=statsR.stats;
+    document.getElementById('tbEsoc').textContent=s.total+' eventos';
+    document.getElementById('tbPend').textContent=s.pendentes+' pendentes';
+    document.getElementById('esocKpis').innerHTML=[
+      {l:'Total',v:s.total,c:'bl'},{l:'Pendentes',v:s.pendentes,c:'am'},
+      {l:'Enviados',v:s.enviados,c:'gn'},{l:'Rejeitados',v:s.rejeitados,c:'rd'},
+    ].map(k=>`<div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;text-align:center">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:4px">${k.l}</div>
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--${k.c==='bl'?'blue':k.c==='am'?'amber':k.c==='gn'?'green':'red'})">${k.v}</div>
+    </div>`).join('');
+  }
+
+  if(!listR?.success||!listR.items.length){
+    document.getElementById('esocialEventos').innerHTML='<div class="empty"><div class="empty-ic">📋</div><div class="empty-t">Nenhum evento gerado</div><div class="empty-s">Gere os eventos acima e transmita pelo portal e-Social com seu eCNPJ</div></div>';
+    return;
+  }
+
+  document.getElementById('esocialEventos').innerHTML=`<table class="tbl">
+    <thead><tr><th>Tipo</th><th>Empregado</th><th>Competência</th><th>Data</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${listR.items.map(e=>`
+      <tr>
+        <td><span class="badge b">${e.tipo}</span></td>
+        <td style="font-size:12px">${e.empregado||'—'}</td>
+        <td style="font-size:12px;color:var(--txt3)">${e.competence?ui.competence(e.competence):'—'}</td>
+        <td style="font-size:12px;color:var(--txt3)">${ui.date(e.dataEvento)}</td>
+        <td><span class="ev-status ev-${e.status}">${e.status}</span></td>
+        <td><div style="display:flex;gap:4px">
+          <div style="width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4)" onclick="downloadEvento('${e._id}')" title="Baixar XML">⬇</div>
+          <div style="width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4)" onclick="marcarEnviado('${e._id}')" title="Marcar como Enviado">✅</div>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+async function gerarEvento(tipo){
+  const emp=g('selEmp'),comp=g('selComp');
+  if(!emp){ ui.toast('⚠️','Selecione uma empresa'); return; }
+  ui.toast('⏳','Gerando evento...');
+  const params=new URLSearchParams({company:emp,competence:comp});
+  const res=await fetch(`/api/esocial/${tipo}?`+params,{headers:hdr()}).then(r=>r.json()).catch(()=>null);
+  if(res?.success){ ui.toast('✅',res.message); loadESocial(); }
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+async function downloadEvento(id){
+  const res=await fetch(`/api/esocial/${id}/download`,{headers:hdr()});
+  if(!res.ok){ ui.toast('❌','Erro'); return; }
+  const xml=await res.text();
+  const cd=res.headers.get('Content-Disposition')||'';
+  const fname=cd.match(/filename="([^"]+)"/)?.[1]||`evento_${id}.xml`;
+  const a=document.createElement('a');
+  a.href='data:application/xml;charset=utf-8,'+encodeURIComponent(xml);
+  a.download=fname; a.click();
+  ui.toast('⬇️','XML baixado! Transmita pelo portal e-Social com seu eCNPJ.');
+}
+
+async function marcarEnviado(id){
+  await fetch(`/api/esocial/${id}/status`,{method:'PUT',headers:{...hdr(),'Content-Type':'application/json'},body:JSON.stringify({status:'enviado',protocolo:'MANUAL-'+Date.now()})}).then(r=>r.json());
+  ui.toast('✅','Marcado como enviado'); loadESocial();
+}
+
+function openAdmissao(){ document.getElementById('admData').value=new Date().toISOString().substring(0,10); ui.openModal('ovAdm'); }
+function openDesligamento(){ ui.toast('ℹ️','Use a tela de Folha de Pagamento para registrar demissões e gerar o S-2299 automaticamente'); }
+
+async function salvarAdmissao(){
+  const emp=g('selEmp');
+  if(!emp){ ui.toast('⚠️','Selecione uma empresa'); return; }
+  const nome=g('admNome'),cpf=g('admCpf'),data=g('admData');
+  if(!nome||!cpf||!data){ ui.toast('⚠️','Preencha nome, CPF e data de admissão'); return; }
+  const btn=document.getElementById('admBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  const empData={name:nome,cpf,pis:g('admPis'),nascimento:g('admNasc'),dataAdmissao:data,role:g('admCargo'),cbo:g('admCBO'),salaryBase:parseFloat(g('admSalario'))||0,sexo:g('admSexo')};
+  const res=await fetch('/api/esocial/s2200',{method:'POST',headers:{...hdr(),'Content-Type':'application/json'},body:JSON.stringify({company:emp,empregadoData:empData})}).then(r=>r.json()).catch(()=>null);
+  btn.disabled=false; btn.innerHTML='📄 Gerar XML S-2200';
+  if(res?.success){ ui.toast('✅',res.message); ui.closeModal('ovAdm'); loadESocial(); }
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+// ── CONCILIAÇÃO ───────────────────────────────────────────────
+async function criarConciliacao(){
+  const emp=g('selEmp'),comp=g('selComp');
+  if(!emp){ ui.toast('⚠️','Selecione uma empresa'); return; }
+  const res=await fetch('/api/conciliacao',{method:'POST',headers:{...hdr(),'Content-Type':'application/json'},body:JSON.stringify({company:emp,competence:comp,banco:g('concBanco'),conta:g('concConta'),agencia:g('concAgencia'),saldoInicial:parseFloat(g('concSaldoIni'))||0})}).then(r=>r.json()).catch(()=>null);
+  if(res?.success){ ui.toast('✅','Conciliação criada!'); loadConciliacao(); }
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+async function loadConciliacao(){
+  const emp=g('selEmp'),comp=g('selComp');
+  const params=new URLSearchParams(); if(emp) params.set('company',emp); if(comp) params.set('competence',comp);
+  const r=await fetch('/api/conciliacao?'+params,{headers:hdr()}).then(r=>r.json()).catch(()=>null);
+  if(!r?.success) return;
+  const items=r.items||[];
+  // Atualiza select de conciliações
+  document.getElementById('concSelId').innerHTML='<option value="">Selecione...</option>'+items.map(i=>`<option value="${i._id}">${i.banco||'—'} · ${ui.competence(i.competence)}</option>`).join('');
+  if(!items.length){
+    document.getElementById('concLista').innerHTML='<div class="empty"><div class="empty-ic">🏦</div><div class="empty-t">Nenhuma conciliação</div><div class="empty-s">Crie uma conciliação acima</div></div>';
+    return;
+  }
+  document.getElementById('concLista').innerHTML=`<table class="tbl">
+    <thead><tr><th>Banco / Conta</th><th>Competência</th><th>Saldo Inicial</th><th>Saldo Final</th><th>Diferença</th><th>Itens</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${items.map(i=>{
+      const diffOk=Math.abs(i.diferenca||0)<0.02;
+      return `<tr>
+        <td style="font-size:12px;font-weight:500">${i.banco||'—'} · ${i.conta||'—'}</td>
+        <td style="font-size:12px">${ui.competence(i.competence)}</td>
+        <td class="money">${cur(i.saldoInicial||0)}</td>
+        <td class="money g">${cur(i.saldoFinal||0)}</td>
+        <td class="${diffOk?'diff-ok':'diff-err'}">${diffOk?'✅ OK':cur(i.diferenca||0)}</td>
+        <td style="font-size:12px;color:var(--txt3)">—</td>
+        <td><span style="font-size:11px;font-weight:600;color:${i.status==='conciliada'?'var(--green)':i.status==='revisao'?'var(--amber)':'var(--txt3)'}">${i.status}</span></td>
+        <td><div style="display:flex;gap:4px;justify-content:flex-end">
+          <div style="width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4)" onclick="matchAutomaticoById('${i._id}')" title="Conciliar auto">🤖</div>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+async function importarExtrato(){
+  const arquivo=document.getElementById('concArquivo')?.files?.[0];
+  const concId=g('concSelId');
+  if(!arquivo||!concId){ ui.toast('⚠️','Selecione a conciliação e o arquivo'); return; }
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    const conteudo=e.target.result;
+    const formato=g('concFormato');
+    ui.toast('⏳','Importando extrato...');
+    let res;
+    if(formato==='ofx'){
+      res=await fetch(`/api/conciliacao/${concId}/ofx`,{method:'POST',headers:{...hdr(),'Content-Type':'application/json'},body:JSON.stringify({conteudo})}).then(r=>r.json()).catch(()=>null);
+    } else {
+      const linhas=conteudo.split('\n').slice(1).map(l=>l.split(';').map(c=>c.replace(/["']/g,'').trim())).filter(l=>l.length>=3&&l[0]);
+      res=await fetch(`/api/conciliacao/${concId}/csv`,{method:'POST',headers:{...hdr(),'Content-Type':'application/json'},body:JSON.stringify({linhas,mapeamento:{data:0,historico:1,valor:2}})}).then(r=>r.json()).catch(()=>null);
+    }
+    if(res?.success){ ui.toast('✅',res.message); loadConciliacao(); }
+    else ui.toast('❌',res?.message||'Erro ao importar');
+  };
+  reader.readAsText(arquivo,'ISO-8859-1');
+}
+
+async function matchAutomaticoById(id){
+  ui.toast('⏳','Conciliando automaticamente...');
+  const res=await fetch(`/api/conciliacao/${id}/match`,{method:'POST',headers:hdr()}).then(r=>r.json()).catch(()=>null);
+  if(res?.success){ ui.toast('✅',`${res.matched} itens conciliados! Diferença: ${cur(res.diferenca)}`); loadConciliacao(); }
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+async function matchAutomatico(){
+  const id=g('concSelId'); if(!id){ ui.toast('⚠️','Selecione uma conciliação'); return; }
+  matchAutomaticoById(id);
+}
+
+// ── NFS-e ─────────────────────────────────────────────────────
+function calcNFSe(){
+  const val=gn('nfseValor'), deduc=gn('nfseDeduc'), aliq=gn('nfseAliq');
+  const base=Math.max(0,val-deduc);
+  const iss=Math.round(base*(aliq/100)*100)/100;
+  document.getElementById('nfseISS').value=iss.toFixed(2);
+  const prev=document.getElementById('nfsePreview');
+  if(val>0){
+    prev.style.display='block';
+    prev.innerHTML=`<strong>Preview:</strong> Valor: ${cur(val)} · Base ISS: ${cur(base)} · ISS (${aliq}%): ${cur(iss)} · Líquido: ${cur(val-iss)}`;
+  }
+}
+
+function abrirNFSe(municipio){
+  const url=PORTAIS_NFSE[municipio];
+  if(url) window.open(url,'_blank');
+}
+
+function emitirNFSe(){
+  const mun=g('nfsePortal')||g('nfseMunicipio');
+  const url=PORTAIS_NFSE[mun];
+  if(!url){ ui.toast('⚠️','Selecione o município'); return; }
+  calcNFSe();
+  ui.toast('📄','Abrindo portal da prefeitura... Faça login com seu eCNPJ e preencha os dados da nota.');
+  setTimeout(()=>window.open(url,'_blank'),500);
+}
+
+loadESocial();
+</script>
+</body>
+</html>

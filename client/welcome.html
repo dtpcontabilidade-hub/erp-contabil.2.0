@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP Contábil ERP — Bem-vindo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0c1625;--bg2:#101753;--bg3:#152135;
+  --blue:#1a6fc4;--green:#00c9a7;--amber:#f59e0b;
+  --red:#ef4444;--purple:#8b5cf6;--teal:#14b8a6;
+  --txt:#e8f0fc;--txt2:#a0b4c8;--txt3:#5a7a96;
+  --bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.12);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(26,111,196,.3)}50%{box-shadow:0 0 50px rgba(26,111,196,.6)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes barIn{from{width:0}to{width:var(--w)}}
+
+/* FUNDO */
+.orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:.15;animation:float 7s ease-in-out infinite;pointer-events:none}
+.orb1{width:500px;height:500px;background:var(--blue);top:-120px;left:-80px}
+.orb2{width:400px;height:400px;background:var(--purple);bottom:-100px;right:-80px;animation-delay:3s}
+.orb3{width:300px;height:300px;background:var(--teal);top:45%;left:45%;animation-delay:5s}
+
+/* LAYOUT */
+.wrap{display:flex;width:100%;height:100%;position:relative;z-index:1}
+
+/* ESQUERDA */
+.left{
+  width:440px;min-width:440px;flex-shrink:0;
+  display:flex;flex-direction:column;
+  padding:40px 44px;
+  border-right:1px solid var(--bd);
+  background:linear-gradient(180deg,rgba(26,111,196,.05),transparent);
+  overflow:hidden;
+}
+.a1{animation:fadeUp .5s .0s both}
+.a2{animation:fadeUp .5s .12s both}
+.a3{animation:fadeUp .5s .24s both}
+.a4{animation:fadeUp .5s .36s both}
+
+/* BRAND */
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.brand-icon{
+  width:46px;height:46px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),var(--teal));
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  animation:glow 3s ease-in-out infinite;
+}
+.brand-name{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--txt)}
+.brand-name b{color:var(--blue)}
+.brand-sub{font-size:11px;color:var(--txt3);margin-left:58px;margin-bottom:28px;letter-spacing:.04em}
+
+/* SAUDAÇÃO */
+.saud-hi{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--blue);font-weight:600;margin-bottom:6px}
+.saud-nome{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--txt);line-height:1.2;margin-bottom:6px}
+.saud-cargo{font-size:12px;color:var(--txt3);margin-bottom:16px}
+.saud-data{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:6px 14px;border-radius:20px;
+  background:rgba(26,111,196,.1);border:1px solid rgba(26,111,196,.2);
+  font-size:11.5px;color:var(--blue);font-weight:500;
+}
+
+/* MÓDULOS */
+.mod-block{margin-top:24px}
+.mod-tit{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--txt3);font-weight:600;margin-bottom:10px}
+.mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mod-link{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:8px;
+  background:rgba(255,255,255,.03);border:1px solid var(--bd);
+  font-size:11.5px;color:var(--txt2);cursor:pointer;
+  text-decoration:none;transition:all .13s;
+}
+.mod-link:hover{background:rgba(26,111,196,.1);border-color:rgba(26,111,196,.3);color:var(--txt)}
+.mod-link.new{border-color:rgba(0,201,167,.2);background:rgba(0,201,167,.03)}
+.mod-link.new::after{content:'NEW';font-size:8px;font-weight:800;color:var(--green);margin-left:auto;letter-spacing:.05em}
+.mod-ic{width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+
+/* VERSÃO */
+.ver{margin-top:auto;padding-top:20px}
+.ver-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 11px;border-radius:7px;margin-bottom:7px;
+  background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);
+  font-size:11px;color:var(--purple);font-weight:500;
+}
+.ver-info{font-size:11px;color:var(--txt3);line-height:1.7}
+
+/* DIREITA */
+.right{
+  flex:1;display:flex;flex-direction:column;
+  padding:32px 36px;overflow-y:auto;
+}
+
+/* KPIS */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.kpi{
+  background:var(--bg3);border:1px solid var(--bd);border-radius:12px;
+  padding:15px 17px;position:relative;overflow:hidden;transition:all .15s;
+}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-2px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kbl::before{background:linear-gradient(90deg,var(--blue),var(--teal))}
+.kgn::before{background:linear-gradient(90deg,var(--green),var(--teal))}
+.kam::before{background:linear-gradient(90deg,var(--amber),#f97316)}
+.kpu::before{background:linear-gradient(90deg,var(--purple),var(--blue))}
+.krd::before{background:linear-gradient(90deg,var(--red),var(--amber))}
+.ktl::before{background:linear-gradient(90deg,var(--teal),var(--green))}
+.kpi-ic{font-size:20px;margin-bottom:8px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-l{font-size:10px;color:var(--txt3);margin-top:4px}
+.kpi-s{font-size:10px;margin-top:3px;font-weight:600}
+.s-up{color:var(--green)}.s-dn{color:var(--red)}.s-ne{color:var(--txt3)}
+
+/* ALERTAS */
+.alerta{
+  display:flex;align-items:center;gap:11px;
+  padding:11px 15px;border-radius:9px;margin-bottom:7px;
+  font-size:12px;cursor:pointer;transition:filter .13s;
+}
+.alerta:hover{filter:brightness(1.12)}
+.alerta:last-child{margin-bottom:0}
+.a-rd{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2)}
+.a-am{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)}
+.a-gn{background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.2)}
+.a-bl{background:rgba(26,111,196,.08);border:1px solid rgba(26,111,196,.2)}
+.a-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.a-rd .a-dot{background:var(--red);animation:blink 1.4s infinite}
+.a-am .a-dot{background:var(--amber)}
+.a-gn .a-dot{background:var(--green)}
+.a-bl .a-dot{background:var(--blue)}
+.a-txt{flex:1;color:var(--txt2);line-height:1.4}
+.a-txt strong{color:var(--txt)}
+
+/* GRID MEIO */
+.mid-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+
+/* CARD */
+.wcard{background:var(--bg3);border:1px solid var(--bd);border-radius:11px;overflow:hidden}
+.wcard-h{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.wcard-t{font-size:12.5px;font-weight:600;color:var(--txt)}
+.wcard-a{font-size:11.5px;color:var(--blue);border:none;background:none;cursor:pointer;padding:0;text-decoration:none}
+.wcard-a:hover{text-decoration:underline}
+.wcard-b{padding:14px 16px}
+
+/* OBRIG */
+.ob-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);
+  cursor:pointer;
+}
+.ob-item:last-child{border-bottom:none}
+.ob-item:hover .ob-nome{color:var(--blue)}
+.ob-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ob-info{flex:1;min-width:0}
+.ob-nome{font-size:12.5px;font-weight:500;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .12s}
+.ob-meta{font-size:10.5px;color:var(--txt3);margin-top:2px}
+.day-p{font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;white-space:nowrap;flex-shrink:0}
+.dp-rd{background:rgba(239,68,68,.15);color:var(--red)}
+.dp-am{background:rgba(245,158,11,.15);color:var(--amber)}
+.dp-gn{background:rgba(0,201,167,.12);color:var(--green)}
+.st-p{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+
+/* EMPRESA */
+.emp-item{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);
+  cursor:pointer;
+}
+.emp-item:last-child{border-bottom:none}
+.emp-av{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:10px;color:#fff;flex-shrink:0}
+.emp-n{font-size:12.5px;font-weight:500;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emp-s{font-size:10px;color:var(--txt3);margin-top:1px}
+.money-g{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);flex-shrink:0}
+
+/* BARRAS */
+.bar-row{margin-bottom:10px}
+.bar-lbl{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+.bar-track{background:rgba(255,255,255,.06);border-radius:20px;height:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:20px;transition:width 1s ease}
+
+/* BOTTOM */
+.bottom{margin-top:auto;padding-top:16px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.go-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:13px 28px;border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),var(--teal));
+  color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;
+  border:none;cursor:pointer;text-decoration:none;
+  box-shadow:0 8px 28px rgba(26,111,196,.4);transition:all .18s;
+}
+.go-btn:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(26,111,196,.55)}
+
+.empty-w{padding:16px;text-align:center;font-size:12px;color:var(--txt3)}
+.ld-spin{display:inline-block;width:12px;height:12px;border:2px solid var(--bd);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div class="wrap">
+
+  <!-- ── ESQUERDA ── -->
+  <div class="left">
+
+    <div class="a1">
+      <div class="brand">
+        <div class="brand-icon">&#x1F9FE;</div>
+        <div class="brand-name">DTP <b>Contabil</b></div>
+      </div>
+      <div class="brand-sub">ERP Multi-Empresa &middot; Escritorio Contabil Digital</div>
+    </div>
+
+    <div class="a2">
+      <div class="saud-hi">Bem-vindo de volta</div>
+      <div class="saud-nome" id="wNome">Carregando...</div>
+      <div class="saud-cargo" id="wCargo">DTP Contabil</div>
+      <div class="saud-data" id="wData">&#x1F4C5; ...</div>
+    </div>
+
+    <div class="a3">
+      <div class="mod-block">
+        <div class="mod-tit">Acesso Rapido</div>
+        <div class="mod-grid">
+          <a href="/index.html"               class="mod-link"><div class="mod-ic">&#x25C8;</div>Dashboard</a>
+          <a href="/empresas.html"             class="mod-link"><div class="mod-ic">&#x1F3E2;</div>Empresas</a>
+          <a href="/lancamentos.html"          class="mod-link"><div class="mod-ic">&#x1F4D2;</div>Lancamentos</a>
+          <a href="/obrigacoes.html"           class="mod-link"><div class="mod-ic">&#x1F4CB;</div>Obrigacoes</a>
+          <a href="/folha.html"                class="mod-link"><div class="mod-ic">&#x1F465;</div>Folha</a>
+          <a href="/honorarios.html"           class="mod-link"><div class="mod-ic">&#x1F4B0;</div>Honorarios</a>
+          <a href="/escrituracao.html"         class="mod-link"><div class="mod-ic">&#x1F4DA;</div>Escrituracao</a>
+          <a href="/demonstrativos.html"       class="mod-link"><div class="mod-ic">&#x1F4CA;</div>Demonstrativos</a>
+          <a href="/auditoria.html"            class="mod-link"><div class="mod-ic">&#x1F50D;</div>Auditoria</a>
+          <a href="/fpa.html"                  class="mod-link"><div class="mod-ic">&#x1F4C8;</div>FP&amp;A</a>
+          <a href="/obrigacoes-federais.html"  class="mod-link new"><div class="mod-ic">&#x1F3DB;</div>SPED</a>
+          <a href="/controladoria.html"        class="mod-link new"><div class="mod-ic">&#x1F39B;</div>Controladoria</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="ver a4">
+      <div class="ver-badge">&#x1F680; DTP Contabil ERP v4.0</div>
+      <div class="ver-info">
+        Node.js + Express + MongoDB Atlas<br>
+        15 modulos &middot; Multi-empresa &middot; Portal do Cliente<br>
+        <span id="wUltAt"></span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── DIREITA ── -->
+  <div class="right">
+
+    <!-- KPIs -->
+    <div class="kpi-row a1">
+      <div class="kpi kbl"><div class="kpi-ic">&#x1F3E2;</div><div class="kpi-v" id="kEmp">-</div><div class="kpi-l">Empresas Ativas</div><div class="kpi-s s-ne" id="kEmpS">carregando</div></div>
+      <div class="kpi kpu"><div class="kpi-ic">&#x1F4B0;</div><div class="kpi-v" id="kHon">-</div><div class="kpi-l">Honorarios/Mes</div><div class="kpi-s s-up">recorrente</div></div>
+      <div class="kpi kgn"><div class="kpi-ic">&#x2705;</div><div class="kpi-v" id="kPag">-</div><div class="kpi-l">Clientes em Dia</div><div class="kpi-s s-up" id="kPagS"></div></div>
+      <div class="kpi kam"><div class="kpi-ic">&#x23F3;</div><div class="kpi-v" id="kObr">-</div><div class="kpi-l">Obrigacoes 7d</div><div class="kpi-s" id="kObrS">vencendo</div></div>
+      <div class="kpi krd"><div class="kpi-ic">&#x1F6A8;</div><div class="kpi-v" id="kIna">-</div><div class="kpi-l">Inadimplentes</div><div class="kpi-s s-dn" id="kInaS"></div></div>
+      <div class="kpi ktl"><div class="kpi-ic">&#x1F4C8;</div><div class="kpi-v" id="kLtv">-</div><div class="kpi-l">LTV Anual</div><div class="kpi-s s-ne">estimado</div></div>
+    </div>
+
+    <!-- Alertas -->
+    <div id="alertasWrap" style="margin-bottom:14px" class="a2">
+      <div class="alerta a-bl"><span class="ld-spin"></span><span class="a-txt">Verificando alertas...</span></div>
+    </div>
+
+    <!-- Grid meio -->
+    <div class="mid-grid a3">
+
+      <!-- Obrigações -->
+      <div class="wcard">
+        <div class="wcard-h">
+          <span class="wcard-t">&#x23F0; Obrigacoes Proximas</span>
+          <a href="/obrigacoes.html" class="wcard-a">Ver todas</a>
+        </div>
+        <div class="wcard-b" id="obrigWrap">
+          <div class="empty-w"><span class="ld-spin"></span>Carregando...</div>
+        </div>
+      </div>
+
+      <!-- Empresas -->
+      <div class="wcard">
+        <div class="wcard-h">
+          <span class="wcard-t">&#x1F3E2; Carteira de Clientes</span>
+          <a href="/empresas.html" class="wcard-a">Ver todas</a>
+        </div>
+        <div class="wcard-b" id="empWrap">
+          <div class="empty-w"><span class="ld-spin"></span>Carregando...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Regime -->
+    <div class="wcard a4" style="margin-bottom:14px">
+      <div class="wcard-h"><span class="wcard-t">&#x1F4CA; Carteira por Regime Tributario</span></div>
+      <div class="wcard-b" id="regimeWrap">
+        <div class="empty-w"><span class="ld-spin"></span>Carregando...</div>
+      </div>
+    </div>
+
+    <!-- Bottom -->
+    <div class="bottom">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:3px" id="bbMsg">Sistema pronto</div>
+        <div style="font-size:11px;color:var(--txt3)" id="bbHint">Todos os modulos operacionais</div>
+      </div>
+      <a href="/index.html" class="go-btn">
+        &#x25C8; Acessar o ERP &rarr;
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Scripts PRIMEIRO, depois o inline -->
+<script src="/js/auth.js"></script>
+<script>
+// Verifica autenticação
+if (!auth.isLogged()) { window.location.href = '/login.html'; }
+
+const BASE = '/api';
+const tok  = () => auth.getToken();
+const hdr  = () => ({ Authorization: 'Bearer ' + tok() });
+
+const CORES = ['#1a6fc4','#00c9a7','#8b5cf6','#f59e0b','#ef4444','#14b8a6'];
+const REG_L = {simples:'Simples Nacional',presumido:'Lucro Presumido',real:'Lucro Real',mei:'MEI',imune:'Imune'};
+const REG_C = {simples:'#1a6fc4',presumido:'#f59e0b',real:'#8b5cf6',mei:'#00c9a7',imune:'#14b8a6'};
+const ST_C  = {pendente:'#f59e0b',em_andamento:'#3b90e8',entregue:'#00c9a7',pago:'#00c9a7',atrasado:'#ef4444',dispensado:'#5a7a96'};
+const ST_L  = {pendente:'Pendente',em_andamento:'Em and.',entregue:'Entregue',pago:'Pago',atrasado:'Atrasado',dispensado:'N/A'};
+
+function curK(v) {
+  if (v >= 1000000) return 'R$ ' + (v/1000000).toFixed(1) + 'M';
+  if (v >= 1000)    return 'R$ ' + (v/1000).toFixed(1) + 'k';
+  return 'R$ ' + Math.abs(v||0).toFixed(2).replace('.',',');
+}
+function cur(v) {
+  return 'R$ ' + Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtData(d) {
+  return new Date(d).toLocaleDateString('pt-BR');
+}
+function ini(s) {
+  return (s||'?').substring(0,2).toUpperCase();
+}
+
+// ── DADOS DO USUÁRIO ─────────────────────────────────────────
+(function(){
+  var user = auth.getUser() || {};
+  var now  = new Date();
+  var h    = now.getHours();
+  var saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+  var cargos = {admin:'Administrador',contador:'Contador',assistente:'Assistente Contabil',fiscal:'Analista Fiscal',dp:'Analista DP'};
+  document.getElementById('wNome').textContent    = saud + ', ' + (user.name || 'Usuario') + '!';
+  document.getElementById('wCargo').textContent   = (cargos[user.role] || 'Usuario') + ' - DTP Contabil';
+  document.getElementById('wData').textContent    = now.toLocaleDateString('pt-BR', {weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('wUltAt').textContent   = 'Acesso em: ' + now.toLocaleString('pt-BR');
+  document.getElementById('bbMsg').textContent    = 'Ola, ' + (user.name ? user.name.split(' ')[0] : 'usuario') + '! Sistema pronto.';
+})();
+
+// ── LOAD DADOS ───────────────────────────────────────────────
+async function load() {
+  try {
+    var results = await Promise.all([
+      fetch(BASE + '/companies/stats', { headers: hdr() }).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+      fetch(BASE + '/duties/upcoming?days=14', { headers: hdr() }).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+      fetch(BASE + '/companies?limit=5', { headers: hdr() }).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+    ]);
+    var statsR = results[0], dutiesR = results[1], cosR = results[2];
+
+    // ── KPIs
+    if (statsR && statsR.success) {
+      var s = statsR.stats;
+      document.getElementById('kEmp').textContent = s.active || 0;
+      document.getElementById('kEmpS').textContent = (s.total || 0) + ' total';
+      document.getElementById('kHon').textContent  = curK(s.monthlyFee || 0);
+      document.getElementById('kPag').textContent  = s.byStatus && s.byStatus.pago ? s.byStatus.pago : 0;
+      document.getElementById('kPagS').textContent = s.total ? Math.round(((s.byStatus && s.byStatus.pago || 0) / s.total) * 100) + '% da carteira' : '';
+      document.getElementById('kIna').textContent  = s.byStatus && s.byStatus.atrasado ? s.byStatus.atrasado : 0;
+      document.getElementById('kInaS').textContent = s.byStatus && s.byStatus.atrasado > 0 ? 'requer atencao' : 'nenhum';
+      document.getElementById('kLtv').textContent  = curK((s.monthlyFee || 0) * 12);
+
+      // Regime
+      var regimes = s.byRegime || [];
+      var maxR = regimes.length ? regimes[0].count : 1;
+      if (regimes.length) {
+        var html = '';
+        for (var i = 0; i < regimes.length; i++) {
+          var r = regimes[i];
+          var lbl = REG_L[r._id] || r._id;
+          var cor = REG_C[r._id] || '#1a6fc4';
+          var pct = Math.round(r.count / maxR * 100);
+          html += '<div class="bar-row">';
+          html += '<div class="bar-lbl"><span style="color:' + cor + '">&#x25CF; ' + lbl + '</span><strong style="color:var(--txt)">' + r.count + ' emp.</strong></div>';
+          html += '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + cor + '"></div></div>';
+          html += '</div>';
+        }
+        document.getElementById('regimeWrap').innerHTML = html;
+      } else {
+        document.getElementById('regimeWrap').innerHTML = '<div class="empty-w">Nenhuma empresa cadastrada</div>';
+      }
+    }
+
+    // ── Alertas e obrigações
+    var hoje = new Date(); hoje.setHours(0,0,0,0);
+    var duties = dutiesR && dutiesR.duties ? dutiesR.duties : [];
+    var atrs = duties.filter(function(d){ return d.status === 'atrasado'; });
+    var pend = duties.filter(function(d){ return d.status === 'pendente' || d.status === 'em_andamento'; });
+    var inad = statsR && statsR.stats && statsR.stats.byStatus ? (statsR.stats.byStatus.atrasado || 0) : 0;
+
+    document.getElementById('kObr').textContent = pend.length + atrs.length;
+    document.getElementById('kObrS').textContent = atrs.length > 0 ? atrs.length + ' em atraso' : 'vencendo em breve';
+    document.getElementById('kObrS').className = 'kpi-s ' + (atrs.length > 0 ? 's-dn' : 's-ne');
+
+    var alertHtml = '';
+    if (atrs.length > 0) {
+      alertHtml += '<div class="alerta a-rd" onclick="location.href=\'/obrigacoes.html\'"><div class="a-dot"></div><div class="a-txt"><strong>' + atrs.length + ' obrigacao(oes) em atraso</strong> — requer acao imediata</div><span style="color:var(--txt3)">&#x2192;</span></div>';
+    }
+    if (inad > 0) {
+      alertHtml += '<div class="alerta a-rd" onclick="location.href=\'/honorarios.html\'"><div class="a-dot"></div><div class="a-txt"><strong>' + inad + ' cliente(s) inadimplente(s)</strong> — honorarios em atraso</div><span style="color:var(--txt3)">&#x2192;</span></div>';
+    }
+    if (pend.length > 0) {
+      alertHtml += '<div class="alerta a-am" onclick="location.href=\'/obrigacoes.html\'"><div class="a-dot"></div><div class="a-txt"><strong>' + pend.length + ' obrigacao(oes) pendente(s)</strong> nos proximos 14 dias</div><span style="color:var(--txt3)">&#x2192;</span></div>';
+    }
+    if (!atrs.length && !inad && !pend.length) {
+      alertHtml += '<div class="alerta a-gn"><div class="a-dot"></div><div class="a-txt"><strong>Tudo em dia!</strong> Nenhuma obrigacao urgente ou inadimplencia</div></div>';
+    }
+    alertHtml += '<div class="alerta a-bl" onclick="location.href=\'/obrigacoes-federais.html\'"><div class="a-dot"></div><div class="a-txt"><strong>SPED e e-Social:</strong> Modulos de transmissao com eCNPJ disponiveis</div><span style="color:var(--txt3)">&#x2192;</span></div>';
+    document.getElementById('alertasWrap').innerHTML = alertHtml;
+
+    // ── Lista obrigações
+    var urgTop = atrs.concat(pend).sort(function(a,b){ return new Date(a.dueDate)-new Date(b.dueDate); }).slice(0,5);
+    if (urgTop.length) {
+      var obHtml = '';
+      for (var j = 0; j < urgTop.length; j++) {
+        var d = urgTop[j];
+        var diff = Math.ceil((new Date(d.dueDate) - hoje) / 86400000);
+        var dayHtml = '';
+        if (d.status === 'atrasado')       dayHtml = '<span class="day-p dp-rd">' + Math.abs(diff) + 'd atraso</span>';
+        else if (diff <= 0)                dayHtml = '<span class="day-p dp-rd">Hoje!</span>';
+        else if (diff <= 3)                dayHtml = '<span class="day-p dp-am">' + diff + 'd</span>';
+        else                               dayHtml = '<span class="day-p dp-gn">' + diff + 'd</span>';
+        var stCor = ST_C[d.status] || '#5a7a96';
+        var stLbl = ST_L[d.status] || d.status;
+        var coNome = (d.company && (d.company.tradeName || d.company.legalName)) || 'DTP';
+        obHtml += '<div class="ob-item" onclick="location.href=\'/obrigacoes.html\'">';
+        obHtml += '<div class="ob-dot" style="background:' + stCor + '"></div>';
+        obHtml += '<div class="ob-info"><div class="ob-nome">' + d.name + '</div><div class="ob-meta">' + coNome + ' &middot; ' + fmtData(d.dueDate) + '</div></div>';
+        obHtml += dayHtml;
+        obHtml += '<span class="st-p" style="background:rgba(255,255,255,.05);color:' + stCor + '">' + stLbl + '</span>';
+        obHtml += '</div>';
+      }
+      document.getElementById('obrigWrap').innerHTML = obHtml;
+    } else {
+      document.getElementById('obrigWrap').innerHTML = '<div class="empty-w">&#x1F389; Nenhuma obrigacao urgente!</div>';
+    }
+
+    // ── Lista empresas
+    var cos = cosR && cosR.companies ? cosR.companies : [];
+    if (cos.length) {
+      var eHtml = '';
+      for (var k = 0; k < cos.length; k++) {
+        var co = cos[k];
+        var cor2 = CORES[k % CORES.length];
+        var stCo = co.status === 'pago' ? '#00c9a7' : co.status === 'atrasado' ? '#ef4444' : '#f59e0b';
+        eHtml += '<div class="emp-item" onclick="location.href=\'/empresas.html\'">';
+        eHtml += '<div class="emp-av" style="background:' + cor2 + '">' + ini(co.legalName) + '</div>';
+        eHtml += '<div style="flex:1;min-width:0"><div class="emp-n">' + co.legalName + '</div><div class="emp-s">' + (REG_L[co.taxRegime] || co.taxRegime || '-') + '</div></div>';
+        eHtml += '<span class="money-g">' + cur(co.fee || 0) + '</span>';
+        eHtml += '<span style="font-size:10px;font-weight:600;color:' + stCo + ';margin-left:6px">' + (co.status || '-') + '</span>';
+        eHtml += '</div>';
+      }
+      document.getElementById('empWrap').innerHTML = eHtml;
+    } else {
+      document.getElementById('empWrap').innerHTML = '<div class="empty-w">Nenhuma empresa cadastrada</div>';
+    }
+
+    var total = statsR && statsR.stats ? statsR.stats.total || 0 : 0;
+    document.getElementById('bbHint').textContent = total + ' empresa(s) na carteira - Sistema operacional';
+
+  } catch(e) {
+    console.error('Welcome load error:', e);
+    document.getElementById('alertasWrap').innerHTML = '<div class="alerta a-bl"><div class="a-dot"></div><span class="a-txt">Conectando ao banco de dados...</span></div>';
+  }
+}
+
+load();
+</script>
+</body>
+</html>

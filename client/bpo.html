@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — BPO Financeiro</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+html,body{overflow:hidden}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:6px}
+.tab-btn{padding:8px 16px;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--bg3);color:var(--txt2);transition:all .14s;white-space:nowrap}
+.tab-btn:hover{border-color:var(--bd2);color:var(--txt)}
+.tab-btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* ── KPI ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.kpi-s{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .15s}
+.kpi-s:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi-s::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-s.gn::before{background:var(--green)}.kpi-s.rd::before{background:var(--red)}
+.kpi-s.am::before{background:var(--amber)}.kpi-s.bl::before{background:var(--blue)}
+.kpi-s.pu::before{background:var(--purple)}.kpi-s.tl::before{background:var(--teal)}
+.kpi-sl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-sv{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-ss{font-size:10px;color:var(--txt3);margin-top:4px}
+
+/* ── ALERTA VENCIDOS ── */
+.venc-banner{display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:var(--rs);padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--red);display:flex;align-items:center;gap:8px;cursor:pointer}
+.venc-banner.hide{display:none}
+
+/* ── FILTROS ── */
+.filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+.val-rec{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--green);font-weight:500}
+.val-desp{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--red);font-weight:500}
+.overdue-row td{background:rgba(239,68,68,.04)}
+
+/* ── PROGRESS BAR (DRE) ── */
+.bar-w{background:var(--bg4);border-radius:20px;height:5px;overflow:hidden;margin-top:4px}
+.bar-f{height:100%;border-radius:20px;transition:width .9s ease}
+
+/* ── DRE TABLE ── */
+.dre-section{border-bottom:1px solid var(--bd);padding-bottom:12px;margin-bottom:12px}
+.dre-section:last-child{border-bottom:none;margin-bottom:0}
+.dre-hd{font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid}
+.dre-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px}
+.dre-row:last-child{border-bottom:none}
+.dre-total{display:flex;justify-content:space-between;padding:9px 0 0;font-weight:700;font-size:13px;font-family:'Syne',sans-serif}
+.dre-result{display:flex;justify-content:space-between;padding:14px 0 0;font-weight:800;font-size:16px;font-family:'Syne',sans-serif;border-top:2px solid var(--bd)}
+
+/* ── FLUXO CHART ── */
+.fluxo-months{display:flex;align-items:flex-end;gap:8px;height:180px;padding:0 8px}
+.fluxo-bar-g{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.fluxo-bars{display:flex;align-items:flex-end;gap:2px;flex:1;width:100%}
+.fluxo-col{border-radius:3px 3px 0 0;min-height:3px;transition:height .7s cubic-bezier(.4,0,.2,1);cursor:pointer;flex:1}
+.fluxo-lbl{font-size:9px;color:var(--txt3);text-align:center}
+.fluxo-saldo{font-size:9px;font-weight:700;text-align:center}
+
+/* ── PAINEL LATERAL (detalhe) ── */
+.side-panel{position:fixed;top:0;right:-400px;width:400px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd2);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.3)}
+.side-panel.open{right:0}
+.sp-top{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sp-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sp-tt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--txt)}
+.sp-st{font-size:11px;color:var(--txt3);margin-top:2px}
+.sp-close{margin-left:auto;background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer;padding:4px}
+.sp-body{flex:1;overflow-y:auto;padding:18px 20px}
+.sp-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px}
+.sp-row:last-child{border-bottom:none}
+.sp-lbl{color:var(--txt3)}.sp-val{color:var(--txt);font-weight:500;text-align:right}
+.sp-foot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px}
+
+/* ── STATUS BADGE ── */
+.st-pend{background:rgba(245,158,11,.12);color:var(--amber);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.st-pago{background:rgba(0,201,167,.12);color:var(--green);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.st-atrs{background:rgba(239,68,68,.12);color:var(--red);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.st-inat{background:rgba(255,255,255,.06);color:var(--txt3);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+
+/* ── AÇÕES RÁPIDAS LINHA ── */
+.ra{display:flex;gap:4px;justify-content:flex-end}
+.rb{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.rb:hover{border-color:var(--bd2);background:var(--bg5)}
+.rb.ok:hover{background:rgba(0,201,167,.15);border-color:rgba(0,201,167,.3)}
+.rb.ed:hover{background:rgba(59,144,232,.15);border-color:rgba(59,144,232,.3)}
+.rb.del:hover{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.25)}
+.rb.det:hover{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.25)}
+
+/* ── LEGENDA ── */
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--txt2)}
+.leg-dot{width:10px;height:10px;border-radius:2px}
+
+/* ── SUMMARY MINI ── */
+.sum-mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.sum-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px}
+.sum-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:4px}
+.sum-val{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+.sum-sub{font-size:10px;color:var(--txt3);margin-top:3px}
+
+/* ── EMPTY ── */
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}
+.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}
+.empty-s{font-size:12px}
+
+/* ── SPIN ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+  <main class="main-wrap">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <span class="topbar-title">💳 BPO Financeiro</span>
+      <span class="tb-badge green" id="tbSaldo">R$ 0,00</span>
+      <span class="tb-badge red"   id="tbVenc" style="cursor:pointer" onclick="filtrarVencidos()">0 vencidos</span>
+      <div class="topbar-spacer"></div>
+      <select class="fin" style="height:32px;font-size:11px;width:220px" id="selEmp" onchange="trocarEmpresa()">
+        <option value="">Todas as empresas</option>
+      </select>
+      <button class="btn primary" onclick="abrirNovo('receita')">+ Receita</button>
+      <button class="btn green"   onclick="abrirNovo('despesa')">+ Despesa</button>
+    </header>
+
+    <!-- FILTER BAR / TABS -->
+    <div class="filter-bar" style="gap:8px;flex-wrap:wrap">
+      <div class="tabs">
+        <button class="tab-btn on" id="tb-cr"  onclick="setTab('cr',this)">💰 A Receber</button>
+        <button class="tab-btn"    id="tb-cp"  onclick="setTab('cp',this)">💸 A Pagar</button>
+        <button class="tab-btn"    id="tb-fc"  onclick="setTab('fc',this)">📈 Fluxo de Caixa</button>
+        <button class="tab-btn"    id="tb-dre" onclick="setTab('dre',this)">📊 DRE Gerencial</button>
+      </div>
+      <div class="topbar-spacer"></div>
+      <select class="fin" style="height:28px;font-size:11px;width:155px" id="selComp" onchange="load()"></select>
+      <select class="fin" style="height:28px;font-size:11px;width:130px" id="selStatus" onchange="load()">
+        <option value="">Todos os status</option>
+        <option value="pendente">⏳ Pendente</option>
+        <option value="pago">✅ Pago</option>
+        <option value="atrasado">❌ Atrasado</option>
+      </select>
+      <select class="fin" style="height:28px;font-size:11px;width:160px" id="selCat" onchange="load()">
+        <option value="">Todas as categorias</option>
+      </select>
+    </div>
+
+    <div class="page-body" style="overflow-y:auto">
+
+      <!-- BANNER VENCIDOS -->
+      <div class="venc-banner hide" id="vencBanner" onclick="filtrarVencidos()">
+        <span>⚠️</span><span id="vencTxt">Você tem lançamentos vencidos — clique para ver</span>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-strip" id="kpiRow">
+        <div class="kpi-s gn"><div class="kpi-sl">Total Receitas</div><div class="kpi-sv">—</div><div class="kpi-ss">lançamentos</div></div>
+        <div class="kpi-s rd"><div class="kpi-sl">Total Despesas</div><div class="kpi-sv">—</div><div class="kpi-ss">lançamentos</div></div>
+        <div class="kpi-s am"><div class="kpi-sl">A Receber</div><div class="kpi-sv">—</div><div class="kpi-ss">pendente</div></div>
+        <div class="kpi-s am"><div class="kpi-sl">A Pagar</div><div class="kpi-sv">—</div><div class="kpi-ss">pendente</div></div>
+        <div class="kpi-s tl"><div class="kpi-sl">Recebido</div><div class="kpi-sv">—</div><div class="kpi-ss">confirmado</div></div>
+        <div class="kpi-s bl"><div class="kpi-sl">Resultado</div><div class="kpi-sv">—</div><div class="kpi-ss">rec - desp</div></div>
+      </div>
+
+      <!-- ─── PANE: A RECEBER ─────────────────────────── -->
+      <div id="pane-cr">
+        <div class="sum-mini" id="sumCR"></div>
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">💰 Contas a Receber</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;color:var(--txt3)" id="crCount">—</span>
+              <button class="btn sm" onclick="exportarCSV('cr')">⬇ CSV</button>
+            </div>
+          </div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr>
+              <th>Empresa</th><th>Descrição</th><th>Categoria</th>
+              <th>Competência</th><th>Vencimento</th><th>Valor</th>
+              <th>Forma Pgto</th><th>Status</th><th style="text-align:center">Ações</th>
+            </tr></thead>
+            <tbody id="crBody"></tbody>
+          </table></div>
+          <div class="card-pag" id="crPag" style="display:none">
+            <span style="font-size:11px;color:var(--txt3)" id="crPagInfo"></span>
+            <div style="display:flex;gap:4px" id="crPagBtns"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── PANE: A PAGAR ──────────────────────────── -->
+      <div id="pane-cp" style="display:none">
+        <div class="sum-mini" id="sumCP"></div>
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">💸 Contas a Pagar</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;color:var(--txt3)" id="cpCount">—</span>
+              <button class="btn sm" onclick="exportarCSV('cp')">⬇ CSV</button>
+            </div>
+          </div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr>
+              <th>Empresa</th><th>Descrição</th><th>Categoria</th>
+              <th>Competência</th><th>Vencimento</th><th>Valor</th>
+              <th>Forma Pgto</th><th>Status</th><th style="text-align:center">Ações</th>
+            </tr></thead>
+            <tbody id="cpBody"></tbody>
+          </table></div>
+          <div class="card-pag" id="cpPag" style="display:none">
+            <span style="font-size:11px;color:var(--txt3)" id="cpPagInfo"></span>
+            <div style="display:flex;gap:4px" id="cpPagBtns"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── PANE: FLUXO DE CAIXA ──────────────────── -->
+      <div id="pane-fc" style="display:none">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-h">
+            <span class="card-ht">📈 Fluxo de Caixa</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <select class="fin" style="height:28px;font-size:11px;width:90px" id="selAno" onchange="loadFluxo()"></select>
+              <div style="display:flex;gap:12px">
+                <span class="leg"><span class="leg-dot" style="background:var(--green)"></span>Receitas</span>
+                <span class="leg"><span class="leg-dot" style="background:var(--red)"></span>Despesas</span>
+                <span class="leg"><span class="leg-dot" style="background:var(--blue)"></span>Saldo</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:16px 20px">
+            <canvas id="chartFluxo" height="200"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">📋 Detalhamento Mensal</span>
+            <button class="btn sm" onclick="exportarFluxoCSV()">⬇ CSV</button>
+          </div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Mês</th><th>Receitas</th><th>Despesas</th><th>Saldo Mês</th><th>Saldo Acumulado</th><th>Margem</th></tr></thead>
+            <tbody id="fluxoBody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ─── PANE: DRE ──────────────────────────────── -->
+      <div id="pane-dre" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px" id="dreKpis"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <!-- Gráficos DRE -->
+          <div class="card">
+            <div class="card-h"><span class="card-ht">📥 Receitas por Categoria</span></div>
+            <div style="padding:14px 17px" id="dreRec"></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-ht">📤 Despesas por Categoria</span></div>
+            <div style="padding:14px 17px" id="dreDesp"></div>
+          </div>
+        </div>
+        <!-- DRE Formal -->
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">📊 DRE — Demonstração do Resultado do Exercício</span>
+            <button class="btn sm" onclick="exportarDRE()">⬇ Exportar</button>
+          </div>
+          <div style="padding:18px 22px" id="dreTable"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══ PAINEL LATERAL DE DETALHE ════════════════════ -->
+<div class="side-panel" id="sidePanel">
+  <div class="sp-top">
+    <div class="sp-ico" id="spIco">💰</div>
+    <div>
+      <div class="sp-tt" id="spTt">—</div>
+      <div class="sp-st" id="spSt">—</div>
+    </div>
+    <button class="sp-close" onclick="fecharDetalhe()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+<div id="overlay" onclick="fecharDetalhe()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199"></div>
+
+<!-- ═══ MODAL FORM ═══════════════════════════════════ -->
+<div class="ov" id="ovForm">
+<div class="modal">
+  <div class="m-top">
+    <div class="m-ico" id="fIco" style="font-size:20px">💰</div>
+    <div class="m-hi"><div class="m-tg" id="fTg">BPO Financeiro</div><div class="m-tt" id="fTt">Novo Lançamento</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovForm')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div class="fg2">
+      <div class="fgp ffu"><label class="fbl">Empresa *</label><select class="fin" id="fEmp"><option value="">Selecione...</option></select></div>
+      <div class="fgp"><label class="fbl">Tipo *</label>
+        <select class="fin" id="fTipo" onchange="atualizarCategorias()">
+          <option value="receita">💰 Receita</option>
+          <option value="despesa">💸 Despesa</option>
+        </select>
+      </div>
+      <div class="fgp ffu"><label class="fbl">Descrição *</label><input class="fin" id="fDesc" placeholder="Descreva o lançamento..."></div>
+      <div class="fgp"><label class="fbl">Categoria *</label><select class="fin" id="fCatForm"></select></div>
+      <div class="fgp"><label class="fbl">Valor (R$) *</label><input class="fin" type="number" id="fValor" min="0.01" step="0.01" placeholder="0,00"></div>
+      <div class="fgp"><label class="fbl">Data Emissão *</label><input class="fin" type="date" id="fData"></div>
+      <div class="fgp"><label class="fbl">Vencimento *</label><input class="fin" type="date" id="fVenc"></div>
+      <div class="fgp"><label class="fbl">Competência</label><input class="fin" type="month" id="fComp"></div>
+      <div class="fgp"><label class="fbl">Status</label>
+        <select class="fin" id="fStatus">
+          <option value="pendente">⏳ Pendente</option>
+          <option value="pago">✅ Pago</option>
+          <option value="atrasado">❌ Atrasado</option>
+        </select>
+      </div>
+      <div class="fgp"><label class="fbl">Forma de Pagamento</label>
+        <select class="fin" id="fForma">
+          <option value="">—</option><option>PIX</option><option>Boleto</option>
+          <option>Transferência</option><option>Cheque</option><option>Dinheiro</option><option>Cartão</option>
+        </select>
+      </div>
+      <div class="fgp"><label class="fbl">Nº Documento / NF</label><input class="fin" id="fDoc" placeholder="NF, Recibo, Contrato..."></div>
+      <div class="fgp"><label class="fbl">Centro de Custo</label><input class="fin" id="fCentro" placeholder="Ex: Administrativo, Operacional..."></div>
+      <div class="fgp ffu"><label class="fbl">Observações</label><textarea class="fin" id="fObs" rows="2" style="resize:none" placeholder="Observações adicionais..."></textarea></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="fBtn" onclick="salvar()">💾 Salvar</button>
+    <button class="mfb" onclick="ui.closeModal('ovForm')">Cancelar</button>
+    <div class="mfs"></div>
+    <span style="font-size:11px;color:var(--txt3)">* obrigatório</span>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL BAIXA ══════════════════════════════════ -->
+<div class="ov" id="ovBaixa">
+<div class="modal sm">
+  <div class="m-top">
+    <div class="m-ico g" style="background:rgba(0,201,167,.15);font-size:18px">✅</div>
+    <div class="m-hi"><div class="m-tg">Registrar Baixa / Pagamento</div><div class="m-tt" id="bxTt">—</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovBaixa')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div class="fg2">
+      <div class="fgp"><label class="fbl">Data de Pagamento *</label><input class="fin" type="date" id="bxData"></div>
+      <div class="fgp"><label class="fbl">Forma de Pagamento *</label>
+        <select class="fin" id="bxForma">
+          <option>PIX</option><option>Boleto</option><option>Transferência</option>
+          <option>Dinheiro</option><option>Cartão</option><option>Cheque</option>
+        </select>
+      </div>
+      <div class="fgp ffu"><label class="fbl">Observações da Baixa</label><input class="fin" id="bxObs" placeholder="Opcional..."></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb g" id="bxBtn" onclick="confirmarBaixa()">✅ Confirmar Baixa</button>
+    <button class="mfb" onclick="ui.closeModal('ovBaixa')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL CONFIRMAÇÃO ════════════════════════════ -->
+<div class="ov" id="ovConf">
+<div class="modal sm">
+  <div class="conf-bd"><div class="conf-ic" id="cIc">⚠️</div><div class="conf-tt" id="cTt">Confirmar</div><div class="conf-ms" id="cMs"></div></div>
+  <div class="conf-ft"><button class="mfb r" id="cBtn">Confirmar</button><button class="mfb" onclick="ui.closeModal('ovConf')">Cancelar</button></div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+const cur = v => 'R$\u00a0' + Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const dt  = s => { if(!s) return '—'; return new Date(s.length===10?s+'T12:00:00':s).toLocaleDateString('pt-BR'); };
+const g   = id => { const e=document.getElementById(id); return e?e.value.trim():''; };
+const sv  = (id,v) => { const e=document.getElementById(id); if(e) e.value=v||''; };
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const CATS_REC = ['Honorários Contábeis','Serviços Prestados','Vendas de Produtos','Aluguéis Recebidos','Juros e Rendimentos','Devolução de Despesas','Outras Receitas'];
+const CATS_DESP = ['Folha de Pagamento','Pró-labore','Aluguel','Energia / Água / Internet','Fornecedores','Impostos e Taxas','Marketing','Manutenção','Despesas Bancárias','Combustível / Transporte','Software e Assinaturas','Material de Escritório','Outras Despesas'];
+
+let editId=null, baixaId=null, curTab='cr', detItem=null, fluxoChart=null;
+let allItems=[]; // cache para exportação
+
+// ── INIT ────────────────────────────────────────────────────
+(()=>{
+  const now = new Date();
+  let ao=''; for(let i=now.getFullYear();i>=now.getFullYear()-3;i--) ao+=`<option value="${i}"${i===now.getFullYear()?' selected':''}>${i}</option>`;
+  document.getElementById('selAno').innerHTML = ao;
+  let co='<option value="">Todas as competências</option>';
+  for(let i=0;i<24;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const v=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    co+=`<option value="${v}"${i===0?' selected':''}>${MESES[d.getMonth()]}/${d.getFullYear()}</option>`;
+  }
+  document.getElementById('selComp').innerHTML=co;
+  document.getElementById('fData').value = now.toISOString().substring(0,10);
+  document.getElementById('fVenc').value = now.toISOString().substring(0,10);
+  document.getElementById('fComp').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('bxData').value = now.toISOString().substring(0,10);
+  atualizarCategorias();
+})();
+
+// Carrega empresas
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success) return;
+  const cats = new Set();
+  const o = r.companies.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  ['selEmp','fEmp'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=(id==='selEmp'?'<option value="">Todas as empresas</option>':'<option value="">Selecione...</option>')+o;
+  });
+});
+
+function atualizarCategorias(){
+  const tipo = g('fTipo');
+  const cats = tipo==='receita' ? CATS_REC : CATS_DESP;
+  document.getElementById('fCatForm').innerHTML = cats.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('fIco').textContent = tipo==='receita'?'💰':'💸';
+  // Atualiza filtro de categorias
+  const all = [...CATS_REC,...CATS_DESP];
+  document.getElementById('selCat').innerHTML = '<option value="">Todas as categorias</option>' + all.map(c=>`<option>${c}</option>`).join('');
+}
+
+function trocarEmpresa(){ load(); loadSummary(); }
+
+function setTab(tab,el){
+  curTab=tab;
+  ['cr','cp','fc','dre'].forEach(t=>{
+    document.getElementById('tb-'+t).className='tab-btn';
+    document.getElementById('pane-'+t).style.display='none';
+  });
+  el.className='tab-btn on';
+  document.getElementById('pane-'+tab).style.display='block';
+  if(tab==='fc') loadFluxo();
+  else if(tab==='dre') loadDRE();
+  else load();
+  loadSummaryStats();
+}
+
+// ── SUMMARY KPIs ─────────────────────────────────────────────
+async function loadSummaryStats(){
+  // Resumo estatístico sempre visível
+  const emp=g('selEmp'),comp=g('selComp');
+  const p={}; if(emp) p.company=emp; if(comp) p.competence=comp;
+  const r = await API.bpo.summary(p);
+  const s = r?.summary || {totalReceitas:0,totalDespesas:0,saldo:0,totalVencidos:0,totalCR:0,totalCP:0,qtdCR:0,qtdCP:0};
+  const el = document.getElementById('kpiRow');
+  if(el){
+    el.innerHTML = [
+      {l:'A Receber',v:cur(s.totalCR||0),s:(s.qtdCR||0)+' lançamentos',c:'gn'},
+      {l:'A Pagar',v:cur(s.totalCP||0),s:(s.qtdCP||0)+' lançamentos',c:'rd'},
+      {l:'Saldo Previsto',v:cur((s.totalCR||0)-(s.totalCP||0)),s:'diferença',c:(s.totalCR||0)>=(s.totalCP||0)?'gn':'rd'},
+      {l:'Vencidos',v:cur(s.totalVencidos||0),s:'em atraso',c:'am'},
+      {l:'Total Receitas',v:cur(s.totalReceitas||0),s:'BPO período',c:'bl'},
+    ].map(k=>`<div class="kpi-s ${k.c}"><div class="kpi-sl">${k.l}</div><div class="kpi-sv">${k.v}</div><div class="kpi-ss">${k.s}</div></div>`).join('');
+  }
+}
+async function loadSummary(){
+  const emp=g('selEmp'), comp=g('selComp');
+  const p={}; if(emp) p.company=emp; if(comp) p.competence=comp;
+  const r = await API.bpo.summary(p);
+  if(!r?.success) return;
+  const s = r.summary;
+
+  document.getElementById('tbSaldo').textContent = cur(s.saldoCaixa||0);
+  const vencEl = document.getElementById('tbVenc');
+  vencEl.textContent = (s.vencidos||0)+' vencidos';
+  vencEl.className = s.vencidos > 0 ? 'tb-badge red' : 'tb-badge green';
+
+  // Banner vencidos
+  const banner = document.getElementById('vencBanner');
+  if(s.vencidos > 0){
+    document.getElementById('vencTxt').textContent = `⚠️ Você tem ${s.vencidos} lançamento(s) vencido(s) — clique para filtrar`;
+    banner.classList.remove('hide');
+  } else {
+    banner.classList.add('hide');
+  }
+
+  document.getElementById('kpiRow').innerHTML=[
+    {l:'Total Receitas', v:cur(s.totalReceitas||0), c:'gn', s:'lançamentos'},
+    {l:'Total Despesas', v:cur(s.totalDespesas||0), c:'rd', s:'lançamentos'},
+    {l:'A Receber',      v:cur(s.aReceberTotal||0), c:'am', s:'pendente'},
+    {l:'A Pagar',        v:cur(s.aPagarTotal||0),   c:'am', s:'pendente'},
+    {l:'Recebido',       v:cur(s.recebido||0),       c:'tl', s:'confirmado'},
+    {l:'Resultado',      v:cur(s.saldo||0), c:(s.saldo||0)>=0?'gn':'rd', s:(s.saldo||0)>=0?'positivo':'negativo'},
+  ].map(k=>`<div class="kpi-s ${k.c}"><div class="kpi-sl">${k.l}</div><div class="kpi-sv">${k.v}</div><div class="kpi-ss">${k.s}</div></div>`).join('');
+}
+
+// ── LISTA PRINCIPAL ──────────────────────────────────────────
+async function load(pg=1){
+  const emp=g('selEmp'),comp=g('selComp'),status=g('selStatus'),cat=g('selCat');
+  const p={limit:20,page:pg};
+  if(emp) p.company=emp; if(comp) p.competence=comp; if(status) p.status=status; if(cat) p.category=cat;
+  if(curTab==='cr') p.type='receita';
+  else if(curTab==='cp') p.type='despesa';
+  else return;
+
+  const r = await API.bpo.list(p);
+  if(!r?.success) return;
+  allItems = r.items;
+  const bodyId = curTab==='cr'?'crBody':'cpBody';
+  const countId= curTab==='cr'?'crCount':'cpCount';
+  const pagId  = curTab==='cr'?'crPag':'cpPag';
+  const pInfoId= curTab==='cr'?'crPagInfo':'cpPagInfo';
+  const pBtnsId= curTab==='cr'?'crPagBtns':'cpPagBtns';
+  const sumId  = curTab==='cr'?'sumCR':'sumCP';
+  const isCR   = curTab==='cr';
+
+  document.getElementById(countId).textContent = `${r.pagination.total} lançamento(s)`;
+
+  // Mini summary do pane
+  const totalVal = r.items.reduce((a,i)=>a+i.amount,0);
+  const pagos    = r.items.filter(i=>i.status==='pago').reduce((a,i)=>a+i.amount,0);
+  const pend     = r.items.filter(i=>i.status==='pendente').reduce((a,i)=>a+i.amount,0);
+  const atrs     = r.items.filter(i=>i.status==='atrasado').reduce((a,i)=>a+i.amount,0);
+  document.getElementById(sumId).innerHTML=`
+    <div class="sum-card"><div class="sum-lbl">${isCR?'Recebido':'Pago'}</div><div class="sum-val" style="color:var(--green)">${cur(pagos)}</div><div class="sum-sub">${r.items.filter(i=>i.status==='pago').length} lançamento(s)</div></div>
+    <div class="sum-card"><div class="sum-lbl">Pendente</div><div class="sum-val" style="color:var(--amber)">${cur(pend)}</div><div class="sum-sub">${r.items.filter(i=>i.status==='pendente').length} lançamento(s)</div></div>`;
+
+  if(!r.items.length){
+    document.getElementById(bodyId).innerHTML=`<tr><td colspan="9"><div class="empty">
+      <div class="empty-ic">${isCR?'💰':'💸'}</div>
+      <div class="empty-t">Nenhum lançamento encontrado</div>
+      <div class="empty-s">Clique em "+ ${isCR?'Receita':'Despesa'}" para adicionar</div>
+    </div></td></tr>`;
+    document.getElementById(pagId).style.display='none';
+    loadSummary();
+    return;
+  }
+
+  const now = new Date();
+  const pill = s => ({
+    pendente: `<span class="st-pend">Pendente</span>`,
+    pago:     `<span class="st-pago">Pago</span>`,
+    atrasado: `<span class="st-atrs">Atrasado</span>`,
+    cancelado:`<span class="st-inat">Cancelado</span>`,
+  })[s] || `<span class="st-inat">${s}</span>`;
+
+  document.getElementById(bodyId).innerHTML = r.items.map((item,i)=>{
+    const venc = new Date(item.dueDate);
+    const isOverdue = venc < now && item.status !== 'pago' && item.status !== 'cancelado';
+    const comp = item.competence ? `${MESES[parseInt(item.competence.split('-')[1])-1]}/${item.competence.split('-')[0]}` : '—';
+    return `
+    <tr class="${isOverdue?'overdue-row':''}" style="animation-delay:${i*25}ms">
+      <td style="font-size:12px">${item.company?.tradeName||item.company?.legalName||'—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <span style="font-size:13px;font-weight:500;color:var(--txt)" title="${item.description}">${item.description}</span>
+        ${item.document?`<div style="font-size:10px;color:var(--txt3)">${item.document}</div>`:''}
+      </td>
+      <td><span style="font-size:11px;background:${isCR?'rgba(0,201,167,.1)':'rgba(239,68,68,.1)'};color:${isCR?'var(--green)':'var(--red)'};padding:2px 8px;border-radius:20px">${item.category}</span></td>
+      <td style="font-size:11px;color:var(--txt3)">${comp}</td>
+      <td style="white-space:nowrap">
+        <span style="font-size:12px;color:${isOverdue?'var(--red)':'var(--txt2)'}">${dt(item.dueDate)}</span>
+        ${isOverdue?`<div style="font-size:9px;color:var(--red);font-weight:700">${Math.abs(Math.ceil((venc-now)/86400000))}d atraso</div>`:''}
+      </td>
+      <td><span class="${isCR?'val-rec':'val-desp'}">${cur(item.amount)}</span></td>
+      <td style="font-size:11px;color:var(--txt3)">${item.paymentMethod||'—'}</td>
+      <td>${pill(item.status)}</td>
+      <td><div class="ra">
+        <div class="rb det" onclick="abrirDetalhe('${item._id}')" title="Detalhes">🔍</div>
+        ${item.status!=='pago'&&item.status!=='cancelado'?`<div class="rb ok" onclick="abrirBaixa('${item._id}','${(item.description||'').replace(/'/g,"\\'")}',${item.amount})" title="Dar Baixa">✅</div>`:''}
+        <div class="rb ed" onclick="abrirEditar('${item._id}')" title="Editar">✏️</div>
+        <div class="rb del" onclick="cancelar('${item._id}')" title="Cancelar">🗑️</div>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  // Paginação
+  const pag = r.pagination;
+  if(pag.totalPages > 1){
+    document.getElementById(pagId).style.display='flex';
+    document.getElementById(pInfoId).textContent=`Página ${pag.page} de ${pag.totalPages} (${pag.total} registros)`;
+    let btns='';
+    if(pag.page>1) btns+=`<button class="btn sm" onclick="load(${pag.page-1})">‹ Anterior</button>`;
+    btns+=`<button class="btn sm primary" disabled>${pag.page}/${pag.totalPages}</button>`;
+    if(pag.page<pag.totalPages) btns+=`<button class="btn sm" onclick="load(${pag.page+1})">Próxima ›</button>`;
+    document.getElementById(pBtnsId).innerHTML=btns;
+  } else {
+    document.getElementById(pagId).style.display='none';
+  }
+  loadSummary();
+}
+
+// ── FLUXO DE CAIXA COM CHART.JS ──────────────────────────────
+async function loadFluxo(){
+  const emp=g('selEmp'), ano=g('selAno');
+  const p={year:ano}; if(emp) p.company=emp;
+  const r = await API.bpo.fluxo(p);
+  // Garante 12 meses mesmo quando API retorna vazio
+  const now = new Date();
+  const mesesVazios = Array.from({length:12},(_,i)=>{
+    const d=new Date(now.getFullYear(),i,1);
+    return {competence:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,receitas:0,despesas:0,saldo:0};
+  });
+  const data = (r?.success && r.fluxo?.length) ? r.fluxo : mesesVazios;
+
+  // Chart.js
+  if(fluxoChart) fluxoChart.destroy();
+  const ctx = document.getElementById('chartFluxo').getContext('2d');
+  fluxoChart = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: data.map(m=>MESES[parseInt(m.competence.split('-')[1])-1]),
+      datasets:[
+        {label:'Receitas',data:data.map(m=>m.receitas),backgroundColor:'rgba(0,201,167,.6)',borderColor:'#00c9a7',borderWidth:1.5,borderRadius:4},
+        {label:'Despesas',data:data.map(m=>m.despesas),backgroundColor:'rgba(239,68,68,.5)',borderColor:'#ef4444',borderWidth:1.5,borderRadius:4},
+        {label:'Saldo',data:data.map(m=>m.saldo),type:'line',borderColor:'#3b90e8',backgroundColor:'rgba(59,144,232,.1)',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#3b90e8',tension:0.4,fill:true},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:true,labels:{color:'#6b94b2',font:{size:11},boxWidth:12,padding:14}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${cur(c.raw)}`}}
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b94b2',font:{size:11}}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b94b2',font:{size:11},callback:v=>v>=1000?'R$'+(v/1000).toFixed(1)+'k':'R$'+v}}
+      }
+    }
+  });
+
+  // Tabela detalhamento
+  let acum=0;
+  document.getElementById('fluxoBody').innerHTML = data.map(m=>{
+    acum+=m.saldo;
+    const margem = m.receitas>0 ? Math.round(m.saldo/m.receitas*100) : 0;
+    return `<tr>
+      <td style="font-weight:500;color:var(--txt)">${MESES[parseInt(m.competence.split('-')[1])-1]}/${m.competence.split('-')[0]}</td>
+      <td><span class="val-rec">${cur(m.receitas)}</span></td>
+      <td><span class="val-desp">${cur(m.despesas)}</span></td>
+      <td><span class="${m.saldo>=0?'val-rec':'val-desp'}">${cur(m.saldo)}</span></td>
+      <td><span class="${acum>=0?'val-rec':'val-desp'}">${cur(acum)}</span></td>
+      <td><span style="font-size:12px;font-weight:600;color:${margem>=0?'var(--green)':'var(--red)'}">${margem}%</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── DRE ──────────────────────────────────────────────────────
+async function loadDRE(){
+  const emp=g('selEmp'),comp=g('selComp');
+  const p={}; if(emp) p.company=emp; if(comp) p.competence=comp;
+  const r = await API.bpo.dre(p);
+  // Garante estrutura mesmo quando API retorna vazio
+  const d = r?.dre || {
+    receitas:[{category:'Receita Operacional',amount:0},{category:'Outras Receitas',amount:0}],
+    despesas:[{category:'Custo dos Serviços',amount:0},{category:'Despesas Administrativas',amount:0},{category:'Despesas Financeiras',amount:0},{category:'Impostos e Taxas',amount:0}],
+    totalReceitas:0, totalDespesas:0, lucroLiquido:0, margem:0
+  };
+  if(!d.receitas?.length) d.receitas=[{category:'Receita Operacional',amount:0}];
+  if(!d.despesas?.length) d.despesas=[{category:'Despesas Operacionais',amount:0}];
+
+  document.getElementById('dreKpis').innerHTML=[
+    {l:'Total Receitas',    v:cur(d.totalReceitas||0), c:'gn'},
+    {l:'Total Despesas',    v:cur(d.totalDespesas||0), c:'rd'},
+    {l:(d.lucroLiquido||0)>=0?'Lucro Líquido':'Prejuízo Líquido', v:cur(d.lucroLiquido||0), c:(d.lucroLiquido||0)>=0?'gn':'rd'},
+  ].map(k=>`<div class="kpi-s ${k.c}"><div class="kpi-sl">${k.l}</div><div class="kpi-sv">${k.v}</div><div class="kpi-ss">margem: ${d.margem||0}%</div></div>`).join('');
+
+  const barRow=(item,max,cor)=>`
+    <div class="dre-row">
+      <div style="flex:1">
+        <div style="font-size:12.5px;color:var(--txt);font-weight:500">${item.category}</div>
+        <div class="bar-w"><div class="bar-f" style="width:${max>0?item.amount/max*100:0}%;background:${cor}"></div></div>
+      </div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:${cor};margin-left:12px;font-weight:600">${cur(item.amount)}</span>
+    </div>`;
+
+  const maxR=d.receitas.length?d.receitas[0].amount:1;
+  document.getElementById('dreRec').innerHTML=d.receitas.length
+    ? d.receitas.map(r=>barRow(r,maxR,'var(--green)')).join('')
+    : '<div class="empty" style="padding:16px"><div class="empty-s">Sem receitas no período</div></div>';
+
+  const maxD=d.despesas.length?d.despesas[0].amount:1;
+  document.getElementById('dreDesp').innerHTML=d.despesas.length
+    ? d.despesas.map(r=>barRow(r,maxD,'var(--red)')).join('')
+    : '<div class="empty" style="padding:16px"><div class="empty-s">Sem despesas no período</div></div>';
+
+  // DRE formal
+  document.getElementById('dreTable').innerHTML=`
+    <div class="dre-section">
+      <div class="dre-hd" style="color:var(--green);border-color:rgba(0,201,167,.3)">RECEITAS OPERACIONAIS</div>
+      ${d.receitas.map(r=>`<div class="dre-row"><span style="color:var(--txt2)">${r.category}</span><span style="color:var(--txt)">${cur(r.amount)}</span></div>`).join('')}
+      <div class="dre-total"><span style="color:var(--green)">TOTAL RECEITAS</span><span style="color:var(--green)">${cur(d.totalReceitas)}</span></div>
+    </div>
+    <div class="dre-section">
+      <div class="dre-hd" style="color:var(--red);border-color:rgba(239,68,68,.3)">DESPESAS OPERACIONAIS</div>
+      ${d.despesas.map(r=>`<div class="dre-row"><span style="color:var(--txt2)">${r.category}</span><span style="color:var(--txt)">(${cur(r.amount)})</span></div>`).join('')}
+      <div class="dre-total"><span style="color:var(--red)">TOTAL DESPESAS</span><span style="color:var(--red)">(${cur(d.totalDespesas)})</span></div>
+    </div>
+    <div class="dre-result">
+      <span style="color:${(d.lucroLiquido||0)>=0?'var(--green)':'var(--red)'}">${(d.lucroLiquido||0)>=0?'LUCRO LÍQUIDO':'PREJUÍZO LÍQUIDO'}</span>
+      <div style="text-align:right">
+        <div style="color:${(d.lucroLiquido||0)>=0?'var(--green)':'var(--red)'}">${cur(d.lucroLiquido)}</div>
+        <div style="font-size:11px;color:var(--txt3);font-family:'DM Sans',sans-serif;font-weight:400">Margem: ${d.margem||0}%</div>
+      </div>
+    </div>`;
+}
+
+// ── PAINEL DE DETALHE ─────────────────────────────────────────
+async function abrirDetalhe(id){
+  const r = await API.bpo.get(id);
+  if(!r?.success) return ui.toast('❌','Erro ao carregar');
+  const item = r.item;
+  const isCR = item.type==='receita';
+  const comp = item.competence ? `${MESES[parseInt(item.competence.split('-')[1])-1]}/${item.competence.split('-')[0]}` : '—';
+
+  document.getElementById('spIco').textContent = isCR?'💰':'💸';
+  document.getElementById('spIco').style.background = isCR?'rgba(0,201,167,.15)':'rgba(239,68,68,.12)';
+  document.getElementById('spTt').textContent = item.description;
+  document.getElementById('spSt').textContent = `${isCR?'Receita':'Despesa'} · ${item.category}`;
+
+  const statusTxt={pendente:'⏳ Pendente',pago:'✅ Pago',atrasado:'❌ Atrasado',cancelado:'🚫 Cancelado'};
+  document.getElementById('spBody').innerHTML=[
+    ['Empresa',         item.company?.tradeName||item.company?.legalName||'—'],
+    ['Tipo',            isCR?'💰 Receita':'💸 Despesa'],
+    ['Categoria',       item.category],
+    ['Valor',           `<strong style="font-size:15px;color:${isCR?'var(--green)':'var(--red)'}">${cur(item.amount)}</strong>`],
+    ['Status',          statusTxt[item.status]||item.status],
+    ['Data Emissão',    dt(item.date)],
+    ['Vencimento',      dt(item.dueDate)],
+    ['Competência',     comp],
+    ['Forma Pagamento', item.paymentMethod||'—'],
+    ['Nº Documento',    item.document||'—'],
+    ['Centro de Custo', item.centroCusto||'—'],
+    ['Observações',     item.notes||'—'],
+    ['Criado em',       dt(item.createdAt)],
+  ].map(([l,v])=>`<div class="sp-row"><span class="sp-lbl">${l}</span><span class="sp-val">${v}</span></div>`).join('');
+
+  document.getElementById('spFoot').innerHTML=`
+    ${item.status!=='pago'&&item.status!=='cancelado'?`<button class="btn green" onclick="fecharDetalhe();abrirBaixa('${item._id}','${(item.description||'').replace(/'/g,"\\'")}',${item.amount})">✅ Dar Baixa</button>`:''}
+    <button class="btn sm" onclick="fecharDetalhe();abrirEditar('${item._id}')">✏️ Editar</button>
+    <div style="flex:1"></div>
+    <button class="btn sm" onclick="fecharDetalhe();cancelar('${item._id}')">🗑️</button>`;
+
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+}
+
+function fecharDetalhe(){
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('overlay').style.display='none';
+}
+
+// ── FORMULÁRIO ───────────────────────────────────────────────
+function abrirNovo(tipo='receita'){
+  editId=null;
+  document.getElementById('fTg').textContent='Novo Lançamento';
+  document.getElementById('fTt').textContent=tipo==='receita'?'💰 Receita':'💸 Despesa';
+  document.getElementById('fBtn').textContent='💾 Salvar';
+  sv('fTipo',tipo); atualizarCategorias();
+  sv('fDesc',''); sv('fValor',''); sv('fDoc',''); sv('fCentro',''); sv('fObs','');
+  sv('fStatus','pendente'); sv('fForma','');
+  sv('fEmp',g('selEmp'));
+  const now=new Date().toISOString().substring(0,10);
+  sv('fData',now); sv('fVenc',now); sv('fComp',now.substring(0,7));
+  ui.openModal('ovForm');
+}
+
+async function abrirEditar(id){
+  const r=await API.bpo.get(id); if(!r?.success) return ui.toast('❌','Erro');
+  const item=r.item; editId=id;
+  document.getElementById('fTg').textContent='Editar Lançamento';
+  document.getElementById('fTt').textContent=item.description;
+  document.getElementById('fBtn').textContent='💾 Salvar Alterações';
+  sv('fEmp',item.company?._id||''); sv('fTipo',item.type); atualizarCategorias();
+  sv('fDesc',item.description); sv('fCatForm',item.category); sv('fValor',item.amount);
+  sv('fData',item.date?.substring(0,10)); sv('fVenc',item.dueDate?.substring(0,10));
+  sv('fComp',item.competence); sv('fStatus',item.status); sv('fForma',item.paymentMethod||'');
+  sv('fDoc',item.document||''); sv('fCentro',item.centroCusto||''); sv('fObs',item.notes||'');
+  ui.openModal('ovForm');
+}
+
+async function salvar(){
+  const emp=g('fEmp'),desc=g('fDesc'),val=parseFloat(document.getElementById('fValor').value);
+  if(!emp||!desc||!val) return ui.toast('⚠️','Preencha empresa, descrição e valor');
+  const p={company:emp,type:g('fTipo'),description:desc,category:g('fCatForm'),amount:val,
+    date:g('fData'),dueDate:g('fVenc'),competence:g('fComp'),status:g('fStatus'),
+    paymentMethod:g('fForma')||undefined,document:g('fDoc'),
+    centroCusto:g('fCentro')||undefined,notes:g('fObs')};
+  const btn=document.getElementById('fBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+  const res=editId?await API.bpo.update(editId,p):await API.bpo.create(p);
+  btn.disabled=false; btn.innerHTML=editId?'💾 Salvar Alterações':'💾 Salvar';
+  if(res?.success){ui.toast(editId?'💾':'✅',res.message);ui.closeModal('ovForm');load();}
+  else ui.toast('❌',res?.message||'Erro ao salvar');
+}
+
+// ── BAIXA ────────────────────────────────────────────────────
+function abrirBaixa(id,desc,val){
+  baixaId=id;
+  document.getElementById('bxTt').textContent=`${desc} — ${cur(val)}`;
+  document.getElementById('bxData').value=new Date().toISOString().substring(0,10);
+  ui.openModal('ovBaixa');
+}
+
+async function confirmarBaixa(){
+  const btn=document.getElementById('bxBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Registrando...';
+  const res=await API.bpo.baixa(baixaId,{paidDate:g('bxData'),paymentMethod:g('bxForma'),notes:g('bxObs')});
+  btn.disabled=false; btn.innerHTML='✅ Confirmar Baixa';
+  if(res?.success){ui.toast('✅',res.message);ui.closeModal('ovBaixa');load();}
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+// ── CANCELAR ─────────────────────────────────────────────────
+function cancelar(id){
+  document.getElementById('cIc').textContent='🗑️';
+  document.getElementById('cTt').textContent='Cancelar Lançamento';
+  document.getElementById('cMs').textContent='Cancelar este lançamento? A ação não pode ser desfeita.';
+  document.getElementById('cBtn').onclick=async()=>{
+    const r=await API.bpo.remove(id);
+    ui.closeModal('ovConf');
+    if(r?.success){ui.toast('🗑️','Cancelado');load();}
+    else ui.toast('❌','Erro');
+  };
+  ui.openModal('ovConf');
+}
+
+// ── FILTRAR VENCIDOS ──────────────────────────────────────────
+function filtrarVencidos(){
+  sv('selStatus','atrasado');
+  setTab('cr',document.getElementById('tb-cr'));
+}
+
+// ── EXPORTAR CSV ──────────────────────────────────────────────
+function exportarCSV(tipo){
+  if(!allItems.length) return ui.toast('⚠️','Nenhum dado para exportar');
+  const headers=['Empresa','Descrição','Categoria','Competência','Vencimento','Valor','Forma Pgto','Status'];
+  const rows=allItems.map(i=>[
+    i.company?.legalName||'—', i.description, i.category,
+    i.competence||'—', i.dueDate?.substring(0,10)||'—',
+    i.amount.toString().replace('.',','), i.paymentMethod||'—', i.status
+  ]);
+  const csv=[headers,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=`bpo_${tipo}_${new Date().toISOString().substring(0,10)}.csv`;
+  a.click();
+  ui.toast('⬇️','CSV exportado!');
+}
+
+function exportarFluxoCSV(){
+  const rows=document.querySelectorAll('#fluxoBody tr');
+  if(!rows.length) return;
+  const headers=['Mês','Receitas','Despesas','Saldo Mês','Saldo Acumulado','Margem'];
+  const data=[headers,...[...rows].map(r=>[...r.querySelectorAll('td')].map(td=>td.textContent.trim()))];
+  const csv=data.map(r=>r.map(v=>`"${v}"`).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=`fluxo_caixa_${g('selAno')}.csv`;
+  a.click();
+  ui.toast('⬇️','CSV exportado!');
+}
+
+function exportarDRE(){
+  const el=document.getElementById('dreTable');
+  const txt=el.innerText;
+  const a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(txt);
+  a.download=`dre_${new Date().toISOString().substring(0,7)}.txt`;
+  a.click();
+  ui.toast('⬇️','DRE exportado!');
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+loadSummary(); load();
+</script>
+</body>
+</html>

@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Dashboard</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">
+
+// ═══════════════════════════════════════════════════════════
+// PAINEL ANALÍTICO
+// ═══════════════════════════════════════════════════════════
+const anCharts = {};
+const anConfigs = {};
+let anExpInstance = null;
+
+// Popula seletores
+(function initAnalytics(){
+  const now = new Date();
+  const selMes = document.getElementById('anMes');
+  const selAno = document.getElementById('anAno');
+  for(let m=0;m<12;m++){
+    const opt = document.createElement('option');
+    opt.value = String(m+1).padStart(2,'0');
+    opt.textContent = MESES[m];
+    if(m === now.getMonth()) opt.selected = true;
+    selMes.appendChild(opt);
+  }
+  for(let y=now.getFullYear();y>=now.getFullYear()-4;y--){
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    selAno.appendChild(opt);
+  }
+})();
+
+async function loadAnalytics(){
+  const empresa = document.getElementById('anEmpresa').value;
+  const mes = document.getElementById('anMes').value;
+  const ano = document.getElementById('anAno').value;
+  const comp = ano + '-' + mes;
+  const mesNome = MESES[parseInt(mes)-1] + '/' + ano;
+  document.getElementById('anMesLabel').textContent = mesNome;
+  document.getElementById('anDetMesLabel').textContent = mesNome;
+
+  // Buscar dados
+  const params = {};
+  if(empresa) params.company = empresa;
+
+  const [txR, duR, payR, bpoR] = await Promise.allSettled([
+    API.transactions.list({...params, limit:2000}),
+    API.duties.list({...params, limit:500}),
+    API.payroll.list({...params, limit:50}),
+    API.bpo.list({...params, limit:500}),
+  ]);
+
+  const txs = txR.status==='fulfilled' && txR.value?.success ? (txR.value.transactions||[]) : [];
+  const duties = duR.status==='fulfilled' && duR.value?.success ? (duR.value.duties||[]) : [];
+  const payrolls = payR.status==='fulfilled' && payR.value?.success ? (payR.value.payrolls||[]) : [];
+  const bpos = bpoR.status==='fulfilled' && bpoR.value?.success ? (bpoR.value.items||[]) : [];
+
+  // ── Calcular dados por mês (últimos 12 meses) ──
+  const mesesData = [];
+  const now = new Date(parseInt(ano), parseInt(mes)-1, 1);
+  for(let i=11;i>=0;i--){
+    const d = new Date(now); d.setMonth(d.getMonth()-i);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = MESES[d.getMonth()]+'/'+String(d.getFullYear()).slice(2);
+
+    const txMes = txs.filter(t => (t.competence||'').startsWith(key));
+    const entradas = txMes.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.amount||0),0);
+    const saidas = txMes.filter(t=>t.type==='debit').reduce((s,t)=>s+(t.amount||0),0);
+
+    const duMes = duties.filter(d => (d.competence||'').startsWith(key));
+    const entregues = duMes.filter(d=>d.status==='entregue'||d.status==='pago').length;
+    const pendentes = duMes.filter(d=>d.status==='pendente'||d.status==='em_andamento').length;
+    const atrasados = duMes.filter(d=>d.status==='atrasado').length;
+
+    const payMes = payrolls.filter(p => (p.competence||'').startsWith(key));
+    const custoFolha = payMes.reduce((s,p)=>s+(p.totalCost||0),0);
+
+    mesesData.push({key,label,entradas,saidas,entregues,pendentes,atrasados,custoFolha});
+  }
+
+  // ── KPIs do mês selecionado ──
+  const mesSel = mesesData[mesesData.length-1] || {};
+  const saldo = mesSel.entradas - mesSel.saidas;
+  const totalEntradas12 = mesesData.reduce((s,m)=>s+m.entradas,0);
+  const totalSaidas12 = mesesData.reduce((s,m)=>s+m.saidas,0);
+  const totalObrig = mesSel.entregues + mesSel.pendentes + mesSel.atrasados;
+  const compliance = totalObrig ? Math.round(mesSel.entregues/totalObrig*100) : 0;
+
+  document.getElementById('anKpis').innerHTML = [
+    {l:'ENTRADAS ('+mesNome+')',v:curK(mesSel.entradas),s:'créditos',c:'sc gn'},
+    {l:'SAÍDAS ('+mesNome+')',v:curK(mesSel.saidas),s:'débitos',c:'sc rd'},
+    {l:'SALDO',v:curK(saldo),s:saldo>=0?'positivo':'negativo',c:saldo>=0?'sc gn':'sc rd'},
+    {l:'FOLHA',v:curK(mesSel.custoFolha),s:'custo total',c:'sc pu'},
+    {l:'COMPLIANCE',v:compliance+'%',s:mesSel.entregues+' de '+totalObrig,c:compliance>=80?'sc gn':compliance>=50?'sc am':'sc rd'},
+  ].map(k=>'<div class="'+k.c+'"><div class="sc-l">'+k.l+'</div><div class="sc-v">'+k.v+'</div><div class="sc-s">'+k.s+'</div></div>').join('');
+
+  // ── CHART 1: Entradas vs Saídas ──
+  const labels12 = mesesData.map(m=>m.label);
+  const cfgEntradas = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas',data:mesesData.map(m=>m.entradas),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+      {label:'Saídas',data:mesesData.map(m=>m.saidas),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.entradas = cfgEntradas;
+  if(anCharts.entradas) anCharts.entradas.destroy();
+  anCharts.entradas = new Chart(document.getElementById('anChartEntradas'), cfgEntradas);
+
+  // ── CHART 2: Acumulado ──
+  let acumE=0, acumS=0;
+  const acumEntradas = mesesData.map(m=>{acumE+=m.entradas;return acumE});
+  const acumSaidas = mesesData.map(m=>{acumS+=m.saidas;return acumS});
+  const cfgAcumulado = {
+    type:'line',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas Acumuladas',data:acumEntradas,borderColor:'rgba(0,201,167,1)',backgroundColor:'rgba(0,201,167,.1)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saídas Acumuladas',data:acumSaidas,borderColor:'rgba(239,68,68,1)',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saldo Acumulado',data:acumEntradas.map((v,i)=>v-acumSaidas[i]),borderColor:'rgba(59,144,232,1)',backgroundColor:'rgba(59,144,232,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2,borderDash:[5,3]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.acumulado = cfgAcumulado;
+  if(anCharts.acumulado) anCharts.acumulado.destroy();
+  anCharts.acumulado = new Chart(document.getElementById('anChartAcumulado'), cfgAcumulado);
+
+  // ── CHART 3: Relatório do Mês (pizza/doughnut) ──
+  const cfgMes = {
+    type:'doughnut',
+    data:{labels:['Entradas','Saídas','Folha'],datasets:[{
+      data:[mesSel.entradas||1, mesSel.saidas||1, mesSel.custoFolha||1],
+      backgroundColor:['rgba(0,201,167,.7)','rgba(239,68,68,.6)','rgba(139,92,246,.6)'],
+      borderColor:['rgba(0,201,167,1)','rgba(239,68,68,1)','rgba(139,92,246,1)'],
+      borderWidth:2,
+      hoverOffset:8,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:11},padding:14,usePointStyle:true}}},cutout:'60%'}
+  };
+  anConfigs.mes = cfgMes;
+  if(anCharts.mes) anCharts.mes.destroy();
+  anCharts.mes = new Chart(document.getElementById('anChartMes'), cfgMes);
+
+  // ── CHART 4: Obrigações Histórico ──
+  const cfgObrig = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entregues',data:mesesData.map(m=>m.entregues),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:4},
+      {label:'Pendentes',data:mesesData.map(m=>m.pendentes),backgroundColor:'rgba(245,158,11,.15)',borderColor:'rgba(245,158,11,1)',borderWidth:2,borderRadius:4},
+      {label:'Atrasadas',data:mesesData.map(m=>m.atrasados),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true}}}
+  };
+  anConfigs.obrigHist = cfgObrig;
+  if(anCharts.obrigHist) anCharts.obrigHist.destroy();
+  anCharts.obrigHist = new Chart(document.getElementById('anChartObrig'), cfgObrig);
+
+  // ── RELATÓRIO DETALHADO DO MÊS ──
+  const txMesSel = txs.filter(t=>(t.competence||'').startsWith(comp));
+  const catEntradas = {};
+  const catSaidas = {};
+  txMesSel.forEach(t=>{
+    const cat = t.category || 'Outros';
+    if(t.type==='credit') catEntradas[cat] = (catEntradas[cat]||0) + (t.amount||0);
+    else catSaidas[cat] = (catSaidas[cat]||0) + (t.amount||0);
+  });
+
+  let relHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">📈 Entradas por Categoria</div>';
+  const entArr = Object.entries(catEntradas).sort((a,b)=>b[1]-a[1]);
+  if(entArr.length){
+    relHtml += entArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--green);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Entradas</span><span style="color:var(--green)">'+cur(mesSel.entradas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem entradas no período</div>';
+  relHtml += '</div>';
+
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:8px">📉 Saídas por Categoria</div>';
+  const saiArr = Object.entries(catSaidas).sort((a,b)=>b[1]-a[1]);
+  if(saiArr.length){
+    relHtml += saiArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--red);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Saídas</span><span style="color:var(--red)">'+cur(mesSel.saidas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem saídas no período</div>';
+  relHtml += '</div></div>';
+
+  relHtml += '<div style="margin-top:14px;padding:14px;background:rgba(59,144,232,.06);border:1px solid rgba(59,144,232,.15);border-radius:8px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Resultado do Mês</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+cur(saldo)+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--txt3)">Margem</div><div style="font-size:16px;font-weight:700;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+((mesSel.entradas?Math.round(saldo/mesSel.entradas*100):0))+'%</div></div></div>';
+
+  document.getElementById('anRelatorio').innerHTML = relHtml;
+}
+
+function expandAN(key){
+  const titles = {entradas:'💰 Entradas vs Saídas',acumulado:'📈 Acumulado Anual',obrigHist:'📊 Obrigações — Histórico',mes:'📋 Relatório do Mês'};
+  document.getElementById('ovExpANTitle').textContent = titles[key]||'Gráfico';
+  if(anExpInstance){anExpInstance.destroy();anExpInstance=null;}
+  const cfg = anConfigs[key];
+  if(!cfg){ui.toast('⚠️','Gráfico não disponível');return;}
+  ui.openModal('ovExpAN');
+  setTimeout(()=>{anExpInstance=new Chart(document.getElementById('anChartExp'),JSON.parse(JSON.stringify(cfg)));},150);
+}
+
+</script>
+<style>
+html,body{overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .18s;cursor:default}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.bl::before{background:var(--blue)}.kpi.gn::before{background:var(--green)}
+.kpi.rd::before{background:var(--red)}.kpi.am::before{background:var(--amber)}
+.kpi.pu::before{background:var(--purple)}.kpi.tl::before{background:var(--teal)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10px;color:var(--txt3);margin-top:4px}
+.kpi-trend{font-size:10px;font-weight:600;margin-top:4px}
+.kpi-trend.up{color:var(--green)}.kpi-trend.dn{color:var(--red)}.kpi-trend.ok{color:var(--amber)}
+/* ACESSO RAPIDO */
+.quick-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+.qc{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:12px;text-align:center;cursor:pointer;transition:all .18s;text-decoration:none;color:var(--txt2);display:block}
+.qc:hover{background:rgba(26,111,196,.1);border-color:rgba(26,111,196,.35);color:var(--txt);transform:translateY(-1px)}
+.qc-ic{font-size:22px;margin-bottom:6px}
+.qc-lbl{font-size:11px;font-weight:500}
+/* ALERTAS */
+.alert-strip{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.alert-chip{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:all .13s}
+.alert-chip:hover{transform:translateY(-1px)}
+.alert-chip.rd{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:var(--red)}
+.alert-chip.am{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);color:var(--amber)}
+.alert-chip.gn{background:rgba(0,201,167,.08);border-color:rgba(0,201,167,.3);color:var(--green)}
+.alert-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.alert-dot.rd{background:var(--red);animation:blink 1.4s infinite}
+.alert-dot.am{background:var(--amber)}.alert-dot.gn{background:var(--green)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+/* DUTY ROW */
+.duty-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s}
+.duty-row:hover{background:rgba(26,111,196,.04)}
+.duty-row:last-child{border-bottom:none}
+.day-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.day-badge.rd{background:rgba(239,68,68,.15);color:var(--red)}
+.day-badge.am{background:rgba(245,158,11,.15);color:var(--amber)}
+.day-badge.gn{background:rgba(0,201,167,.12);color:var(--green)}
+/* ATIVIDADE */
+.act-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.act-row:last-child{border-bottom:none}
+.act-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+/* EMPRESA ROW */
+.co-av{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:10px;color:#fff;flex-shrink:0}
+.money{font-family:'JetBrains Mono',monospace;font-size:12px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}.money.a{color:var(--amber)}
+.empty{padding:18px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:24px;margin-bottom:6px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2)}.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+  <header class="topbar">
+    <span class="topbar-title">◈ Dashboard</span>
+    <span class="tb-badge blue" id="tbData"></span>
+    <div class="topbar-spacer"></div>
+    <span style="font-size:12px;color:var(--txt3);margin-right:4px" id="tbUser"></span>
+    <a href="/empresas.html" class="btn sm">🏢 Empresas</a>
+    <a href="/obrigacoes.html" class="btn sm">📋 Obrigações</a>
+    <a href="/honorarios.html" class="btn sm">💰 Honorários</a>
+    <a href="/folha.html" class="btn sm">👥 Folha</a>
+    <a href="/obrigacoes-federais.html" class="btn sm">🏛️ SPED</a>
+    <button class="btn sm" onclick="load()" title="Atualizar dados">↻</button>
+  </header>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+
+    <!-- ALERTAS DINÂMICOS -->
+    <div class="alert-strip" id="alertStrip"></div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi bl"><div class="kpi-l">Empresas Ativas</div><div class="kpi-v" id="kEmp">—</div><div class="kpi-s">na carteira</div></div>
+      <div class="kpi pu"><div class="kpi-l">Honorários/Mês</div><div class="kpi-v" id="kHon">—</div><div class="kpi-s">recorrente</div></div>
+      <div class="kpi gn"><div class="kpi-l">Em Dia</div><div class="kpi-v" id="kPago">—</div><div class="kpi-s">clientes</div></div>
+      <div class="kpi am"><div class="kpi-l">Obrigações 7d</div><div class="kpi-v" id="kObrig">—</div><div class="kpi-s">vencendo</div></div>
+      <div class="kpi rd"><div class="kpi-l">Inadimplentes</div><div class="kpi-v" id="kInad">—</div><div class="kpi-s">em atraso</div></div>
+      <div class="kpi tl"><div class="kpi-l">LTV Anual</div><div class="kpi-v" id="kLtv">—</div><div class="kpi-s">estimado 12 meses</div></div>
+    </div>
+
+    <!-- ACESSO RÁPIDO -->
+    <div class="quick-grid">
+      <a href="/empresas.html?new=1"         class="qc"><div class="qc-ic">🏢</div><div class="qc-lbl">Nova Empresa</div></a>
+      <a href="/lancamentos.html?new=1"      class="qc"><div class="qc-ic">📒</div><div class="qc-lbl">Lançamento</div></a>
+      <a href="/obrigacoes.html?new=1"       class="qc"><div class="qc-ic">📅</div><div class="qc-lbl">Obrigação</div></a>
+      <a href="/folha.html?new=1"            class="qc"><div class="qc-ic">👥</div><div class="qc-lbl">Nova Folha</div></a>
+      <a href="/obrigacoes-federais.html"    class="qc"><div class="qc-ic">🏛️</div><div class="qc-lbl">SPED / Guias</div></a>
+      <a href="/demonstrativos.html"         class="qc"><div class="qc-ic">📊</div><div class="qc-lbl">Demonstrativos</div></a>
+    </div>
+
+    <!-- LINHA PRINCIPAL -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+
+      <!-- Obrigações urgentes -->
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">⏰ Obrigações — Próximos 7 dias</span>
+          <a href="/obrigacoes.html" class="card-ha">Ver todas →</a>
+        </div>
+        <div style="padding:0 16px 14px;min-height:60px" id="listDuties">
+          <div class="empty"><div class="empty-s">Carregando...</div></div>
+        </div>
+      </div>
+
+      <!-- Regime tributário + gráfico -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">📊 Carteira por Regime</span></div>
+        <div style="padding:14px 16px" id="chartRegime">
+          <div class="empty"><div class="empty-s">Carregando...</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SEGUNDA LINHA -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">
+
+      <!-- Empresas -->
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">🏢 Clientes — Honorários</span>
+          <a href="/empresas.html" class="card-ha">Ver todos →</a>
+        </div>
+        <div id="listCompanies">
+          <div class="empty"><div class="empty-s">Carregando...</div></div>
+        </div>
+      </div>
+
+      <!-- Atividade recente -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">🕐 Atividade Recente</span></div>
+        <div style="padding:0 16px 14px" id="listAtividade">
+          <div class="empty"><div class="empty-s">Carregando...</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TERCEIRA LINHA -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+
+      <!-- Folha mensal -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">👥 Folha do Mês</span><a href="/folha.html" class="card-ha">Ver →</a></div>
+        <div style="padding:14px 16px" id="folhaResumo">
+          <div class="empty"><div class="empty-s">Carregando...</div></div>
+        </div>
+      </div>
+
+      <!-- Honorários por status -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">💰 Honorários por Status</span><a href="/honorarios.html" class="card-ha">Ver →</a></div>
+        <div style="padding:14px 16px" id="honStatus">
+          <div class="empty"><div class="empty-s">Carregando...</div></div>
+        </div>
+      </div>
+
+      <!-- Lançamentos recentes -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">📒 Últimos Lançamentos</span><a href="/lancamentos.html" class="card-ha">Ver →</a></div>
+        <div style="padding:0 16px 14px" id="listLanc">
+          <div class="empty"><div class="empty-s">Carregando...</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- PAINEL ANALÍTICO — Gráficos e Relatórios               -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div style="margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;color:var(--txt)">📊 Painel Analítico</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <select class="fin" id="anEmpresa" style="height:32px;font-size:11px;width:220px" onchange="loadAnalytics()">
+            <option value="">Todas as empresas</option>
+          </select>
+          <select class="fin" id="anMes" style="height:32px;font-size:11px;width:140px" onchange="loadAnalytics()"></select>
+          <select class="fin" id="anAno" style="height:32px;font-size:11px;width:100px" onchange="loadAnalytics()"></select>
+          <button class="btn sm" onclick="loadAnalytics()">↻</button>
+        </div>
+      </div>
+
+      <!-- KPIs do período selecionado -->
+      <div class="sg sg5" id="anKpis" style="margin-bottom:14px"></div>
+
+      <!-- Gráficos linha 1 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">💰 Entradas vs Saídas — Mensal</span>
+            <button class="btn sm" onclick="expandAN('entradas')" title="Expandir">⛶</button>
+          </div>
+          <div style="padding:14px 16px;height:260px"><canvas id="anChartEntradas"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">📈 Acumulado Anual</span>
+            <button class="btn sm" onclick="expandAN('acumulado')" title="Expandir">⛶</button>
+          </div>
+          <div style="padding:14px 16px;height:260px"><canvas id="anChartAcumulado"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Gráficos linha 2 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">📋 Relatório do Mês</span>
+            <span class="card-ha" id="anMesLabel">—</span>
+          </div>
+          <div style="padding:14px 16px;height:260px"><canvas id="anChartMes"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">📊 Obrigações — Histórico</span>
+            <button class="btn sm" onclick="expandAN('obrigHist')" title="Expandir">⛶</button>
+          </div>
+          <div style="padding:14px 16px;height:260px"><canvas id="anChartObrig"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Relatório mensal detalhado -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h">
+          <span class="card-ht">📝 Detalhamento do Mês</span>
+          <span class="card-ha" id="anDetMesLabel">—</span>
+        </div>
+        <div id="anRelatorio" style="padding:14px 16px">
+          <div class="empty"><div class="empty-s">Selecione um período acima</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- Modal Expandir Gráfico -->
+<div class="ov" id="ovExpAN">
+  <div class="modal xl" style="max-width:1100px">
+    <div class="m-top">
+      <div class="m-ico b">📊</div>
+      <div class="m-hi">
+        <div class="m-tg">VISUALIZAÇÃO EXPANDIDA</div>
+        <div class="m-tt" id="ovExpANTitle">—</div>
+      </div>
+      <button class="m-cl" onclick="ui.closeModal('ovExpAN')">×</button>
+    </div>
+    <div class="m-bd"><div style="height:440px"><canvas id="anChartExp"></canvas></div></div>
+    <div class="m-ft"><div class="mfs"></div><button class="mfb" onclick="ui.closeModal('ovExpAN')">Fechar</button></div>
+  </div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js">
+
+// ═══════════════════════════════════════════════════════════
+// PAINEL ANALÍTICO
+// ═══════════════════════════════════════════════════════════
+const anCharts = {};
+const anConfigs = {};
+let anExpInstance = null;
+
+// Popula seletores
+(function initAnalytics(){
+  const now = new Date();
+  const selMes = document.getElementById('anMes');
+  const selAno = document.getElementById('anAno');
+  for(let m=0;m<12;m++){
+    const opt = document.createElement('option');
+    opt.value = String(m+1).padStart(2,'0');
+    opt.textContent = MESES[m];
+    if(m === now.getMonth()) opt.selected = true;
+    selMes.appendChild(opt);
+  }
+  for(let y=now.getFullYear();y>=now.getFullYear()-4;y--){
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    selAno.appendChild(opt);
+  }
+})();
+
+async function loadAnalytics(){
+  const empresa = document.getElementById('anEmpresa').value;
+  const mes = document.getElementById('anMes').value;
+  const ano = document.getElementById('anAno').value;
+  const comp = ano + '-' + mes;
+  const mesNome = MESES[parseInt(mes)-1] + '/' + ano;
+  document.getElementById('anMesLabel').textContent = mesNome;
+  document.getElementById('anDetMesLabel').textContent = mesNome;
+
+  // Buscar dados
+  const params = {};
+  if(empresa) params.company = empresa;
+
+  const [txR, duR, payR, bpoR] = await Promise.allSettled([
+    API.transactions.list({...params, limit:2000}),
+    API.duties.list({...params, limit:500}),
+    API.payroll.list({...params, limit:50}),
+    API.bpo.list({...params, limit:500}),
+  ]);
+
+  const txs = txR.status==='fulfilled' && txR.value?.success ? (txR.value.transactions||[]) : [];
+  const duties = duR.status==='fulfilled' && duR.value?.success ? (duR.value.duties||[]) : [];
+  const payrolls = payR.status==='fulfilled' && payR.value?.success ? (payR.value.payrolls||[]) : [];
+  const bpos = bpoR.status==='fulfilled' && bpoR.value?.success ? (bpoR.value.items||[]) : [];
+
+  // ── Calcular dados por mês (últimos 12 meses) ──
+  const mesesData = [];
+  const now = new Date(parseInt(ano), parseInt(mes)-1, 1);
+  for(let i=11;i>=0;i--){
+    const d = new Date(now); d.setMonth(d.getMonth()-i);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = MESES[d.getMonth()]+'/'+String(d.getFullYear()).slice(2);
+
+    const txMes = txs.filter(t => (t.competence||'').startsWith(key));
+    const entradas = txMes.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.amount||0),0);
+    const saidas = txMes.filter(t=>t.type==='debit').reduce((s,t)=>s+(t.amount||0),0);
+
+    const duMes = duties.filter(d => (d.competence||'').startsWith(key));
+    const entregues = duMes.filter(d=>d.status==='entregue'||d.status==='pago').length;
+    const pendentes = duMes.filter(d=>d.status==='pendente'||d.status==='em_andamento').length;
+    const atrasados = duMes.filter(d=>d.status==='atrasado').length;
+
+    const payMes = payrolls.filter(p => (p.competence||'').startsWith(key));
+    const custoFolha = payMes.reduce((s,p)=>s+(p.totalCost||0),0);
+
+    mesesData.push({key,label,entradas,saidas,entregues,pendentes,atrasados,custoFolha});
+  }
+
+  // ── KPIs do mês selecionado ──
+  const mesSel = mesesData[mesesData.length-1] || {};
+  const saldo = mesSel.entradas - mesSel.saidas;
+  const totalEntradas12 = mesesData.reduce((s,m)=>s+m.entradas,0);
+  const totalSaidas12 = mesesData.reduce((s,m)=>s+m.saidas,0);
+  const totalObrig = mesSel.entregues + mesSel.pendentes + mesSel.atrasados;
+  const compliance = totalObrig ? Math.round(mesSel.entregues/totalObrig*100) : 0;
+
+  document.getElementById('anKpis').innerHTML = [
+    {l:'ENTRADAS ('+mesNome+')',v:curK(mesSel.entradas),s:'créditos',c:'sc gn'},
+    {l:'SAÍDAS ('+mesNome+')',v:curK(mesSel.saidas),s:'débitos',c:'sc rd'},
+    {l:'SALDO',v:curK(saldo),s:saldo>=0?'positivo':'negativo',c:saldo>=0?'sc gn':'sc rd'},
+    {l:'FOLHA',v:curK(mesSel.custoFolha),s:'custo total',c:'sc pu'},
+    {l:'COMPLIANCE',v:compliance+'%',s:mesSel.entregues+' de '+totalObrig,c:compliance>=80?'sc gn':compliance>=50?'sc am':'sc rd'},
+  ].map(k=>'<div class="'+k.c+'"><div class="sc-l">'+k.l+'</div><div class="sc-v">'+k.v+'</div><div class="sc-s">'+k.s+'</div></div>').join('');
+
+  // ── CHART 1: Entradas vs Saídas ──
+  const labels12 = mesesData.map(m=>m.label);
+  const cfgEntradas = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas',data:mesesData.map(m=>m.entradas),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+      {label:'Saídas',data:mesesData.map(m=>m.saidas),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.entradas = cfgEntradas;
+  if(anCharts.entradas) anCharts.entradas.destroy();
+  anCharts.entradas = new Chart(document.getElementById('anChartEntradas'), cfgEntradas);
+
+  // ── CHART 2: Acumulado ──
+  let acumE=0, acumS=0;
+  const acumEntradas = mesesData.map(m=>{acumE+=m.entradas;return acumE});
+  const acumSaidas = mesesData.map(m=>{acumS+=m.saidas;return acumS});
+  const cfgAcumulado = {
+    type:'line',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas Acumuladas',data:acumEntradas,borderColor:'rgba(0,201,167,1)',backgroundColor:'rgba(0,201,167,.1)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saídas Acumuladas',data:acumSaidas,borderColor:'rgba(239,68,68,1)',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saldo Acumulado',data:acumEntradas.map((v,i)=>v-acumSaidas[i]),borderColor:'rgba(59,144,232,1)',backgroundColor:'rgba(59,144,232,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2,borderDash:[5,3]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.acumulado = cfgAcumulado;
+  if(anCharts.acumulado) anCharts.acumulado.destroy();
+  anCharts.acumulado = new Chart(document.getElementById('anChartAcumulado'), cfgAcumulado);
+
+  // ── CHART 3: Relatório do Mês (pizza/doughnut) ──
+  const cfgMes = {
+    type:'doughnut',
+    data:{labels:['Entradas','Saídas','Folha'],datasets:[{
+      data:[mesSel.entradas||1, mesSel.saidas||1, mesSel.custoFolha||1],
+      backgroundColor:['rgba(0,201,167,.7)','rgba(239,68,68,.6)','rgba(139,92,246,.6)'],
+      borderColor:['rgba(0,201,167,1)','rgba(239,68,68,1)','rgba(139,92,246,1)'],
+      borderWidth:2,
+      hoverOffset:8,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:11},padding:14,usePointStyle:true}}},cutout:'60%'}
+  };
+  anConfigs.mes = cfgMes;
+  if(anCharts.mes) anCharts.mes.destroy();
+  anCharts.mes = new Chart(document.getElementById('anChartMes'), cfgMes);
+
+  // ── CHART 4: Obrigações Histórico ──
+  const cfgObrig = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entregues',data:mesesData.map(m=>m.entregues),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:4},
+      {label:'Pendentes',data:mesesData.map(m=>m.pendentes),backgroundColor:'rgba(245,158,11,.15)',borderColor:'rgba(245,158,11,1)',borderWidth:2,borderRadius:4},
+      {label:'Atrasadas',data:mesesData.map(m=>m.atrasados),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true}}}
+  };
+  anConfigs.obrigHist = cfgObrig;
+  if(anCharts.obrigHist) anCharts.obrigHist.destroy();
+  anCharts.obrigHist = new Chart(document.getElementById('anChartObrig'), cfgObrig);
+
+  // ── RELATÓRIO DETALHADO DO MÊS ──
+  const txMesSel = txs.filter(t=>(t.competence||'').startsWith(comp));
+  const catEntradas = {};
+  const catSaidas = {};
+  txMesSel.forEach(t=>{
+    const cat = t.category || 'Outros';
+    if(t.type==='credit') catEntradas[cat] = (catEntradas[cat]||0) + (t.amount||0);
+    else catSaidas[cat] = (catSaidas[cat]||0) + (t.amount||0);
+  });
+
+  let relHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">📈 Entradas por Categoria</div>';
+  const entArr = Object.entries(catEntradas).sort((a,b)=>b[1]-a[1]);
+  if(entArr.length){
+    relHtml += entArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--green);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Entradas</span><span style="color:var(--green)">'+cur(mesSel.entradas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem entradas no período</div>';
+  relHtml += '</div>';
+
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:8px">📉 Saídas por Categoria</div>';
+  const saiArr = Object.entries(catSaidas).sort((a,b)=>b[1]-a[1]);
+  if(saiArr.length){
+    relHtml += saiArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--red);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Saídas</span><span style="color:var(--red)">'+cur(mesSel.saidas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem saídas no período</div>';
+  relHtml += '</div></div>';
+
+  relHtml += '<div style="margin-top:14px;padding:14px;background:rgba(59,144,232,.06);border:1px solid rgba(59,144,232,.15);border-radius:8px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Resultado do Mês</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+cur(saldo)+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--txt3)">Margem</div><div style="font-size:16px;font-weight:700;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+((mesSel.entradas?Math.round(saldo/mesSel.entradas*100):0))+'%</div></div></div>';
+
+  document.getElementById('anRelatorio').innerHTML = relHtml;
+}
+
+function expandAN(key){
+  const titles = {entradas:'💰 Entradas vs Saídas',acumulado:'📈 Acumulado Anual',obrigHist:'📊 Obrigações — Histórico',mes:'📋 Relatório do Mês'};
+  document.getElementById('ovExpANTitle').textContent = titles[key]||'Gráfico';
+  if(anExpInstance){anExpInstance.destroy();anExpInstance=null;}
+  const cfg = anConfigs[key];
+  if(!cfg){ui.toast('⚠️','Gráfico não disponível');return;}
+  ui.openModal('ovExpAN');
+  setTimeout(()=>{anExpInstance=new Chart(document.getElementById('anChartExp'),JSON.parse(JSON.stringify(cfg)));},150);
+}
+
+</script><script src="/js/api.js">
+
+// ═══════════════════════════════════════════════════════════
+// PAINEL ANALÍTICO
+// ═══════════════════════════════════════════════════════════
+const anCharts = {};
+const anConfigs = {};
+let anExpInstance = null;
+
+// Popula seletores
+(function initAnalytics(){
+  const now = new Date();
+  const selMes = document.getElementById('anMes');
+  const selAno = document.getElementById('anAno');
+  for(let m=0;m<12;m++){
+    const opt = document.createElement('option');
+    opt.value = String(m+1).padStart(2,'0');
+    opt.textContent = MESES[m];
+    if(m === now.getMonth()) opt.selected = true;
+    selMes.appendChild(opt);
+  }
+  for(let y=now.getFullYear();y>=now.getFullYear()-4;y--){
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    selAno.appendChild(opt);
+  }
+})();
+
+async function loadAnalytics(){
+  const empresa = document.getElementById('anEmpresa').value;
+  const mes = document.getElementById('anMes').value;
+  const ano = document.getElementById('anAno').value;
+  const comp = ano + '-' + mes;
+  const mesNome = MESES[parseInt(mes)-1] + '/' + ano;
+  document.getElementById('anMesLabel').textContent = mesNome;
+  document.getElementById('anDetMesLabel').textContent = mesNome;
+
+  // Buscar dados
+  const params = {};
+  if(empresa) params.company = empresa;
+
+  const [txR, duR, payR, bpoR] = await Promise.allSettled([
+    API.transactions.list({...params, limit:2000}),
+    API.duties.list({...params, limit:500}),
+    API.payroll.list({...params, limit:50}),
+    API.bpo.list({...params, limit:500}),
+  ]);
+
+  const txs = txR.status==='fulfilled' && txR.value?.success ? (txR.value.transactions||[]) : [];
+  const duties = duR.status==='fulfilled' && duR.value?.success ? (duR.value.duties||[]) : [];
+  const payrolls = payR.status==='fulfilled' && payR.value?.success ? (payR.value.payrolls||[]) : [];
+  const bpos = bpoR.status==='fulfilled' && bpoR.value?.success ? (bpoR.value.items||[]) : [];
+
+  // ── Calcular dados por mês (últimos 12 meses) ──
+  const mesesData = [];
+  const now = new Date(parseInt(ano), parseInt(mes)-1, 1);
+  for(let i=11;i>=0;i--){
+    const d = new Date(now); d.setMonth(d.getMonth()-i);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = MESES[d.getMonth()]+'/'+String(d.getFullYear()).slice(2);
+
+    const txMes = txs.filter(t => (t.competence||'').startsWith(key));
+    const entradas = txMes.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.amount||0),0);
+    const saidas = txMes.filter(t=>t.type==='debit').reduce((s,t)=>s+(t.amount||0),0);
+
+    const duMes = duties.filter(d => (d.competence||'').startsWith(key));
+    const entregues = duMes.filter(d=>d.status==='entregue'||d.status==='pago').length;
+    const pendentes = duMes.filter(d=>d.status==='pendente'||d.status==='em_andamento').length;
+    const atrasados = duMes.filter(d=>d.status==='atrasado').length;
+
+    const payMes = payrolls.filter(p => (p.competence||'').startsWith(key));
+    const custoFolha = payMes.reduce((s,p)=>s+(p.totalCost||0),0);
+
+    mesesData.push({key,label,entradas,saidas,entregues,pendentes,atrasados,custoFolha});
+  }
+
+  // ── KPIs do mês selecionado ──
+  const mesSel = mesesData[mesesData.length-1] || {};
+  const saldo = mesSel.entradas - mesSel.saidas;
+  const totalEntradas12 = mesesData.reduce((s,m)=>s+m.entradas,0);
+  const totalSaidas12 = mesesData.reduce((s,m)=>s+m.saidas,0);
+  const totalObrig = mesSel.entregues + mesSel.pendentes + mesSel.atrasados;
+  const compliance = totalObrig ? Math.round(mesSel.entregues/totalObrig*100) : 0;
+
+  document.getElementById('anKpis').innerHTML = [
+    {l:'ENTRADAS ('+mesNome+')',v:curK(mesSel.entradas),s:'créditos',c:'sc gn'},
+    {l:'SAÍDAS ('+mesNome+')',v:curK(mesSel.saidas),s:'débitos',c:'sc rd'},
+    {l:'SALDO',v:curK(saldo),s:saldo>=0?'positivo':'negativo',c:saldo>=0?'sc gn':'sc rd'},
+    {l:'FOLHA',v:curK(mesSel.custoFolha),s:'custo total',c:'sc pu'},
+    {l:'COMPLIANCE',v:compliance+'%',s:mesSel.entregues+' de '+totalObrig,c:compliance>=80?'sc gn':compliance>=50?'sc am':'sc rd'},
+  ].map(k=>'<div class="'+k.c+'"><div class="sc-l">'+k.l+'</div><div class="sc-v">'+k.v+'</div><div class="sc-s">'+k.s+'</div></div>').join('');
+
+  // ── CHART 1: Entradas vs Saídas ──
+  const labels12 = mesesData.map(m=>m.label);
+  const cfgEntradas = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas',data:mesesData.map(m=>m.entradas),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+      {label:'Saídas',data:mesesData.map(m=>m.saidas),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.entradas = cfgEntradas;
+  if(anCharts.entradas) anCharts.entradas.destroy();
+  anCharts.entradas = new Chart(document.getElementById('anChartEntradas'), cfgEntradas);
+
+  // ── CHART 2: Acumulado ──
+  let acumE=0, acumS=0;
+  const acumEntradas = mesesData.map(m=>{acumE+=m.entradas;return acumE});
+  const acumSaidas = mesesData.map(m=>{acumS+=m.saidas;return acumS});
+  const cfgAcumulado = {
+    type:'line',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas Acumuladas',data:acumEntradas,borderColor:'rgba(0,201,167,1)',backgroundColor:'rgba(0,201,167,.1)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saídas Acumuladas',data:acumSaidas,borderColor:'rgba(239,68,68,1)',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saldo Acumulado',data:acumEntradas.map((v,i)=>v-acumSaidas[i]),borderColor:'rgba(59,144,232,1)',backgroundColor:'rgba(59,144,232,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2,borderDash:[5,3]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.acumulado = cfgAcumulado;
+  if(anCharts.acumulado) anCharts.acumulado.destroy();
+  anCharts.acumulado = new Chart(document.getElementById('anChartAcumulado'), cfgAcumulado);
+
+  // ── CHART 3: Relatório do Mês (pizza/doughnut) ──
+  const cfgMes = {
+    type:'doughnut',
+    data:{labels:['Entradas','Saídas','Folha'],datasets:[{
+      data:[mesSel.entradas||1, mesSel.saidas||1, mesSel.custoFolha||1],
+      backgroundColor:['rgba(0,201,167,.7)','rgba(239,68,68,.6)','rgba(139,92,246,.6)'],
+      borderColor:['rgba(0,201,167,1)','rgba(239,68,68,1)','rgba(139,92,246,1)'],
+      borderWidth:2,
+      hoverOffset:8,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:11},padding:14,usePointStyle:true}}},cutout:'60%'}
+  };
+  anConfigs.mes = cfgMes;
+  if(anCharts.mes) anCharts.mes.destroy();
+  anCharts.mes = new Chart(document.getElementById('anChartMes'), cfgMes);
+
+  // ── CHART 4: Obrigações Histórico ──
+  const cfgObrig = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entregues',data:mesesData.map(m=>m.entregues),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:4},
+      {label:'Pendentes',data:mesesData.map(m=>m.pendentes),backgroundColor:'rgba(245,158,11,.15)',borderColor:'rgba(245,158,11,1)',borderWidth:2,borderRadius:4},
+      {label:'Atrasadas',data:mesesData.map(m=>m.atrasados),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true}}}
+  };
+  anConfigs.obrigHist = cfgObrig;
+  if(anCharts.obrigHist) anCharts.obrigHist.destroy();
+  anCharts.obrigHist = new Chart(document.getElementById('anChartObrig'), cfgObrig);
+
+  // ── RELATÓRIO DETALHADO DO MÊS ──
+  const txMesSel = txs.filter(t=>(t.competence||'').startsWith(comp));
+  const catEntradas = {};
+  const catSaidas = {};
+  txMesSel.forEach(t=>{
+    const cat = t.category || 'Outros';
+    if(t.type==='credit') catEntradas[cat] = (catEntradas[cat]||0) + (t.amount||0);
+    else catSaidas[cat] = (catSaidas[cat]||0) + (t.amount||0);
+  });
+
+  let relHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">📈 Entradas por Categoria</div>';
+  const entArr = Object.entries(catEntradas).sort((a,b)=>b[1]-a[1]);
+  if(entArr.length){
+    relHtml += entArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--green);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Entradas</span><span style="color:var(--green)">'+cur(mesSel.entradas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem entradas no período</div>';
+  relHtml += '</div>';
+
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:8px">📉 Saídas por Categoria</div>';
+  const saiArr = Object.entries(catSaidas).sort((a,b)=>b[1]-a[1]);
+  if(saiArr.length){
+    relHtml += saiArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--red);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Saídas</span><span style="color:var(--red)">'+cur(mesSel.saidas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem saídas no período</div>';
+  relHtml += '</div></div>';
+
+  relHtml += '<div style="margin-top:14px;padding:14px;background:rgba(59,144,232,.06);border:1px solid rgba(59,144,232,.15);border-radius:8px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Resultado do Mês</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+cur(saldo)+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--txt3)">Margem</div><div style="font-size:16px;font-weight:700;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+((mesSel.entradas?Math.round(saldo/mesSel.entradas*100):0))+'%</div></div></div>';
+
+  document.getElementById('anRelatorio').innerHTML = relHtml;
+}
+
+function expandAN(key){
+  const titles = {entradas:'💰 Entradas vs Saídas',acumulado:'📈 Acumulado Anual',obrigHist:'📊 Obrigações — Histórico',mes:'📋 Relatório do Mês'};
+  document.getElementById('ovExpANTitle').textContent = titles[key]||'Gráfico';
+  if(anExpInstance){anExpInstance.destroy();anExpInstance=null;}
+  const cfg = anConfigs[key];
+  if(!cfg){ui.toast('⚠️','Gráfico não disponível');return;}
+  ui.openModal('ovExpAN');
+  setTimeout(()=>{anExpInstance=new Chart(document.getElementById('anChartExp'),JSON.parse(JSON.stringify(cfg)));},150);
+}
+
+</script><script src="/js/ui.js">
+
+// ═══════════════════════════════════════════════════════════
+// PAINEL ANALÍTICO
+// ═══════════════════════════════════════════════════════════
+const anCharts = {};
+const anConfigs = {};
+let anExpInstance = null;
+
+// Popula seletores
+(function initAnalytics(){
+  const now = new Date();
+  const selMes = document.getElementById('anMes');
+  const selAno = document.getElementById('anAno');
+  for(let m=0;m<12;m++){
+    const opt = document.createElement('option');
+    opt.value = String(m+1).padStart(2,'0');
+    opt.textContent = MESES[m];
+    if(m === now.getMonth()) opt.selected = true;
+    selMes.appendChild(opt);
+  }
+  for(let y=now.getFullYear();y>=now.getFullYear()-4;y--){
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    selAno.appendChild(opt);
+  }
+})();
+
+async function loadAnalytics(){
+  const empresa = document.getElementById('anEmpresa').value;
+  const mes = document.getElementById('anMes').value;
+  const ano = document.getElementById('anAno').value;
+  const comp = ano + '-' + mes;
+  const mesNome = MESES[parseInt(mes)-1] + '/' + ano;
+  document.getElementById('anMesLabel').textContent = mesNome;
+  document.getElementById('anDetMesLabel').textContent = mesNome;
+
+  // Buscar dados
+  const params = {};
+  if(empresa) params.company = empresa;
+
+  const [txR, duR, payR, bpoR] = await Promise.allSettled([
+    API.transactions.list({...params, limit:2000}),
+    API.duties.list({...params, limit:500}),
+    API.payroll.list({...params, limit:50}),
+    API.bpo.list({...params, limit:500}),
+  ]);
+
+  const txs = txR.status==='fulfilled' && txR.value?.success ? (txR.value.transactions||[]) : [];
+  const duties = duR.status==='fulfilled' && duR.value?.success ? (duR.value.duties||[]) : [];
+  const payrolls = payR.status==='fulfilled' && payR.value?.success ? (payR.value.payrolls||[]) : [];
+  const bpos = bpoR.status==='fulfilled' && bpoR.value?.success ? (bpoR.value.items||[]) : [];
+
+  // ── Calcular dados por mês (últimos 12 meses) ──
+  const mesesData = [];
+  const now = new Date(parseInt(ano), parseInt(mes)-1, 1);
+  for(let i=11;i>=0;i--){
+    const d = new Date(now); d.setMonth(d.getMonth()-i);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = MESES[d.getMonth()]+'/'+String(d.getFullYear()).slice(2);
+
+    const txMes = txs.filter(t => (t.competence||'').startsWith(key));
+    const entradas = txMes.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.amount||0),0);
+    const saidas = txMes.filter(t=>t.type==='debit').reduce((s,t)=>s+(t.amount||0),0);
+
+    const duMes = duties.filter(d => (d.competence||'').startsWith(key));
+    const entregues = duMes.filter(d=>d.status==='entregue'||d.status==='pago').length;
+    const pendentes = duMes.filter(d=>d.status==='pendente'||d.status==='em_andamento').length;
+    const atrasados = duMes.filter(d=>d.status==='atrasado').length;
+
+    const payMes = payrolls.filter(p => (p.competence||'').startsWith(key));
+    const custoFolha = payMes.reduce((s,p)=>s+(p.totalCost||0),0);
+
+    mesesData.push({key,label,entradas,saidas,entregues,pendentes,atrasados,custoFolha});
+  }
+
+  // ── KPIs do mês selecionado ──
+  const mesSel = mesesData[mesesData.length-1] || {};
+  const saldo = mesSel.entradas - mesSel.saidas;
+  const totalEntradas12 = mesesData.reduce((s,m)=>s+m.entradas,0);
+  const totalSaidas12 = mesesData.reduce((s,m)=>s+m.saidas,0);
+  const totalObrig = mesSel.entregues + mesSel.pendentes + mesSel.atrasados;
+  const compliance = totalObrig ? Math.round(mesSel.entregues/totalObrig*100) : 0;
+
+  document.getElementById('anKpis').innerHTML = [
+    {l:'ENTRADAS ('+mesNome+')',v:curK(mesSel.entradas),s:'créditos',c:'sc gn'},
+    {l:'SAÍDAS ('+mesNome+')',v:curK(mesSel.saidas),s:'débitos',c:'sc rd'},
+    {l:'SALDO',v:curK(saldo),s:saldo>=0?'positivo':'negativo',c:saldo>=0?'sc gn':'sc rd'},
+    {l:'FOLHA',v:curK(mesSel.custoFolha),s:'custo total',c:'sc pu'},
+    {l:'COMPLIANCE',v:compliance+'%',s:mesSel.entregues+' de '+totalObrig,c:compliance>=80?'sc gn':compliance>=50?'sc am':'sc rd'},
+  ].map(k=>'<div class="'+k.c+'"><div class="sc-l">'+k.l+'</div><div class="sc-v">'+k.v+'</div><div class="sc-s">'+k.s+'</div></div>').join('');
+
+  // ── CHART 1: Entradas vs Saídas ──
+  const labels12 = mesesData.map(m=>m.label);
+  const cfgEntradas = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas',data:mesesData.map(m=>m.entradas),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+      {label:'Saídas',data:mesesData.map(m=>m.saidas),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.entradas = cfgEntradas;
+  if(anCharts.entradas) anCharts.entradas.destroy();
+  anCharts.entradas = new Chart(document.getElementById('anChartEntradas'), cfgEntradas);
+
+  // ── CHART 2: Acumulado ──
+  let acumE=0, acumS=0;
+  const acumEntradas = mesesData.map(m=>{acumE+=m.entradas;return acumE});
+  const acumSaidas = mesesData.map(m=>{acumS+=m.saidas;return acumS});
+  const cfgAcumulado = {
+    type:'line',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas Acumuladas',data:acumEntradas,borderColor:'rgba(0,201,167,1)',backgroundColor:'rgba(0,201,167,.1)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saídas Acumuladas',data:acumSaidas,borderColor:'rgba(239,68,68,1)',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saldo Acumulado',data:acumEntradas.map((v,i)=>v-acumSaidas[i]),borderColor:'rgba(59,144,232,1)',backgroundColor:'rgba(59,144,232,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2,borderDash:[5,3]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.acumulado = cfgAcumulado;
+  if(anCharts.acumulado) anCharts.acumulado.destroy();
+  anCharts.acumulado = new Chart(document.getElementById('anChartAcumulado'), cfgAcumulado);
+
+  // ── CHART 3: Relatório do Mês (pizza/doughnut) ──
+  const cfgMes = {
+    type:'doughnut',
+    data:{labels:['Entradas','Saídas','Folha'],datasets:[{
+      data:[mesSel.entradas||1, mesSel.saidas||1, mesSel.custoFolha||1],
+      backgroundColor:['rgba(0,201,167,.7)','rgba(239,68,68,.6)','rgba(139,92,246,.6)'],
+      borderColor:['rgba(0,201,167,1)','rgba(239,68,68,1)','rgba(139,92,246,1)'],
+      borderWidth:2,
+      hoverOffset:8,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:11},padding:14,usePointStyle:true}}},cutout:'60%'}
+  };
+  anConfigs.mes = cfgMes;
+  if(anCharts.mes) anCharts.mes.destroy();
+  anCharts.mes = new Chart(document.getElementById('anChartMes'), cfgMes);
+
+  // ── CHART 4: Obrigações Histórico ──
+  const cfgObrig = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entregues',data:mesesData.map(m=>m.entregues),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:4},
+      {label:'Pendentes',data:mesesData.map(m=>m.pendentes),backgroundColor:'rgba(245,158,11,.15)',borderColor:'rgba(245,158,11,1)',borderWidth:2,borderRadius:4},
+      {label:'Atrasadas',data:mesesData.map(m=>m.atrasados),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true}}}
+  };
+  anConfigs.obrigHist = cfgObrig;
+  if(anCharts.obrigHist) anCharts.obrigHist.destroy();
+  anCharts.obrigHist = new Chart(document.getElementById('anChartObrig'), cfgObrig);
+
+  // ── RELATÓRIO DETALHADO DO MÊS ──
+  const txMesSel = txs.filter(t=>(t.competence||'').startsWith(comp));
+  const catEntradas = {};
+  const catSaidas = {};
+  txMesSel.forEach(t=>{
+    const cat = t.category || 'Outros';
+    if(t.type==='credit') catEntradas[cat] = (catEntradas[cat]||0) + (t.amount||0);
+    else catSaidas[cat] = (catSaidas[cat]||0) + (t.amount||0);
+  });
+
+  let relHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">📈 Entradas por Categoria</div>';
+  const entArr = Object.entries(catEntradas).sort((a,b)=>b[1]-a[1]);
+  if(entArr.length){
+    relHtml += entArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--green);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Entradas</span><span style="color:var(--green)">'+cur(mesSel.entradas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem entradas no período</div>';
+  relHtml += '</div>';
+
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:8px">📉 Saídas por Categoria</div>';
+  const saiArr = Object.entries(catSaidas).sort((a,b)=>b[1]-a[1]);
+  if(saiArr.length){
+    relHtml += saiArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--red);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Saídas</span><span style="color:var(--red)">'+cur(mesSel.saidas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem saídas no período</div>';
+  relHtml += '</div></div>';
+
+  relHtml += '<div style="margin-top:14px;padding:14px;background:rgba(59,144,232,.06);border:1px solid rgba(59,144,232,.15);border-radius:8px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Resultado do Mês</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+cur(saldo)+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--txt3)">Margem</div><div style="font-size:16px;font-weight:700;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+((mesSel.entradas?Math.round(saldo/mesSel.entradas*100):0))+'%</div></div></div>';
+
+  document.getElementById('anRelatorio').innerHTML = relHtml;
+}
+
+function expandAN(key){
+  const titles = {entradas:'💰 Entradas vs Saídas',acumulado:'📈 Acumulado Anual',obrigHist:'📊 Obrigações — Histórico',mes:'📋 Relatório do Mês'};
+  document.getElementById('ovExpANTitle').textContent = titles[key]||'Gráfico';
+  if(anExpInstance){anExpInstance.destroy();anExpInstance=null;}
+  const cfg = anConfigs[key];
+  if(!cfg){ui.toast('⚠️','Gráfico não disponível');return;}
+  ui.openModal('ovExpAN');
+  setTimeout(()=>{anExpInstance=new Chart(document.getElementById('anChartExp'),JSON.parse(JSON.stringify(cfg)));},150);
+}
+
+</script>
+<script>
+auth.require(); ui.loadSidebar();
+
+const cur  = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const curK = v => v>=1000?'R$\u00a0'+(v/1000).toFixed(1).replace('.',',')+'\u00a0k':cur(v);
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const REG_LBL = {simples:'Simples Nacional',presumido:'Lucro Presumido',real:'Lucro Real',mei:'MEI',imune:'Imune'};
+const REG_COR = {simples:'var(--blue)',presumido:'var(--amber)',real:'var(--purple)',mei:'var(--green)',imune:'var(--teal)'};
+
+// Badge header com data
+(()=>{
+  const now = new Date();
+  document.getElementById('tbData').textContent =
+    now.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  const user = auth.getUser();
+  if(user) document.getElementById('tbUser').textContent = '👤 '+user.name;
+})();
+
+async function load(){
+  const now = new Date();
+  const comp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  const [statsR, dutiesR, cosR, sumR, payR, lancR] = await Promise.all([
+    API.companies.stats(),
+    API.duties.upcoming(7),
+    API.companies.list({ limit:8 }),
+    API.billing.summary(),
+    API.payroll.stats({ competence:comp }),
+    API.transactions.list({ limit:6 }),
+  ]);
+
+  // ── KPIs ──────────────────────────────────────────────────
+  if(statsR?.success){
+    const s = statsR.stats;
+    document.getElementById('kEmp').textContent  = s.active||0;
+    document.getElementById('kHon').textContent  = curK(s.monthlyFee||0);
+    document.getElementById('kPago').textContent = s.byStatus?.pago||0;
+    document.getElementById('kInad').textContent = s.byStatus?.atrasado||0;
+    document.getElementById('kLtv').textContent  = curK((s.monthlyFee||0)*12);
+    const sb = document.getElementById('sb-badge-emp');
+    if(sb) sb.textContent = s.total||'';
+  }
+
+  // ── ALERTAS ───────────────────────────────────────────────
+  const alertas = [];
+  const atrasados = dutiesR?.duties?.filter(d=>d.status==='atrasado')||[];
+  const urgentes  = dutiesR?.duties?.filter(d=>['pendente','em_andamento'].includes(d.status))||[];
+  const inad      = statsR?.stats?.byStatus?.atrasado||0;
+  if(atrasados.length) alertas.push(`<div class="alert-chip rd" onclick="location.href='/obrigacoes.html'"><span class="alert-dot rd"></span>${atrasados.length} obrigação(ões) em atraso</div>`);
+  if(urgentes.length)  alertas.push(`<div class="alert-chip am" onclick="location.href='/obrigacoes.html'"><span class="alert-dot am"></span>${urgentes.length} vencendo nos próximos 7 dias</div>`);
+  if(inad>0)           alertas.push(`<div class="alert-chip rd" onclick="location.href='/honorarios.html'"><span class="alert-dot rd"></span>${inad} cliente(s) inadimplente(s)</div>`);
+  if(!alertas.length)  alertas.push(`<div class="alert-chip gn"><span class="alert-dot gn"></span>✓ Tudo em dia — sem alertas urgentes</div>`);
+  document.getElementById('alertStrip').innerHTML = alertas.join('');
+  document.getElementById('kObrig').textContent = urgentes.length+atrasados.length;
+  const sbObr = document.getElementById('sb-badge-obrig');
+  if(sbObr) sbObr.textContent = (urgentes.length+atrasados.length)||'';
+
+
+  // Popular seletor de empresas para gráficos
+  if(cosR?.success){
+    const sel = document.getElementById('anEmpresa');
+    if(sel && sel.options.length<=1){
+      (cosR.companies||[]).forEach(co=>{
+        const opt = document.createElement('option');
+        opt.value = co._id;
+        opt.textContent = co.tradeName||co.legalName;
+        sel.appendChild(opt);
+      });
+    }
+  }
+
+  // Carregar gráficos analíticos
+  try { loadAnalytics(); } catch(e) { console.warn('Analytics:', e.message); }
+
+  // ── OBRIGAÇÕES URGENTES ───────────────────────────────────
+  if(dutiesR?.success){
+    const today = new Date(); today.setHours(0,0,0,0);
+    document.getElementById('listDuties').innerHTML = dutiesR.duties.length
+      ? dutiesR.duties.slice(0,7).map(d=>{
+          const due = new Date(d.dueDate); due.setHours(0,0,0,0);
+          const diff = Math.ceil((due-today)/86400000);
+          const isPend = ['pendente','em_andamento'].includes(d.status);
+          let badge='';
+          if(d.status==='atrasado') badge=`<span class="day-badge rd">${Math.abs(diff)}d atraso</span>`;
+          else if(isPend&&diff===0) badge=`<span class="day-badge rd">Hoje!</span>`;
+          else if(isPend&&diff<=3)  badge=`<span class="day-badge am">${diff}d</span>`;
+          else if(isPend)           badge=`<span class="day-badge gn">${diff}d</span>`;
+          return `<div class="duty-row" onclick="location.href='/obrigacoes.html'">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:500;color:var(--txt)">${d.name}</div>
+              <div style="font-size:11px;color:var(--txt3)">${d.company?.tradeName||d.company?.legalName||'—'} · ${d.type}</div>
+            </div>
+            ${badge}
+            ${ui.pill(d.status)}
+          </div>`;
+        }).join('')
+      : '<div class="empty" style="padding:18px 0"><div class="empty-ic">🎉</div><div class="empty-t">Nenhuma urgente!</div></div>';
+  }
+
+  // ── REGIME TRIBUTÁRIO ─────────────────────────────────────
+  if(statsR?.success){
+    const regimes = statsR.stats.byRegime||[];
+    const max = regimes.length ? regimes[0].count : 1;
+    document.getElementById('chartRegime').innerHTML = regimes.length
+      ? regimes.map(r=>`
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+              <span style="color:${REG_COR[r._id]||'var(--txt2)'}">● ${REG_LBL[r._id]||r._id}</span>
+              <span style="font-weight:600;color:var(--txt)">${r.count} empresa(s)</span>
+            </div>
+            <div style="background:var(--bg4);border-radius:20px;height:5px;overflow:hidden">
+              <div style="height:100%;border-radius:20px;background:${REG_COR[r._id]||'var(--blue)'};width:${r.count/max*100}%;transition:width .8s ease"></div>
+            </div>
+          </div>`).join('')
+      : '<div class="empty"><div class="empty-s">Nenhuma empresa cadastrada</div></div>';
+  }
+
+  // ── EMPRESAS / HONORÁRIOS ─────────────────────────────────
+  if(cosR?.success){
+    const cos = cosR.companies||[];
+    document.getElementById('listCompanies').innerHTML = cos.length
+      ? `<div style="overflow-x:auto"><table class="tbl">
+          <thead><tr><th>Empresa</th><th>Regime</th><th>Honorário</th><th>Status</th></tr></thead>
+          <tbody>${cos.map((c,i)=>`
+            <tr onclick="location.href='/empresas.html'" style="cursor:pointer">
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="co-av" style="background:${CORES[i%CORES.length]}">${ui.ini(c.legalName)}</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:500;color:var(--txt)">${c.legalName}</div>
+                    <div style="font-size:10px;color:var(--txt3)">${ui.cnpj(c.cnpj)}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="font-size:11px">${REG_LBL[c.taxRegime]||c.taxRegime||'—'}</td>
+              <td class="money g">${cur(c.fee||0)}</td>
+              <td>${ui.pill(c.status)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>`
+      : '<div class="empty"><div class="empty-ic">🏢</div><div class="empty-t">Nenhuma empresa</div><div class="empty-s"><a href="/empresas.html?new=1" style="color:var(--bl)">Cadastrar a primeira →</a></div></div>';
+  }
+
+  // ── ATIVIDADE RECENTE ─────────────────────────────────────
+  const atividades = [];
+  if(dutiesR?.duties?.length) dutiesR.duties.slice(0,3).forEach(d=>atividades.push({cor:'var(--amber)',texto:`Obrigação: ${d.name}`,sub:d.company?.tradeName||'—',data:ui.date(d.dueDate)}));
+  if(lancR?.transactions?.length) lancR.transactions.slice(0,3).forEach(t=>atividades.push({cor:t.type==='debit'?'var(--red)':'var(--green)',texto:t.description,sub:`${t.type==='debit'?'Débito':'Crédito'} · ${cur(t.amount)}`,data:ui.date(t.date)}));
+  document.getElementById('listAtividade').innerHTML = atividades.length
+    ? atividades.slice(0,6).map(a=>`
+        <div class="act-row">
+          <div class="act-dot" style="background:${a.cor}"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12.5px;font-weight:500;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.texto}</div>
+            <div style="font-size:10px;color:var(--txt3)">${a.sub}</div>
+          </div>
+          <span style="font-size:10px;color:var(--txt3);flex-shrink:0">${a.data}</span>
+        </div>`).join('')
+    : '<div class="empty"><div class="empty-s">Nenhuma atividade</div></div>';
+
+  // ── FOLHA DO MÊS ─────────────────────────────────────────
+  if(payR?.success){
+    const s = payR.summary;
+    document.getElementById('folhaResumo').innerHTML = [
+      ['Funcionários',   s.headcount||0,        'var(--bl)'],
+      ['Total Bruto',    curK(s.totalGross||0),  'var(--txt)'],
+      ['Total Líquido',  curK(s.totalNet||0),    'var(--green)'],
+      ['INSS + FGTS',    curK((s.totalINSS||0)+(s.totalFGTS||0)), 'var(--amber)'],
+      ['Custo Total',    curK(s.totalCost||0),   'var(--red)'],
+    ].map(([l,v,c])=>`
+      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px">
+        <span style="color:var(--txt2)">${l}</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:600">${v}</span>
+      </div>`).join('');
+  } else {
+    document.getElementById('folhaResumo').innerHTML='<div class="empty"><div class="empty-s"><a href="/folha.html?new=1" style="color:var(--bl)">Criar folha do mês →</a></div></div>';
+  }
+
+  // ── HONORÁRIOS POR STATUS ─────────────────────────────────
+  if(sumR?.success){
+    const s = sumR.summary;
+    const bs = s.byStatus||{};
+    const total = s.totalActiveCompanies||1;
+    document.getElementById('honStatus').innerHTML = [
+      ['✅ Em Dia',     bs.pago||0,     'var(--green)'],
+      ['⏳ Pendentes',  bs.pendente||0,  'var(--amber)'],
+      ['❌ Em Atraso',  bs.atrasado||0,  'var(--red)'],
+    ].map(([l,v,c])=>{
+      const pct = Math.round(v/total*100);
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+          <span>${l}</span>
+          <span style="font-weight:600;color:${c}">${v} (${pct}%)</span>
+        </div>
+        <div style="background:var(--bg4);border-radius:20px;height:5px;overflow:hidden">
+          <div style="height:100%;border-radius:20px;background:${c};width:${pct}%;transition:width .8s ease"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── ÚLTIMOS LANÇAMENTOS ───────────────────────────────────
+  if(lancR?.success){
+    const txs = lancR.transactions||[];
+    document.getElementById('listLanc').innerHTML = txs.length
+      ? txs.map(t=>`
+          <div class="act-row">
+            <div class="act-dot" style="background:${t.type==='debit'?'var(--red)':'var(--green)'}"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:500;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.description}</div>
+              <div style="font-size:10px;color:var(--txt3)">${t.company?.tradeName||'—'}</div>
+            </div>
+            <span class="money ${t.type==='debit'?'r':'g'}" style="flex-shrink:0">${cur(t.amount)}</span>
+          </div>`).join('')
+      : '<div class="empty"><div class="empty-s"><a href="/lancamentos.html?new=1" style="color:var(--bl)">+ Lançamento →</a></div></div>';
+  }
+}
+
+load();
+
+
+// ═══════════════════════════════════════════════════════════
+// PAINEL ANALÍTICO
+// ═══════════════════════════════════════════════════════════
+const anCharts = {};
+const anConfigs = {};
+let anExpInstance = null;
+
+// Popula seletores
+(function initAnalytics(){
+  const now = new Date();
+  const selMes = document.getElementById('anMes');
+  const selAno = document.getElementById('anAno');
+  for(let m=0;m<12;m++){
+    const opt = document.createElement('option');
+    opt.value = String(m+1).padStart(2,'0');
+    opt.textContent = MESES[m];
+    if(m === now.getMonth()) opt.selected = true;
+    selMes.appendChild(opt);
+  }
+  for(let y=now.getFullYear();y>=now.getFullYear()-4;y--){
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    selAno.appendChild(opt);
+  }
+})();
+
+async function loadAnalytics(){
+  const empresa = document.getElementById('anEmpresa').value;
+  const mes = document.getElementById('anMes').value;
+  const ano = document.getElementById('anAno').value;
+  const comp = ano + '-' + mes;
+  const mesNome = MESES[parseInt(mes)-1] + '/' + ano;
+  document.getElementById('anMesLabel').textContent = mesNome;
+  document.getElementById('anDetMesLabel').textContent = mesNome;
+
+  // Buscar dados
+  const params = {};
+  if(empresa) params.company = empresa;
+
+  const [txR, duR, payR, bpoR] = await Promise.allSettled([
+    API.transactions.list({...params, limit:2000}),
+    API.duties.list({...params, limit:500}),
+    API.payroll.list({...params, limit:50}),
+    API.bpo.list({...params, limit:500}),
+  ]);
+
+  const txs = txR.status==='fulfilled' && txR.value?.success ? (txR.value.transactions||[]) : [];
+  const duties = duR.status==='fulfilled' && duR.value?.success ? (duR.value.duties||[]) : [];
+  const payrolls = payR.status==='fulfilled' && payR.value?.success ? (payR.value.payrolls||[]) : [];
+  const bpos = bpoR.status==='fulfilled' && bpoR.value?.success ? (bpoR.value.items||[]) : [];
+
+  // ── Calcular dados por mês (últimos 12 meses) ──
+  const mesesData = [];
+  const now = new Date(parseInt(ano), parseInt(mes)-1, 1);
+  for(let i=11;i>=0;i--){
+    const d = new Date(now); d.setMonth(d.getMonth()-i);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = MESES[d.getMonth()]+'/'+String(d.getFullYear()).slice(2);
+
+    const txMes = txs.filter(t => (t.competence||'').startsWith(key));
+    const entradas = txMes.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.amount||0),0);
+    const saidas = txMes.filter(t=>t.type==='debit').reduce((s,t)=>s+(t.amount||0),0);
+
+    const duMes = duties.filter(d => (d.competence||'').startsWith(key));
+    const entregues = duMes.filter(d=>d.status==='entregue'||d.status==='pago').length;
+    const pendentes = duMes.filter(d=>d.status==='pendente'||d.status==='em_andamento').length;
+    const atrasados = duMes.filter(d=>d.status==='atrasado').length;
+
+    const payMes = payrolls.filter(p => (p.competence||'').startsWith(key));
+    const custoFolha = payMes.reduce((s,p)=>s+(p.totalCost||0),0);
+
+    mesesData.push({key,label,entradas,saidas,entregues,pendentes,atrasados,custoFolha});
+  }
+
+  // ── KPIs do mês selecionado ──
+  const mesSel = mesesData[mesesData.length-1] || {};
+  const saldo = mesSel.entradas - mesSel.saidas;
+  const totalEntradas12 = mesesData.reduce((s,m)=>s+m.entradas,0);
+  const totalSaidas12 = mesesData.reduce((s,m)=>s+m.saidas,0);
+  const totalObrig = mesSel.entregues + mesSel.pendentes + mesSel.atrasados;
+  const compliance = totalObrig ? Math.round(mesSel.entregues/totalObrig*100) : 0;
+
+  document.getElementById('anKpis').innerHTML = [
+    {l:'ENTRADAS ('+mesNome+')',v:curK(mesSel.entradas),s:'créditos',c:'sc gn'},
+    {l:'SAÍDAS ('+mesNome+')',v:curK(mesSel.saidas),s:'débitos',c:'sc rd'},
+    {l:'SALDO',v:curK(saldo),s:saldo>=0?'positivo':'negativo',c:saldo>=0?'sc gn':'sc rd'},
+    {l:'FOLHA',v:curK(mesSel.custoFolha),s:'custo total',c:'sc pu'},
+    {l:'COMPLIANCE',v:compliance+'%',s:mesSel.entregues+' de '+totalObrig,c:compliance>=80?'sc gn':compliance>=50?'sc am':'sc rd'},
+  ].map(k=>'<div class="'+k.c+'"><div class="sc-l">'+k.l+'</div><div class="sc-v">'+k.v+'</div><div class="sc-s">'+k.s+'</div></div>').join('');
+
+  // ── CHART 1: Entradas vs Saídas ──
+  const labels12 = mesesData.map(m=>m.label);
+  const cfgEntradas = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas',data:mesesData.map(m=>m.entradas),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+      {label:'Saídas',data:mesesData.map(m=>m.saidas),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:5,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.entradas = cfgEntradas;
+  if(anCharts.entradas) anCharts.entradas.destroy();
+  anCharts.entradas = new Chart(document.getElementById('anChartEntradas'), cfgEntradas);
+
+  // ── CHART 2: Acumulado ──
+  let acumE=0, acumS=0;
+  const acumEntradas = mesesData.map(m=>{acumE+=m.entradas;return acumE});
+  const acumSaidas = mesesData.map(m=>{acumS+=m.saidas;return acumS});
+  const cfgAcumulado = {
+    type:'line',
+    data:{labels:labels12,datasets:[
+      {label:'Entradas Acumuladas',data:acumEntradas,borderColor:'rgba(0,201,167,1)',backgroundColor:'rgba(0,201,167,.1)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saídas Acumuladas',data:acumSaidas,borderColor:'rgba(239,68,68,1)',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},
+      {label:'Saldo Acumulado',data:acumEntradas.map((v,i)=>v-acumSaidas[i]),borderColor:'rgba(59,144,232,1)',backgroundColor:'rgba(59,144,232,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2,borderDash:[5,3]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>curK(v)}}}}
+  };
+  anConfigs.acumulado = cfgAcumulado;
+  if(anCharts.acumulado) anCharts.acumulado.destroy();
+  anCharts.acumulado = new Chart(document.getElementById('anChartAcumulado'), cfgAcumulado);
+
+  // ── CHART 3: Relatório do Mês (pizza/doughnut) ──
+  const cfgMes = {
+    type:'doughnut',
+    data:{labels:['Entradas','Saídas','Folha'],datasets:[{
+      data:[mesSel.entradas||1, mesSel.saidas||1, mesSel.custoFolha||1],
+      backgroundColor:['rgba(0,201,167,.7)','rgba(239,68,68,.6)','rgba(139,92,246,.6)'],
+      borderColor:['rgba(0,201,167,1)','rgba(239,68,68,1)','rgba(139,92,246,1)'],
+      borderWidth:2,
+      hoverOffset:8,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:11},padding:14,usePointStyle:true}}},cutout:'60%'}
+  };
+  anConfigs.mes = cfgMes;
+  if(anCharts.mes) anCharts.mes.destroy();
+  anCharts.mes = new Chart(document.getElementById('anChartMes'), cfgMes);
+
+  // ── CHART 4: Obrigações Histórico ──
+  const cfgObrig = {
+    type:'bar',
+    data:{labels:labels12,datasets:[
+      {label:'Entregues',data:mesesData.map(m=>m.entregues),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:4},
+      {label:'Pendentes',data:mesesData.map(m=>m.pendentes),backgroundColor:'rgba(245,158,11,.15)',borderColor:'rgba(245,158,11,1)',borderWidth:2,borderRadius:4},
+      {label:'Atrasadas',data:mesesData.map(m=>m.atrasados),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}},stacked:true}}}
+  };
+  anConfigs.obrigHist = cfgObrig;
+  if(anCharts.obrigHist) anCharts.obrigHist.destroy();
+  anCharts.obrigHist = new Chart(document.getElementById('anChartObrig'), cfgObrig);
+
+  // ── RELATÓRIO DETALHADO DO MÊS ──
+  const txMesSel = txs.filter(t=>(t.competence||'').startsWith(comp));
+  const catEntradas = {};
+  const catSaidas = {};
+  txMesSel.forEach(t=>{
+    const cat = t.category || 'Outros';
+    if(t.type==='credit') catEntradas[cat] = (catEntradas[cat]||0) + (t.amount||0);
+    else catSaidas[cat] = (catSaidas[cat]||0) + (t.amount||0);
+  });
+
+  let relHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">📈 Entradas por Categoria</div>';
+  const entArr = Object.entries(catEntradas).sort((a,b)=>b[1]-a[1]);
+  if(entArr.length){
+    relHtml += entArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--green);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Entradas</span><span style="color:var(--green)">'+cur(mesSel.entradas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem entradas no período</div>';
+  relHtml += '</div>';
+
+  relHtml += '<div><div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:8px">📉 Saídas por Categoria</div>';
+  const saiArr = Object.entries(catSaidas).sort((a,b)=>b[1]-a[1]);
+  if(saiArr.length){
+    relHtml += saiArr.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+cat+'</span><span style="color:var(--red);font-weight:600;font-family:Syne,sans-serif">'+cur(val)+'</span></div>').join('');
+    relHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:700;border-top:1px solid var(--bd)"><span style="color:var(--txt)">Total Saídas</span><span style="color:var(--red)">'+cur(mesSel.saidas)+'</span></div>';
+  } else relHtml += '<div style="font-size:11px;color:var(--txt3)">Sem saídas no período</div>';
+  relHtml += '</div></div>';
+
+  relHtml += '<div style="margin-top:14px;padding:14px;background:rgba(59,144,232,.06);border:1px solid rgba(59,144,232,.15);border-radius:8px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em">Resultado do Mês</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+cur(saldo)+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--txt3)">Margem</div><div style="font-size:16px;font-weight:700;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+((mesSel.entradas?Math.round(saldo/mesSel.entradas*100):0))+'%</div></div></div>';
+
+  document.getElementById('anRelatorio').innerHTML = relHtml;
+}
+
+function expandAN(key){
+  const titles = {entradas:'💰 Entradas vs Saídas',acumulado:'📈 Acumulado Anual',obrigHist:'📊 Obrigações — Histórico',mes:'📋 Relatório do Mês'};
+  document.getElementById('ovExpANTitle').textContent = titles[key]||'Gráfico';
+  if(anExpInstance){anExpInstance.destroy();anExpInstance=null;}
+  const cfg = anConfigs[key];
+  if(!cfg){ui.toast('⚠️','Gráfico não disponível');return;}
+  ui.openModal('ovExpAN');
+  setTimeout(()=>{anExpInstance=new Chart(document.getElementById('anChartExp'),JSON.parse(JSON.stringify(cfg)));},150);
+}
+
+</script>
+</body>
+</html>

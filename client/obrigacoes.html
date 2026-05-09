@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Obrigações Fiscais</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+
+/* ── KPI ── */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .15s;cursor:default}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.bl::before{background:var(--blue)}.kpi.gn::before{background:var(--green)}
+.kpi.rd::before{background:var(--red)}.kpi.am::before{background:var(--amber)}
+.kpi.pu::before{background:var(--purple)}.kpi.tl::before{background:var(--teal)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10px;color:var(--txt3);margin-top:4px}
+
+/* ── ALERTAS ── */
+.alert-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.alert-chip{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid}
+.alert-chip.rd{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);color:var(--red)}
+.alert-chip.am{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.25);color:var(--amber)}
+.alert-chip.gn{background:rgba(0,201,167,.08);border-color:rgba(0,201,167,.25);color:var(--green)}
+.alert-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.alert-dot.rd{background:var(--red);animation:blink 1.5s infinite}
+.alert-dot.am{background:var(--amber)}.alert-dot.gn{background:var(--green)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ── TABS VIEW ── */
+.view-btn{padding:7px 14px;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--bg3);color:var(--txt2);transition:all .14s}
+.view-btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* ── TABLE ── */
+.row-late{background:rgba(239,68,68,.04)!important}
+.row-soon{background:rgba(245,158,11,.03)!important}
+.ra{display:flex;gap:4px;justify-content:flex-end}
+.rb{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.rb:hover{border-color:var(--bd2)}
+.day-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.day-badge.rd{background:rgba(239,68,68,.15);color:var(--red)}
+.day-badge.am{background:rgba(245,158,11,.15);color:var(--amber)}
+.day-badge.gn{background:rgba(0,201,167,.12);color:var(--green)}
+
+/* ── KANBAN ── */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 24px 20px;overflow-x:auto}
+.kanban-col{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;min-height:200px}
+.kanban-hd{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.kanban-ht{font-size:12px;font-weight:600;color:var(--txt)}
+.kanban-count{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.kanban-body{padding:8px}
+.kanban-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:all .13s}
+.kanban-card:hover{border-color:rgba(26,111,196,.3);transform:translateY(-1px)}
+.kanban-card:last-child{margin-bottom:0}
+.kc-name{font-size:12.5px;font-weight:500;color:var(--txt);margin-bottom:4px}
+.kc-co{font-size:10px;color:var(--txt3)}
+.kc-meta{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.kc-due{font-size:10px;color:var(--txt2)}
+.kc-type{font-size:9px;font-weight:600;background:rgba(26,111,196,.12);color:var(--bl);padding:2px 6px;border-radius:10px}
+
+/* ── CALENDÁRIO ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:16px}
+.cal-day-hd{font-size:10px;text-align:center;color:var(--txt3);font-weight:600;padding:4px}
+.cal-day{min-height:60px;background:var(--bg3);border:1px solid var(--bd);border-radius:6px;padding:4px;cursor:pointer;transition:all .13s}
+.cal-day:hover{border-color:rgba(26,111,196,.3)}
+.cal-day.today{border-color:var(--blue);background:rgba(26,111,196,.08)}
+.cal-day.other{opacity:.35}
+.cal-day-n{font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:3px}
+.cal-duty{font-size:9px;padding:2px 5px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.cal-duty.rd{background:rgba(239,68,68,.2);color:var(--red)}
+.cal-duty.am{background:rgba(245,158,11,.2);color:var(--amber)}
+.cal-duty.gn{background:rgba(0,201,167,.15);color:var(--green)}
+.cal-duty.bl{background:rgba(26,111,196,.15);color:var(--bl)}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bd)}
+.cal-nav-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
+
+/* ── PAINEL DETALHE ── */
+.side-panel{position:fixed;top:0;right:-420px;width:420px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd2);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.3)}
+.side-panel.open{right:0}
+.sp-top{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sp-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sp-tt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--txt)}
+.sp-st{font-size:11px;color:var(--txt3);margin-top:2px}
+.sp-close{margin-left:auto;background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer}
+.sp-body{flex:1;overflow-y:auto;padding:18px 20px}
+.sp-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px}
+.sp-row:last-child{border-bottom:none}
+.sp-lbl{color:var(--txt3)}.sp-val{color:var(--txt);font-weight:500;text-align:right}
+.sp-foot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── PROG COMPLIANCE ── */
+.comp-bar{background:var(--bg4);border-radius:20px;height:6px;overflow:hidden;margin-top:4px}
+.comp-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--green),var(--teal));transition:width 1s ease}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <span class="topbar-title">📋 Obrigações Fiscais</span>
+    <span class="tb-badge red"   id="tbAtrs" style="cursor:pointer" onclick="filtrarStatus('atrasado')">0 atrasadas</span>
+    <span class="tb-badge amber" id="tbVenc" style="cursor:pointer" onclick="filtrarStatus('pendente')">0 vencendo</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="fEmp" style="height:32px;font-size:11px;width:210px" onchange="pg=1;load()">
+      <option value="">Todas as empresas</option>
+    </select>
+    <div style="display:flex;gap:4px">
+      <button class="view-btn on" id="vList" onclick="setView('list',this)">☰ Lista</button>
+      <button class="view-btn" id="vKan"  onclick="setView('kanban',this)">⊞ Kanban</button>
+      <button class="view-btn" id="vCal"  onclick="setView('cal',this)">📅 Calendário</button>
+    </div>
+    <button class="btn primary" onclick="openNew()">+ Nova Obrigação</button>
+    <button class="btn sm" onclick="exportarCSV()">⬇ CSV</button>
+  </header>
+
+  <!-- FILTROS -->
+  <div class="filter-bar" style="gap:7px;flex-wrap:wrap">
+    <select class="fin" id="fComp" style="height:28px;font-size:11px;width:155px" onchange="pg=1;load()"></select>
+    <select class="fin" id="fSt"   style="height:28px;font-size:11px;width:145px" onchange="pg=1;load()">
+      <option value="">Todos os status</option>
+      <option value="pendente">⏳ Pendente</option>
+      <option value="em_andamento">🔄 Em andamento</option>
+      <option value="entregue">✅ Entregue</option>
+      <option value="pago">💰 Pago</option>
+      <option value="atrasado">❌ Atrasado</option>
+      <option value="dispensado">🚫 Dispensado</option>
+    </select>
+    <select class="fin" id="fTp" style="height:28px;font-size:11px;width:165px" onchange="pg=1;load()">
+      <option value="">Todos os tipos</option>
+      <option>DCTF</option><option>SPED Contábil</option><option>SPED Fiscal</option>
+      <option>EFD-Contribuições</option><option>ECF</option><option>DIRF</option>
+      <option>RAIS</option><option>CAGED</option><option>eSocial</option>
+      <option>DEFIS</option><option>PGDAS</option><option>DAS</option>
+      <option>GPS</option><option>FGTS</option><option>IRRF</option>
+      <option>IRPJ/CSLL</option><option>PIS/COFINS</option>
+      <option>ISS</option><option>ICMS</option><option>Outros</option>
+    </select>
+    <div class="srch" style="width:180px"><span style="color:var(--txt3)">🔍</span><input id="srchDuty" placeholder="Buscar obrigação..." oninput="debounceLoad()"></div>
+    <button class="btn sm" onclick="limparFiltros()">🔄 Limpar</button>
+  </div>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+
+    <!-- ALERTAS -->
+    <div class="alert-bar" id="alertBar"></div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi bl"><div class="kpi-l">Total</div><div class="kpi-v" id="kA">—</div><div class="kpi-s">obrigações</div></div>
+      <div class="kpi am"><div class="kpi-l">Pendentes</div><div class="kpi-v" id="kP">—</div><div class="kpi-s">aguardando</div></div>
+      <div class="kpi tl"><div class="kpi-l">Em Andamento</div><div class="kpi-v" id="kM">—</div><div class="kpi-s">em processo</div></div>
+      <div class="kpi gn"><div class="kpi-l">Entregues/Pagas</div><div class="kpi-v" id="kD">—</div><div class="kpi-s">concluídas</div></div>
+      <div class="kpi rd"><div class="kpi-l">Atrasadas</div><div class="kpi-v" id="kL">—</div><div class="kpi-s">requer atenção</div></div>
+      <div class="kpi pu"><div class="kpi-l">Compliance</div><div class="kpi-v" id="kComp">—%</div>
+        <div class="comp-bar"><div class="comp-fill" id="compFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- VIEW: LISTA -->
+    <div id="viewList">
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht" id="tTitle">Obrigações</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--txt3)" id="tCount"></span>
+            <select class="fin" style="height:26px;font-size:11px;width:140px" id="fSort" onchange="pg=1;load()">
+              <option value="dueDate">Vencimento ↑</option>
+              <option value="dueDate_desc">Vencimento ↓</option>
+              <option value="name">Nome A-Z</option>
+              <option value="amount_desc">Maior Valor</option>
+            </select>
+          </div>
+        </div>
+        <div id="tBody"><div class="empty"><div class="empty-ic">⏳</div></div></div>
+        <div class="card-pag" id="pagArea" style="display:none">
+          <span style="font-size:11px;color:var(--txt3)" id="pagInfo"></span>
+          <div style="display:flex;gap:4px" id="pagBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: KANBAN -->
+    <div id="viewKanban" style="display:none">
+      <div class="kanban" id="kanbanBoard"></div>
+    </div>
+
+    <!-- VIEW: CALENDÁRIO -->
+    <div id="viewCal" style="display:none">
+      <div class="card">
+        <div class="cal-nav">
+          <button class="btn sm" onclick="calMes(-1)">‹ Anterior</button>
+          <span class="cal-nav-title" id="calTitle">—</span>
+          <button class="btn sm" onclick="calMes(1)">Próximo ›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- PAINEL DETALHE -->
+<div class="side-panel" id="sidePanel">
+  <div class="sp-top">
+    <div class="sp-ico" id="spIco" style="background:rgba(26,111,196,.15)">📋</div>
+    <div><div class="sp-tt" id="spTt">—</div><div class="sp-st" id="spSt">—</div></div>
+    <button class="sp-close" onclick="fecharDetalhe()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+<div id="overlay" onclick="fecharDetalhe()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199"></div>
+
+<!-- MODAL FORM -->
+<div class="ov" id="ovDuty">
+<div class="modal">
+  <div class="m-top">
+    <div class="m-ico a">📅</div>
+    <div class="m-hi"><div class="m-tg">Obrigação Fiscal</div><div class="m-tt" id="dTt">Nova Obrigação</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovDuty')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div class="fg2">
+      <div class="fgp ffu"><label class="fbl">Empresa *</label><select class="fin" id="dEmp"><option value="">Selecione...</option></select></div>
+      <div class="fgp"><label class="fbl">Nome da Obrigação *</label><input class="fin" id="dName" placeholder="Ex: DCTF Mensal"></div>
+      <div class="fgp"><label class="fbl">Tipo</label>
+        <select class="fin" id="dType">
+          <option>Outros</option><option>DCTF</option><option>SPED Contábil</option><option>SPED Fiscal</option>
+          <option>EFD-Contribuições</option><option>ECF</option><option>DIRF</option><option>RAIS</option>
+          <option>CAGED</option><option>eSocial</option><option>DEFIS</option><option>PGDAS</option>
+          <option>IRPJ/CSLL</option><option>PIS/COFINS</option><option>ISS</option><option>ICMS</option>
+          <option>DAS</option><option>GPS</option><option>FGTS</option><option>IRRF</option>
+        </select>
+      </div>
+      <div class="fgp"><label class="fbl">Competência *</label><input class="fin" type="month" id="dComp"></div>
+      <div class="fgp"><label class="fbl">Vencimento *</label><input class="fin" type="date" id="dDue"></div>
+      <div class="fgp"><label class="fbl">Valor (R$)</label><input class="fin" type="number" id="dAmt" min="0" step="0.01" placeholder="0,00"></div>
+      <div class="fgp"><label class="fbl">Responsável DTP</label><input class="fin" id="dResp" placeholder="Nome do responsável"></div>
+      <div class="fgp"><label class="fbl">Status</label>
+        <select class="fin" id="dSt">
+          <option value="pendente">⏳ Pendente</option>
+          <option value="em_andamento">🔄 Em andamento</option>
+          <option value="entregue">✅ Entregue</option>
+          <option value="pago">💰 Pago</option>
+          <option value="atrasado">❌ Atrasado</option>
+          <option value="dispensado">🚫 Dispensado</option>
+        </select>
+      </div>
+      <div class="fgp"><label class="fbl">Protocolo / Recibo</label><input class="fin" id="dProto" placeholder="Nº protocolo"></div>
+      <div class="fgp"><label class="fbl">Data de Entrega</label><input class="fin" type="date" id="dDeliv"></div>
+      <div class="fgp"><label class="fbl">Data de Pagamento</label><input class="fin" type="date" id="dPaid"></div>
+      <div class="fgp"><label class="fbl">Multa (R$)</label><input class="fin" type="number" id="dMulta" min="0" step="0.01" placeholder="0,00"></div>
+      <div class="fgp"><label class="fbl">Juros (R$)</label><input class="fin" type="number" id="dJuros" min="0" step="0.01" placeholder="0,00"></div>
+      <div class="fgp ffu"><label class="fbl">Observações</label><textarea class="fin" id="dNotes" rows="2" style="resize:none" placeholder="Obs..."></textarea></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="dBtn" onclick="saveDuty()">💾 Salvar</button>
+    <button class="mfb" onclick="ui.closeModal('ovDuty')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL STATUS RÁPIDO -->
+<div class="ov" id="ovSt">
+<div class="modal sm">
+  <div class="m-top">
+    <div class="m-ico g">🔄</div>
+    <div class="m-hi"><div class="m-tg">Atualização</div><div class="m-tt" id="stTt">Atualizar Status</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovSt')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div class="fg2">
+      <div class="fgp ffu"><label class="fbl">Novo Status</label>
+        <select class="fin" id="qSt">
+          <option value="pendente">⏳ Pendente</option>
+          <option value="em_andamento">🔄 Em andamento</option>
+          <option value="entregue">✅ Entregue</option>
+          <option value="pago">💰 Pago</option>
+          <option value="atrasado">❌ Atrasado</option>
+          <option value="dispensado">🚫 Dispensado</option>
+        </select>
+      </div>
+      <div class="fgp"><label class="fbl">Protocolo / Recibo</label><input class="fin" id="qProto" placeholder="Nº protocolo..."></div>
+      <div class="fgp"><label class="fbl">Data Entrega</label><input class="fin" type="date" id="qDeliv"></div>
+      <div class="fgp"><label class="fbl">Data Pagamento</label><input class="fin" type="date" id="qPaid"></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="qBtn" onclick="confirmSt()">✅ Confirmar</button>
+    <button class="mfb" onclick="ui.closeModal('ovSt')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let editId=null, stId=null, pg=1, curView='list', allDuties=[], calDate=new Date();
+const g  = id => document.getElementById(id)?.value?.trim()||'';
+const sv = (id,v) => { const e=document.getElementById(id); if(e) e.value=v||''; };
+const cur = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// INIT
+(()=>{
+  const now=new Date();
+  let o='<option value="">Todas as competências</option>';
+  for(let i=-1;i<24;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const v=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    o+=`<option value="${v}"${i===0?' selected':''}>${ui.competence(v)}</option>`;
+  }
+  document.getElementById('fComp').innerHTML=o;
+  document.getElementById('dComp').value=ui.currentCompetence();
+  document.getElementById('dDue').value=now.toISOString().substring(0,10);
+})();
+
+// Carrega empresas
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  const o=r.companies.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  ['fEmp','dEmp'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=(id==='fEmp'?'<option value="">Todas as empresas</option>':'<option value="">Selecione...</option>')+o;
+  });
+});
+
+let debTimer;
+function debounceLoad(){ clearTimeout(debTimer); debTimer=setTimeout(()=>{pg=1;load();},400); }
+
+// VIEWS
+function setView(v,el){
+  curView=v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on');
+  document.getElementById('viewList').style.display   = v==='list'  ?'block':'none';
+  document.getElementById('viewKanban').style.display = v==='kanban'?'block':'none';
+  document.getElementById('viewCal').style.display    = v==='cal'   ?'block':'none';
+  if(v==='kanban') renderKanban();
+  if(v==='cal')    renderCal();
+}
+
+// LOAD + KPIs
+async function load(p=pg){
+  pg=p;
+  const params={page:p,limit:30};
+  const emp=g('fEmp'),comp=g('fComp'),st=g('fSt'),tp=g('fTp'),q=g('srchDuty');
+  if(emp)params.company=emp; if(comp)params.competence=comp;
+  if(st)params.status=st; if(tp)params.type=tp;
+
+  document.getElementById('tBody').innerHTML='<div class="empty"><div class="empty-ic">⏳</div></div>';
+
+  // Carrega tudo para KPIs e alertas (sem paginação)
+  const allP={limit:500}; if(emp)allP.company=emp; if(comp)allP.competence=comp;
+  const [listR,allR]=await Promise.all([
+    API.duties.list(params),
+    API.duties.list(allP),
+  ]);
+
+  if(!listR?.success) return;
+
+  allDuties=allR?.duties||[];
+  renderKPIs(allDuties);
+  renderAlertas(allDuties);
+
+  document.getElementById('tCount').textContent=`${listR.pagination.total} obrigação(ões)`;
+
+  if(!listR.duties.length){
+    document.getElementById('tBody').innerHTML='<div class="empty"><div class="empty-ic">📅</div><div class="empty-t">Nenhuma obrigação</div><div class="empty-s">Ajuste os filtros ou cadastre uma nova</div></div>';
+    document.getElementById('pagArea').style.display='none';
+    return;
+  }
+
+  const today=new Date(); today.setHours(0,0,0,0);
+  const soon=new Date(today); soon.setDate(soon.getDate()+7);
+
+  document.getElementById('tBody').innerHTML=`<div style="overflow-x:auto"><table class="tbl">
+    <thead><tr>
+      <th>Empresa</th><th>Obrigação</th><th>Tipo</th><th>Competência</th>
+      <th>Vencimento</th><th>Prazo</th><th>Valor</th><th>Status</th><th>Ações</th>
+    </tr></thead>
+    <tbody>${listR.duties.map((d,i)=>{
+      const due=new Date(d.dueDate); due.setHours(0,0,0,0);
+      const diff=Math.ceil((due-today)/86400000);
+      const isPend=['pendente','em_andamento'].includes(d.status);
+      const cls=d.status==='atrasado'?'row-late':(due<=soon&&isPend?'row-soon':'');
+      let dayBadge='';
+      if(isPend){
+        if(diff<0) dayBadge=`<span class="day-badge rd">${Math.abs(diff)}d atraso</span>`;
+        else if(diff===0) dayBadge=`<span class="day-badge rd">Hoje!</span>`;
+        else if(diff<=7) dayBadge=`<span class="day-badge am">${diff}d</span>`;
+        else dayBadge=`<span class="day-badge gn">${diff}d</span>`;
+      }
+      return `<tr class="${cls}" style="animation-delay:${i*15}ms">
+        <td style="font-size:12px">${d.company?.tradeName||d.company?.legalName||'—'}</td>
+        <td>
+          <div style="font-size:13px;font-weight:500;color:var(--txt)">${d.name}</div>
+          ${d.protocol?`<div style="font-size:10px;color:var(--txt3)">Proto: ${d.protocol}</div>`:''}
+        </td>
+        <td><span class="badge b">${d.type}</span></td>
+        <td style="font-size:12px">${ui.competence(d.competence)}</td>
+        <td style="font-size:12px;white-space:nowrap;color:${diff<0&&isPend?'var(--red)':'var(--txt2)'}">${ui.date(d.dueDate)}</td>
+        <td>${dayBadge}</td>
+        <td style="font-size:12.5px;font-family:'JetBrains Mono',monospace">${d.amount>0?cur(d.amount):'—'}</td>
+        <td>${ui.pill(d.status)}</td>
+        <td><div class="ra">
+          <div class="rb" onclick="verDetalhe('${d._id}')" title="Detalhes">🔍</div>
+          <div class="rb" onclick="openSt('${d._id}','${d.name}','${d.status}')" title="Atualizar Status">🔄</div>
+          <div class="rb" onclick="openEdit('${d._id}')" title="Editar">✏️</div>
+          <div class="rb" onclick="removeDuty('${d._id}')" title="Remover">🗑️</div>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+
+  document.getElementById('pagArea').style.display='flex';
+  ui.pagination('pagBtns','pagInfo',listR.pagination,load);
+
+  if(curView==='kanban') renderKanban();
+  if(curView==='cal') renderCal();
+}
+
+// KPIs
+function renderKPIs(duties){
+  const total=duties.length;
+  const pend=duties.filter(d=>d.status==='pendente').length;
+  const and=duties.filter(d=>d.status==='em_andamento').length;
+  const ok=duties.filter(d=>['entregue','pago','dispensado'].includes(d.status)).length;
+  const atrs=duties.filter(d=>d.status==='atrasado').length;
+  const comp=total>0?Math.round((ok+and)/total*100):0;
+
+  document.getElementById('kA').textContent=total;
+  document.getElementById('kP').textContent=pend;
+  document.getElementById('kM').textContent=and;
+  document.getElementById('kD').textContent=ok;
+  document.getElementById('kL').textContent=atrs;
+  document.getElementById('kComp').textContent=comp+'%';
+  document.getElementById('compFill').style.width=comp+'%';
+
+  const today=new Date(); today.setHours(0,0,0,0);
+  const soon=new Date(today); soon.setDate(soon.getDate()+7);
+  const venc=duties.filter(d=>['pendente','em_andamento'].includes(d.status)&&new Date(d.dueDate)<=soon&&new Date(d.dueDate)>today).length;
+
+  document.getElementById('tbAtrs').textContent=atrs+' atrasadas';
+  document.getElementById('tbVenc').textContent=venc+' vencendo em 7d';
+
+  const sb=document.getElementById('sb-badge-obrig');
+  if(sb) sb.textContent=(atrs+pend)||'';
+}
+
+// ALERTAS
+function renderAlertas(duties){
+  const bar=document.getElementById('alertBar');
+  const today=new Date(); today.setHours(0,0,0,0);
+  const soon=new Date(today); soon.setDate(soon.getDate()+7);
+  const atrs=duties.filter(d=>d.status==='atrasado');
+  const venc=duties.filter(d=>['pendente','em_andamento'].includes(d.status)&&new Date(d.dueDate)<=soon&&new Date(d.dueDate)>today);
+  const chips=[];
+  if(atrs.length) chips.push(`<div class="alert-chip rd" onclick="filtrarStatus('atrasado')"><span class="alert-dot rd"></span>${atrs.length} obrigação(ões) em atraso</div>`);
+  if(venc.length) chips.push(`<div class="alert-chip am" onclick="filtrarStatus('pendente')"><span class="alert-dot am"></span>${venc.length} vencendo nos próximos 7 dias</div>`);
+  if(!chips.length) chips.push(`<div class="alert-chip gn"><span class="alert-dot gn"></span>✓ Nenhuma obrigação urgente</div>`);
+  bar.innerHTML=chips.join('');
+}
+
+// KANBAN
+const KANBAN_COLS=[
+  {key:'pendente',    label:'⏳ Pendentes',    color:'var(--amber)',  cls:'am'},
+  {key:'em_andamento',label:'🔄 Em Andamento', color:'var(--bl)',     cls:'bl'},
+  {key:'entregue',    label:'✅ Entregue',      color:'var(--green)',  cls:'gn'},
+  {key:'atrasado',    label:'❌ Atrasado',      color:'var(--red)',    cls:'rd'},
+];
+
+function renderKanban(){
+  const board=document.getElementById('kanbanBoard');
+  board.innerHTML=KANBAN_COLS.map(col=>{
+    const items=allDuties.filter(d=>d.status===col.key);
+    return `<div class="kanban-col">
+      <div class="kanban-hd">
+        <span class="kanban-ht">${col.label}</span>
+        <span class="kanban-count" style="background:rgba(0,0,0,.2);color:${col.color}">${items.length}</span>
+      </div>
+      <div class="kanban-body">
+        ${items.length?items.map(d=>`
+          <div class="kanban-card" onclick="verDetalhe('${d._id}')">
+            <div class="kc-name">${d.name}</div>
+            <div class="kc-co">${d.company?.tradeName||d.company?.legalName||'—'}</div>
+            <div class="kc-meta">
+              <span class="kc-due">📅 ${ui.date(d.dueDate)}</span>
+              <span class="kc-type">${d.type}</span>
+            </div>
+          </div>`).join(''):'<div style="padding:12px;text-align:center;font-size:11px;color:var(--txt3)">Nenhuma</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// CALENDÁRIO
+let calOffset=0;
+function calMes(dir){ calOffset+=dir; renderCal(); }
+
+function renderCal(){
+  const now=new Date();
+  const ref=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
+  const ano=ref.getFullYear(), mes=ref.getMonth();
+  document.getElementById('calTitle').textContent=`${MESES_PT[mes]} ${ano}`;
+
+  const primeiroDia=new Date(ano,mes,1).getDay();
+  const diasNoMes=new Date(ano,mes+1,0).getDate();
+  const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  let html=DIAS.map(d=>`<div class="cal-day-hd">${d}</div>`).join('');
+
+  // Dias vazios antes do primeiro
+  for(let i=0;i<primeiroDia;i++) html+=`<div class="cal-day other"></div>`;
+
+  const today=new Date(); today.setHours(0,0,0,0);
+
+  for(let dia=1;dia<=diasNoMes;dia++){
+    const dt=new Date(ano,mes,dia);
+    const isToday=dt.getTime()===today.getTime();
+    const duties=allDuties.filter(d=>{
+      const dd=new Date(d.dueDate); dd.setHours(0,0,0,0);
+      return dd.getTime()===dt.getTime();
+    });
+    const dutyHtml=duties.slice(0,3).map(d=>{
+      const cls=d.status==='atrasado'?'rd':d.status==='pendente'?'am':d.status==='em_andamento'?'bl':'gn';
+      return `<div class="cal-duty ${cls}" onclick="verDetalhe('${d._id}')" title="${d.name}">${d.name}</div>`;
+    }).join('');
+    const mais=duties.length>3?`<div style="font-size:9px;color:var(--txt3)">+${duties.length-3} mais</div>`:'';
+    html+=`<div class="cal-day${isToday?' today':''}">
+      <div class="cal-day-n">${dia}</div>
+      ${dutyHtml}${mais}
+    </div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML=html;
+}
+
+// DETALHE
+async function verDetalhe(id){
+  const r=await API.duties.get(id); if(!r?.success)return;
+  const d=r.duty;
+  const statusColor={pendente:'var(--amber)',em_andamento:'var(--bl)',entregue:'var(--green)',pago:'var(--green)',atrasado:'var(--red)',dispensado:'var(--txt3)'}[d.status]||'var(--txt)';
+  document.getElementById('spIco').textContent='📋';
+  document.getElementById('spIco').style.background='rgba(26,111,196,.15)';
+  document.getElementById('spTt').textContent=d.name;
+  document.getElementById('spSt').textContent=`${d.type} · ${ui.competence(d.competence)}`;
+  document.getElementById('spBody').innerHTML=[
+    ['Empresa',d.company?.tradeName||d.company?.legalName||'—'],
+    ['Tipo',d.type],
+    ['Competência',ui.competence(d.competence)],
+    ['Vencimento',ui.date(d.dueDate)],
+    ['Valor',d.amount>0?`<span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--amber)">${cur(d.amount)}</span>`:'—'],
+    ['Multa',d.multa>0?cur(d.multa):'—'],
+    ['Juros',d.juros>0?cur(d.juros):'—'],
+    ['Status',`<span style="color:${statusColor};font-weight:600">${d.status?.replace('_',' ').toUpperCase()}</span>`],
+    ['Protocolo',d.protocol||'—'],
+    ['Data Entrega',ui.date(d.deliveredAt)],
+    ['Data Pagamento',ui.date(d.paidAt)],
+    ['Responsável',d.responsavel||'—'],
+    ['Observações',d.notes||'—'],
+  ].map(([l,v])=>`<div class="sp-row"><span class="sp-lbl">${l}</span><span class="sp-val">${v}</span></div>`).join('');
+  document.getElementById('spFoot').innerHTML=`
+    <button class="btn primary sm" onclick="fecharDetalhe();openSt('${d._id}','${d.name}','${d.status}')">🔄 Atualizar Status</button>
+    <button class="btn sm" onclick="fecharDetalhe();openEdit('${d._id}')">✏️ Editar</button>
+    <div style="flex:1"></div>
+    <button class="btn sm" style="color:var(--red)" onclick="fecharDetalhe();removeDuty('${d._id}')">🗑️</button>`;
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+}
+function fecharDetalhe(){ document.getElementById('sidePanel').classList.remove('open'); document.getElementById('overlay').style.display='none'; }
+
+// FORM
+function openNew(){
+  editId=null;
+  document.getElementById('dTt').textContent='Nova Obrigação';
+  document.getElementById('dBtn').textContent='💾 Salvar';
+  ['dName','dProto','dNotes','dDeliv','dPaid','dResp'].forEach(id=>sv(id,''));
+  document.getElementById('dAmt').value=''; document.getElementById('dMulta').value=''; document.getElementById('dJuros').value='';
+  document.getElementById('dType').value='Outros'; document.getElementById('dSt').value='pendente';
+  sv('dEmp',g('fEmp'));
+  document.getElementById('dComp').value=ui.currentCompetence();
+  document.getElementById('dDue').value=new Date().toISOString().substring(0,10);
+  ui.openModal('ovDuty');
+}
+
+async function openEdit(id){
+  const r=await API.duties.get(id); if(!r?.success)return;
+  const d=r.duty; editId=id;
+  document.getElementById('dTt').textContent='Editar Obrigação';
+  document.getElementById('dBtn').textContent='💾 Salvar Alterações';
+  sv('dEmp',d.company?._id||''); sv('dName',d.name); sv('dType',d.type);
+  sv('dComp',d.competence); sv('dDue',d.dueDate?.substring(0,10));
+  document.getElementById('dAmt').value=d.amount||'';
+  document.getElementById('dMulta').value=d.multa||'';
+  document.getElementById('dJuros').value=d.juros||'';
+  sv('dSt',d.status); sv('dProto',d.protocol||''); sv('dResp',d.responsavel||'');
+  if(d.deliveredAt) sv('dDeliv',d.deliveredAt.substring(0,10));
+  if(d.paidAt) sv('dPaid',d.paidAt.substring(0,10));
+  sv('dNotes',d.notes||'');
+  ui.openModal('ovDuty');
+}
+
+async function saveDuty(){
+  const co=g('dEmp'),name=g('dName'),comp=g('dComp'),due=g('dDue');
+  if(!co||!name||!comp||!due){ ui.toast('⚠️','Preencha empresa, nome, competência e vencimento'); return; }
+  const payload={
+    company:co, name, competence:comp, dueDate:due,
+    type:document.getElementById('dType').value,
+    amount:parseFloat(document.getElementById('dAmt').value)||0,
+    multa:parseFloat(document.getElementById('dMulta').value)||0,
+    juros:parseFloat(document.getElementById('dJuros').value)||0,
+    status:g('dSt'), protocol:g('dProto'), responsavel:g('dResp'),
+    deliveredAt:g('dDeliv')||undefined, paidAt:g('dPaid')||undefined,
+    notes:g('dNotes'),
+  };
+  const btn=document.getElementById('dBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+  const res=editId?await API.duties.update(editId,payload):await API.duties.create(payload);
+  btn.disabled=false; btn.innerHTML=editId?'💾 Salvar Alterações':'💾 Salvar';
+  if(res?.success){ ui.toast('✅',res.message); ui.closeModal('ovDuty'); load(); }
+  else ui.toast('❌',res?.message||'Erro ao salvar');
+}
+
+// STATUS RÁPIDO
+function openSt(id,nome,cur){
+  stId=id;
+  document.getElementById('stTt').textContent=nome;
+  document.getElementById('qSt').value=cur;
+  ['qProto','qDeliv','qPaid'].forEach(id=>sv(id,''));
+  ui.openModal('ovSt');
+}
+
+async function confirmSt(){
+  const btn=document.getElementById('qBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  const res=await API.duties.status(stId,{
+    status:g('qSt'), protocol:g('qProto'),
+    deliveredAt:g('qDeliv')||undefined, paidAt:g('qPaid')||undefined,
+  });
+  btn.disabled=false; btn.innerHTML='✅ Confirmar';
+  if(res?.success){ ui.toast('✅',res.message); ui.closeModal('ovSt'); load(); }
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+async function removeDuty(id){
+  if(!confirm('Remover esta obrigação?'))return;
+  const r=await API.duties.remove(id);
+  if(r?.success){ ui.toast('🗑️','Removida'); load(); } else ui.toast('❌',r?.message);
+}
+
+function filtrarStatus(st){ sv('fSt',st); pg=1; load(); }
+function filtrarVencendo(){ sv('fSt','pendente'); pg=1; load(); }
+
+function exportarCSV(){
+  if(!allDuties.length){ ui.toast('⚠️','Nenhum dado'); return; }
+  const h=['Empresa','Obrigação','Tipo','Competência','Vencimento','Valor','Status','Protocolo'];
+  const rows=allDuties.map(d=>[
+    d.company?.legalName||'—', d.name, d.type,
+    ui.competence(d.competence), ui.date(d.dueDate),
+    (d.amount||0).toString().replace('.',','), d.status, d.protocol||'—',
+  ]);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=`obrigacoes_${g('fComp')||'export'}.csv`;
+  a.click();
+  ui.toast('⬇️','CSV exportado!');
+}
+
+function limparFiltros(){
+  ['fEmp','fSt','fTp','srchDuty'].forEach(id=>sv(id,''));
+  document.getElementById('fComp').value=ui.currentCompetence();
+  pg=1; load();
+}
+
+if(new URLSearchParams(location.search).get('new')) openNew();
+load();
+</script>
+</body>
+</html>

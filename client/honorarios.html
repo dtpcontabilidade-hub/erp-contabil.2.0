@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Honorários</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .15s}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.bl::before{background:var(--blue)}.kpi.gn::before{background:var(--green)}
+.kpi.rd::before{background:var(--red)}.kpi.am::before{background:var(--amber)}.kpi.pu::before{background:var(--purple)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10px;color:var(--txt3);margin-top:4px}
+/* TABS */
+.tab-strip{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:4px;width:fit-content}
+.tab-btn{padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt2);transition:all .14s;white-space:nowrap}
+.tab-btn.on{background:var(--blue);color:#fff}
+.tab-btn:hover:not(.on){background:rgba(255,255,255,.06);color:var(--txt)}
+/* BARS */
+.bar-item{margin-bottom:11px}
+.bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-bottom:4px}
+.bar-track{background:var(--bg4);border-radius:20px;height:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:20px;transition:width .9s ease}
+/* TABLE */
+.money{font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}.money.a{color:var(--amber)}
+.ra{display:flex;gap:4px;justify-content:flex-end}
+.rb{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.rb:hover{border-color:var(--bd2)}
+/* RCC */
+.rcc-table{width:100%;border-collapse:collapse;font-size:11px}
+.rcc-table th{background:rgba(26,111,196,.12);color:var(--bl);padding:8px 10px;text-align:left;border:1px solid var(--bd);font-weight:600;white-space:nowrap}
+.rcc-table td{padding:7px 10px;border:1px solid var(--bd);color:var(--txt2)}
+.rcc-table tr:hover td{background:rgba(26,111,196,.04)}
+.rcc-val{font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:600}
+.rcc-result{background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.3);border-radius:var(--r);padding:16px 20px;margin-bottom:16px}
+.rcc-big{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--green)}
+.badge-above{background:rgba(239,68,68,.12);color:var(--red);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.badge-ok{background:rgba(0,201,167,.12);color:var(--green);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.badge-below{background:rgba(245,158,11,.12);color:var(--amber);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+/* SIDE PANEL */
+.side-panel{position:fixed;top:0;right:-440px;width:440px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd2);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.3)}
+.side-panel.open{right:0}
+.sp-top{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sp-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sp-tt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--txt)}
+.sp-st{font-size:11px;color:var(--txt3);margin-top:2px}
+.sp-close{margin-left:auto;background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer}
+.sp-body{flex:1;overflow-y:auto;padding:18px 20px}
+.sp-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px}
+.sp-row:last-child{border-bottom:none}
+.sp-foot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;flex-wrap:wrap}
+/* CO ROW */
+.co-av{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+
+  <header class="topbar">
+    <span class="topbar-title">💰 Honorários & Consultorias</span>
+    <span class="tb-badge green" id="tbRec">R$ 0</span>
+    <span class="tb-badge blue"  id="tbCli">0 clientes</span>
+    <div class="topbar-spacer"></div>
+    <button class="btn primary" onclick="openNovoHonorario()">+ Novo Honorário</button>
+    <button class="btn sm"      onclick="exportarCSV()">⬇ CSV</button>
+  </header>
+
+  <!-- FILTROS + TABS -->
+  <div class="filter-bar" style="gap:10px;justify-content:space-between;flex-wrap:wrap">
+    <div class="tab-strip">
+      <button class="tab-btn on" id="tab-dash" onclick="setTab('dash')">📊 Dashboard</button>
+      <button class="tab-btn"    id="tab-hon"  onclick="setTab('hon')">💰 Honorários</button>
+      <button class="tab-btn"    id="tab-rcc"  onclick="setTab('rcc')">📋 Tabela RCC</button>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <select class="fin" id="fStatus" style="height:28px;font-size:11px;width:130px" onchange="filterList()">
+        <option value="">Todos status</option>
+        <option value="pago">Em Dia</option>
+        <option value="pendente">Pendentes</option>
+        <option value="atrasado">Em Atraso</option>
+      </select>
+      <div class="srch" style="width:190px"><span style="color:var(--txt3)">🔍</span><input id="srch" placeholder="Buscar cliente..." oninput="filterList()"></div>
+    </div>
+  </div>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+
+    <!-- KPIs (sempre visíveis) -->
+    <div class="kpi-row">
+      <div class="kpi pu"><div class="kpi-l">Receita Mensal</div><div class="kpi-v" id="kRec">—</div><div class="kpi-s">honorários ativos</div></div>
+      <div class="kpi bl"><div class="kpi-l">Clientes Ativos</div><div class="kpi-v" id="kCli">—</div><div class="kpi-s">na carteira</div></div>
+      <div class="kpi gn"><div class="kpi-l">Ticket Médio</div><div class="kpi-v" id="kAvg">—</div><div class="kpi-s">por cliente</div></div>
+      <div class="kpi am"><div class="kpi-l">Inadimplentes</div><div class="kpi-v" id="kInad">—</div><div class="kpi-s">em atraso</div></div>
+      <div class="kpi rd"><div class="kpi-l">A Receber</div><div class="kpi-v" id="kARec">—</div><div class="kpi-s">pendente</div></div>
+    </div>
+
+    <!-- ─── TAB: DASHBOARD ─────────────────────────────── -->
+    <div id="pane-dash">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📊 Por Regime Tributário</span></div>
+          <div style="padding:14px 17px" id="chartRegime">
+            <div class="empty"><div class="empty-s">Carregando...</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">💼 Por Serviço Contratado</span></div>
+          <div style="padding:14px 17px" id="chartService">
+            <div class="empty"><div class="empty-s">Carregando...</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+        <div class="card">
+          <div class="card-h"><span class="card-ht">🏆 Top 10 Clientes por Honorário</span></div>
+          <div style="padding:14px 17px" id="topClientes">
+            <div class="empty"><div class="empty-s">Carregando...</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📈 Distribuição</span></div>
+          <div style="padding:14px 17px" id="distribHon"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TAB: HONORÁRIOS ────────────────────────────── -->
+    <div id="pane-hon" style="display:none">
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">💰 Clientes — Honorários Mensais</span>
+          <span style="font-size:11px;color:var(--txt3)" id="honCount"></span>
+        </div>
+        <div id="honList"></div>
+      </div>
+    </div>
+
+    <!-- ─── TAB: TABELA RCC ────────────────────────────── -->
+    <div id="pane-rcc" style="display:none">
+
+      <!-- CALCULADORA -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h">
+          <span class="card-ht">🧮 Calculadora RCC — Honorário Recomendado FECONTESC 2025</span>
+          <a href="https://fecontesc.org.br" target="_blank" class="btn sm">🔗 FECONTESC</a>
+        </div>
+        <div style="padding:14px 16px">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
+            <div>
+              <div style="font-size:10px;color:var(--txt3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">Setor</div>
+              <select class="fin" id="rccSetor" onchange="calcRCC()">
+                <option value="comercio">Comércio</option>
+                <option value="industria">Indústria</option>
+                <option value="servicos">Serviços</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--txt3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">Regime</div>
+              <select class="fin" id="rccRegime" onchange="calcRCC()">
+                <option value="simples">Simples Nacional</option>
+                <option value="presumido">Lucro Presumido</option>
+                <option value="real">Lucro Real</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--txt3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">Funcionários</div>
+              <select class="fin" id="rccFuncs" onchange="calcRCC()">
+                <option value="0">Sem funcionários</option>
+                <option value="1">Até 5</option>
+                <option value="2">6 a 15</option>
+                <option value="3">16 a 30</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--txt3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">Documentos/mês</div>
+              <select class="fin" id="rccDocs" onchange="calcRCC()">
+                <option value="0">Até 100</option>
+                <option value="1">101 a 300</option>
+                <option value="2">301 a 600</option>
+                <option value="3">601 a 900</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--txt3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">Região SC</div>
+              <select class="fin" id="rccRegiao" onchange="calcRCC()">
+                <option value="1.000">Média do Estado</option>
+                <option value="1.120">Grande Florianópolis</option>
+                <option value="1.080">Norte/Vale Itajaí</option>
+                <option value="1.030">Sul Catarinense</option>
+                <option value="0.970">Planalto/Alto Vale</option>
+                <option value="0.950">Oeste Catarinense</option>
+              </select>
+            </div>
+          </div>
+          <!-- RESULTADO -->
+          <div class="rcc-result" id="rccResult">
+            <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Honorário Recomendado RCC 2025</div>
+                <div class="rcc-big" id="rccValorFinal">R$ 0,00</div>
+                <div style="font-size:11px;color:var(--txt3);margin-top:4px" id="rccDescFinal">—</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap" id="rccAcoes">
+                <button class="btn primary sm" onclick="aplicarRCCNoForm()">✅ Usar este valor no formulário</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABS DA TABELA COMPLETA -->
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">📋 Tabela Completa RCC 2025 — FECONTESC</span>
+        </div>
+        <div style="padding:0 16px;border-bottom:1px solid var(--bd);display:flex;gap:6px">
+          <button class="tab-btn on" id="rt0" onclick="setRccTabela(0)" style="margin:6px 0 0;font-size:11px;padding:5px 12px">Comércio</button>
+          <button class="tab-btn"    id="rt1" onclick="setRccTabela(1)" style="margin:6px 0 0;font-size:11px;padding:5px 12px">Indústria</button>
+          <button class="tab-btn"    id="rt2" onclick="setRccTabela(2)" style="margin:6px 0 0;font-size:11px;padding:5px 12px">Serviços</button>
+          <button class="tab-btn"    id="rt3" onclick="setRccTabela(3)" style="margin:6px 0 0;font-size:11px;padding:5px 12px">Avulsos</button>
+        </div>
+        <div style="overflow-x:auto;padding:16px" id="rccTabelaBody"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- PAINEL DETALHE -->
+<div class="side-panel" id="sidePanel">
+  <div class="sp-top">
+    <div class="sp-ico" id="spIco" style="background:rgba(26,111,196,.15)">💰</div>
+    <div><div class="sp-tt" id="spTt">—</div><div class="sp-st" id="spSt">—</div></div>
+    <button class="sp-close" onclick="fecharDetalhe()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+<div id="overlay" onclick="fecharDetalhe()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199"></div>
+
+<!-- MODAL HONORÁRIO -->
+<div class="ov" id="ovHon">
+<div class="modal">
+  <div class="m-top">
+    <div class="m-ico pu">💰</div>
+    <div class="m-hi"><div class="m-tg">Honorários & Consultorias</div><div class="m-tt" id="honTt">Novo Honorário / Consultoria</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovHon')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'h0')">📋 Dados</div>
+    <div class="m-tab" onclick="ui.tab(this,'h1')">🧮 Calcular RCC</div>
+  </div>
+  <div class="m-bd">
+
+    <!-- ABA DADOS -->
+    <div class="tp on" id="h0">
+      <div class="fg2">
+        <!-- TIPO: empresa ou pessoa física -->
+        <div class="fgp ffu">
+          <label class="fbl">Tipo de Cliente *</label>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn sm on" id="btnTipoPJ" onclick="setTipoCliente('pj')">🏢 Pessoa Jurídica</button>
+            <button class="btn sm"    id="btnTipoPF" onclick="setTipoCliente('pf')">👤 Pessoa Física</button>
+          </div>
+        </div>
+
+        <!-- PJ: vincula empresa cadastrada -->
+        <div id="fieldPJ" class="fgp ffu">
+          <label class="fbl">Empresa *</label>
+          <select class="fin" id="hEmp">
+            <option value="">Selecione a empresa...</option>
+          </select>
+        </div>
+
+        <!-- PF: dados de pessoa física -->
+        <div id="fieldPF" style="display:none;grid-column:1/-1">
+          <div class="fg2">
+            <div class="fgp ffu"><label class="fbl">Nome Completo *</label><input class="fin" id="hNomePF" placeholder="Nome do cliente"></div>
+            <div class="fgp"><label class="fbl">CPF</label><input class="fin mono" id="hCpfPF" placeholder="000.000.000-00"></div>
+            <div class="fgp"><label class="fbl">E-mail</label><input class="fin" type="email" id="hEmailPF"></div>
+            <div class="fgp"><label class="fbl">Telefone / WhatsApp</label><input class="fin" id="hTelPF"></div>
+            <div class="fgp"><label class="fbl">Profissão</label><input class="fin" id="hProfPF" placeholder="Ex: Médico, Dentista, Engenheiro..."></div>
+            <div class="fgp"><label class="fbl">Tipo de Serviço</label><input class="fin" id="hSvcPF" placeholder="Ex: Livro Caixa, DIRPF, Consultoria..."></div>
+          </div>
+        </div>
+
+        <!-- Campos comuns -->
+        <div class="fgp ffu"><label class="fbl">Descrição do Serviço *</label><input class="fin" id="hDesc" placeholder="Ex: Honorários contábeis mensais, Consultoria tributária..."></div>
+        <div class="fgp"><label class="fbl">Honorário Mensal (R$) *</label>
+          <input class="fin" type="number" id="hValor" min="0" step="50" placeholder="0,00">
+        </div>
+        <div class="fgp"><label class="fbl">Dia de Vencimento</label><input class="fin" type="number" id="hVenc" min="1" max="31" value="10"></div>
+        <div class="fgp"><label class="fbl">Forma de Pagamento</label>
+          <select class="fin" id="hForma">
+            <option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option><option>Cartão</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Início do Contrato</label><input class="fin" type="date" id="hInicio"></div>
+        <div class="fgp"><label class="fbl">Vigência</label>
+          <select class="fin" id="hVigencia">
+            <option value="Indeterminado">Indeterminado</option>
+            <option value="12 meses">12 meses</option>
+            <option value="24 meses">24 meses</option>
+            <option value="36 meses">36 meses</option>
+            <option value="Pontual">Pontual (avulso)</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Status</label>
+          <select class="fin" id="hStatus">
+            <option value="pendente">⏳ Pendente</option>
+            <option value="pago">✅ Em Dia</option>
+            <option value="atrasado">❌ Em Atraso</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Responsável DTP</label><input class="fin" id="hResp"></div>
+        <div class="fgp ffu"><label class="fbl">Serviços Incluídos</label><input class="fin" id="hSvcs" placeholder="Ex: Contabilidade, Fiscal, BPO..."></div>
+        <div class="fgp ffu"><label class="fbl">Observações</label><textarea class="fin" id="hObs" rows="2" style="resize:none"></textarea></div>
+      </div>
+    </div>
+
+    <!-- ABA CALCULAR RCC (integrado ao formulário) -->
+    <div class="tp" id="h1">
+      <div style="background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--bl);font-weight:600;margin-bottom:12px;text-transform:uppercase">🧮 Consultar Tabela RCC FECONTESC 2025</div>
+        <div class="fg2">
+          <div class="fgp"><label class="fbl">Setor</label>
+            <select class="fin" id="hRccSetor" onchange="calcRCCForm()">
+              <option value="comercio">Comércio</option>
+              <option value="industria">Indústria</option>
+              <option value="servicos">Serviços</option>
+            </select>
+          </div>
+          <div class="fgp"><label class="fbl">Regime Tributário</label>
+            <select class="fin" id="hRccRegime" onchange="calcRCCForm()">
+              <option value="simples">Simples Nacional</option>
+              <option value="presumido">Lucro Presumido</option>
+              <option value="real">Lucro Real</option>
+            </select>
+          </div>
+          <div class="fgp"><label class="fbl">Nº de Funcionários</label>
+            <select class="fin" id="hRccFuncs" onchange="calcRCCForm()">
+              <option value="0">Sem funcionários</option>
+              <option value="1">Até 5</option>
+              <option value="2">6 a 15</option>
+              <option value="3">16 a 30</option>
+            </select>
+          </div>
+          <div class="fgp"><label class="fbl">Documentos/mês</label>
+            <select class="fin" id="hRccDocs" onchange="calcRCCForm()">
+              <option value="0">Até 100</option>
+              <option value="1">101 a 300</option>
+              <option value="2">301 a 600</option>
+              <option value="3">601 a 900</option>
+            </select>
+          </div>
+          <div class="fgp"><label class="fbl">Região SC</label>
+            <select class="fin" id="hRccRegiao" onchange="calcRCCForm()">
+              <option value="1.000">Média do Estado</option>
+              <option value="1.120">Grande Florianópolis</option>
+              <option value="1.080">Norte/Vale Itajaí</option>
+              <option value="1.030">Sul Catarinense</option>
+              <option value="0.970">Planalto/Alto Vale</option>
+              <option value="0.950">Oeste Catarinense</option>
+            </select>
+          </div>
+        </div>
+        <!-- Resultado inline -->
+        <div id="rccFormResult" style="display:none;margin-top:14px;padding:14px;background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.25);border-radius:var(--rs)">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:11px;color:var(--txt3)">Honorário Recomendado RCC 2025</div>
+              <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--green)" id="rccFormValor">R$ 0,00</div>
+              <div style="font-size:11px;color:var(--txt3);margin-top:3px" id="rccFormDesc">—</div>
+            </div>
+            <button class="btn primary" onclick="aplicarRCCNoFormulario()">✅ Aplicar este valor</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:10px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs);font-size:12px;color:var(--amber)">
+        💡 Clique em <strong>Aplicar este valor</strong> para preencher automaticamente o campo "Honorário Mensal" na aba Dados.
+      </div>
+    </div>
+
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="honBtn" onclick="salvarHonorario()">💾 Salvar</button>
+    <button class="mfb" onclick="ui.closeModal('ovHon')">Cancelar</button>
+    <div class="mfs"></div>
+    <span style="font-size:11px;color:var(--txt3)">* obrigatório</span>
+  </div>
+</div>
+</div>
+
+<!-- CONFIRM -->
+<div class="ov" id="ovConf">
+<div class="modal sm">
+  <div class="conf-bd"><div class="conf-ic" id="cIc">⚠️</div><div class="conf-tt" id="cTt">Confirmar</div><div class="conf-ms" id="cMs"></div></div>
+  <div class="conf-ft"><button class="mfb r" id="cBtn">Confirmar</button><button class="mfb" onclick="ui.closeModal('ovConf')">Cancelar</button></div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let allCo=[], editHonId=null, tipoCliente='pj', curTab='dash', rccTabAtual=0;
+const cur  = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const curK = v => v>=1000?'R$\u00a0'+(v/1000).toFixed(1).replace('.',',')+'\u00a0k':cur(v);
+const g    = id => document.getElementById(id)?.value?.trim()||'';
+const sv   = (id,v) => { const e=document.getElementById(id); if(e) e.value=v||''; };
+
+const LABEL_REG={simples:'Simples Nacional',presumido:'Lucro Presumido',real:'Lucro Real',mei:'MEI',imune:'Imune/Isento'};
+const CORES_REG={simples:'var(--blue)',presumido:'var(--amber)',real:'var(--purple)',mei:'var(--green)',imune:'var(--teal)'};
+
+// ── TABELA RCC FECONTESC 2025 ─────────────────────────────────
+const RCC_TABELA = {
+  comercio: {
+    label:'Comércio',
+    regimes:{
+      simples:{label:'Simples Nacional',rows:[
+        [1085.84,1302.62,1736.33,2170.45],
+        [1302.62,1519.40,1953.10,2387.03],
+        [1519.40,1736.33,2170.45,2604.16],
+        [1736.33,1953.10,2387.03,2820.93],
+      ]},
+      presumido:{label:'Lucro Presumido',rows:[
+        [1519.40,1736.33,2170.45,2604.16],
+        [1736.33,1953.10,2387.03,2820.93],
+        [1953.10,2170.45,2604.16,3037.87],
+        [2170.45,2387.03,2820.93,3254.65],
+      ]},
+      real:{label:'Lucro Real',rows:[
+        [2170.45,2387.03,2820.93,3254.65],
+        [2387.03,2604.16,3037.87,3471.58],
+        [2604.16,2820.93,3254.65,3688.36],
+        [2820.93,3037.87,3471.58,3905.13],
+      ]},
+    }
+  },
+  industria: {
+    label:'Indústria',
+    regimes:{
+      simples:{label:'Simples Nacional',rows:[
+        [1302.62,1519.40,1953.10,2387.03],
+        [1519.40,1736.33,2170.45,2604.16],
+        [1736.33,1953.10,2387.03,2820.93],
+        [1953.10,2170.45,2604.16,3037.87],
+      ]},
+      presumido:{label:'Lucro Presumido',rows:[
+        [1736.33,1953.10,2387.03,2820.93],
+        [1953.10,2170.45,2604.16,3037.87],
+        [2170.45,2387.03,2820.93,3254.65],
+        [2387.03,2604.16,3037.87,3471.58],
+      ]},
+      real:{label:'Lucro Real',rows:[
+        [2387.03,2604.16,3037.87,3471.58],
+        [2604.16,2820.93,3254.65,3688.36],
+        [2820.93,3037.87,3471.58,3905.13],
+        [3037.87,3254.65,3688.36,4122.26],
+      ]},
+    }
+  },
+  servicos: {
+    label:'Serviços',
+    regimes:{
+      simples:{label:'Simples Nacional',rows:[
+        [1085.84,1302.62,1736.33,2170.45],
+        [1302.62,1519.40,1953.10,2387.03],
+        [1519.40,1736.33,2170.45,2604.16],
+        [1736.33,1953.10,2387.03,2820.93],
+      ]},
+      presumido:{label:'Lucro Presumido',rows:[
+        [1519.40,1736.33,2170.45,2604.16],
+        [1736.33,1953.10,2387.03,2820.93],
+        [1953.10,2170.45,2604.16,3037.87],
+        [2170.45,2387.03,2820.93,3254.65],
+      ]},
+      real:{label:'Lucro Real',rows:[
+        [2170.45,2387.03,2820.93,3254.65],
+        [2387.03,2604.16,3037.87,3471.58],
+        [2604.16,2820.93,3254.65,3688.36],
+        [2820.93,3037.87,3471.58,3905.13],
+      ]},
+    }
+  }
+};
+
+const RCC_AVULSOS=[
+  {desc:'Constituição — Soc. Limitada (Ltda)',       valor:1736.93},
+  {desc:'Constituição — Sociedade Anônima (S/A)',     valor:4666.25},
+  {desc:'Constituição — Firma Individual (EI/MEI)',   valor:1482.88},
+  {desc:'Encerramento de Empresa',                    valor:1302.62},
+  {desc:'Alteração Contratual Simples',               valor:651.31},
+  {desc:'Alteração Contratual Complexa',              valor:1085.84},
+  {desc:'Hora Técnica — Consultoria',                 valor:350.58},
+  {desc:'Perícia Contábil (por hora)',                valor:776.06},
+  {desc:'DCTF (por entrega)',                         valor:146.45},
+  {desc:'SPED Contábil (por entrega)',                valor:214.69},
+  {desc:'ECF (por entrega)',                          valor:433.89},
+  {desc:'DIRF (por entrega)',                         valor:164.75},
+  {desc:'EFD-Contribuições (por entrega)',            valor:195.84},
+  {desc:'RAIS (por empresa)',                         valor:143.12},
+  {desc:'CAGED (por mês)',                            valor:89.45},
+  {desc:'e-Social (implantação)',                     valor:867.78},
+  {desc:'PGDAS-D (por mês)',                          valor:108.58},
+  {desc:'Planejamento Tributário (por hora)',         valor:433.89},
+  {desc:'Certidão Negativa Federal',                  valor:97.64},
+  {desc:'Livros Fiscais (por livro)',                 valor:217.71},
+];
+
+const DOCS_LBL  = ['Até 100 docs','101 a 300 docs','301 a 600 docs','601 a 900 docs'];
+const FUNCS_LBL = ['Sem func.','Até 5 func.','6 a 15 func.','16 a 30 func.'];
+
+// ── TABS ──────────────────────────────────────────────────────
+function setTab(tab){
+  curTab=tab;
+  ['dash','hon','rcc'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('on', t===tab);
+    document.getElementById('pane-'+t).style.display = t===tab?'block':'none';
+  });
+  if(tab==='rcc'){ calcRCC(); setRccTabela(0); }
+  if(tab==='hon') filterList();
+}
+
+// ── LOAD ──────────────────────────────────────────────────────
+async function load(){
+  const [sumR,regR,svcR,cosR]=await Promise.all([
+    API.billing.summary(),
+    API.billing.byRegime(),
+    API.billing.byService(),
+    API.companies.list({limit:200}),
+  ]);
+  if(!sumR?.success)return;
+  allCo=cosR?.companies||[];
+
+  const rec=sumR.summary.totalMonthlyFee||0;
+  const cli=sumR.summary.totalActiveCompanies||0;
+  const avg=cli>0?rec/cli:0;
+  const inad=allCo.filter(c=>c.status==='atrasado').length;
+  const pend=allCo.filter(c=>c.status==='pendente').reduce((a,c)=>a+(c.fee||0),0);
+
+  document.getElementById('kRec').textContent  = curK(rec);
+  document.getElementById('kCli').textContent  = cli;
+  document.getElementById('kAvg').textContent  = curK(avg);
+  document.getElementById('kInad').textContent = inad;
+  document.getElementById('kARec').textContent = curK(pend);
+  document.getElementById('tbRec').textContent = curK(rec)+'/mês';
+  document.getElementById('tbCli').textContent = cli+' clientes';
+
+  // Preenche select de empresas no modal
+  const o=allCo.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  document.getElementById('hEmp').innerHTML='<option value="">Selecione...</option>'+o;
+
+  renderDashboard(regR?.data||[], svcR?.data||[]);
+  filterList();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function renderDashboard(regData, svcData){
+  const maxReg=regData.length?regData[0].totalFee:1;
+  document.getElementById('chartRegime').innerHTML=regData.length
+    ? regData.map(r=>`
+      <div class="bar-item">
+        <div class="bar-label">
+          <span style="color:${CORES_REG[r._id]||'var(--txt2)'}">${LABEL_REG[r._id]||r._id}</span>
+          <span>${cur(r.totalFee)} · ${r.count} cliente(s)</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${r.totalFee/maxReg*100}%;background:${CORES_REG[r._id]||'var(--blue)'}"></div></div>
+      </div>`).join('')
+    : '<div class="empty"><div class="empty-s">Sem dados</div></div>';
+
+  const maxSvc=svcData.length?svcData[0].totalFee:1;
+  document.getElementById('chartService').innerHTML=svcData.length
+    ? svcData.slice(0,8).map(s=>`
+      <div class="bar-item">
+        <div class="bar-label"><span>${s._id}</span><span>${cur(s.totalFee)} · ${s.count}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${s.totalFee/maxSvc*100}%;background:var(--blue)"></div></div>
+      </div>`).join('')
+    : '<div class="empty"><div class="empty-s">Sem dados</div></div>';
+
+  const top=[...allCo].sort((a,b)=>(b.fee||0)-(a.fee||0)).slice(0,10);
+  const maxFee=top.length?top[0].fee:1;
+  document.getElementById('topClientes').innerHTML=top.length
+    ? top.map((c,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="verDetalhe('${c._id}')">
+        <span style="font-size:11px;font-weight:700;color:var(--txt3);width:22px;flex-shrink:0">#${i+1}</span>
+        <div class="co-av" style="background:${CORES[i%CORES.length]}">${ui.ini(c.legalName)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12.5px;font-weight:500;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.legalName}</div>
+          <div class="bar-track" style="margin-top:4px"><div class="bar-fill" style="width:${(c.fee||0)/maxFee*100}%;background:var(--green)"></div></div>
+        </div>
+        <span class="money g" style="flex-shrink:0">${cur(c.fee||0)}</span>
+      </div>`).join('')
+    : '<div class="empty"><div class="empty-s">Nenhum cliente</div></div>';
+
+  const ranges=[{l:'Até R$1.000',min:0,max:1000},{l:'R$1k–R$2,5k',min:1001,max:2500},{l:'R$2,5k–R$5k',min:2501,max:5000},{l:'R$5k+',min:5001,max:Infinity}];
+  document.getElementById('distribHon').innerHTML=ranges.map(r=>{
+    const n=allCo.filter(c=>(c.fee||0)>=r.min&&(c.fee||0)<=r.max).length;
+    const pct=allCo.length?Math.round(n/allCo.length*100):0;
+    return `<div class="bar-item">
+      <div class="bar-label"><span>${r.l}</span><span>${n} (${pct}%)</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--purple)"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── LISTA HONORÁRIOS ──────────────────────────────────────────
+function filterList(){
+  const q=(document.getElementById('srch')?.value||'').toLowerCase();
+  const st=g('fStatus');
+  let lista=[...allCo].filter(c=>{
+    if(q&&!(c.legalName||'').toLowerCase().includes(q)&&!(c.tradeName||'').toLowerCase().includes(q))return false;
+    if(st&&c.status!==st)return false;
+    return true;
+  }).sort((a,b)=>(b.fee||0)-(a.fee||0));
+
+  document.getElementById('honCount').textContent=lista.length+' cliente(s)';
+  const el=document.getElementById('honList');
+  if(!lista.length){ el.innerHTML='<div class="empty"><div class="empty-ic">🏢</div><div class="empty-t">Nenhum cliente</div><div class="empty-s"><span onclick="openNovoHonorario()" style="color:var(--bl);cursor:pointer">+ Novo Honorário</span></div></div>'; return; }
+
+  el.innerHTML=`<table class="tbl" style="margin-top:8px">
+    <thead><tr><th>Empresa / Cliente</th><th>Regime</th><th>Serviços</th><th>Honorário</th><th>Venc.</th><th>Status</th><th>RCC Ref.</th><th>Ações</th></tr></thead>
+    <tbody>${lista.map((c,i)=>{
+      const rccRef=getRccRef(c);
+      const diff=rccRef>0?Math.round(((c.fee||0)-rccRef)*100)/100:null;
+      const diffHtml=diff!==null
+        ?`<span class="${diff<-100?'badge-below':diff>100?'badge-above':'badge-ok'}">${diff>=0?'+':''}${cur(diff)}</span>`
+        :'—';
+      return `<tr>
+        <td onclick="verDetalhe('${c._id}')" style="cursor:pointer">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="co-av" style="background:${CORES[i%CORES.length]}">${ui.ini(c.legalName)}</div>
+            <div><div style="font-size:13px;font-weight:500;color:var(--txt)">${c.legalName}</div><div style="font-size:10px;color:var(--txt3)">${ui.cnpj(c.cnpj)}</div></div>
+          </div>
+        </td>
+        <td style="font-size:11px">${LABEL_REG[c.taxRegime]||c.taxRegime||'—'}</td>
+        <td style="font-size:11px;color:var(--txt3)">${(c.services||[]).slice(0,2).join(', ')||'—'}</td>
+        <td class="money g" style="font-weight:700">${cur(c.fee||0)}</td>
+        <td style="font-size:12px;color:var(--txt3)">Dia ${c.dueDay||10}</td>
+        <td>${ui.pill(c.status)}</td>
+        <td>
+          ${rccRef>0?`<div style="font-size:10px;color:var(--txt3)">${cur(rccRef)}</div>${diffHtml}`:'—'}
+        </td>
+        <td><div class="ra">
+          <div class="rb" onclick="verDetalhe('${c._id}')" title="Detalhes">🔍</div>
+          <div class="rb" onclick="editarHonorario('${c._id}')" title="Editar">✏️</div>
+          <div class="rb" onclick="registrarPagamento('${c._id}')" title="Pagamento" style="color:var(--green)">✅</div>
+        </div></td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function getRccRef(company){
+  if(!company.taxRegime)return 0;
+  const s=(company.sector||'').toLowerCase();
+  const setor=s.includes('comér')||s.includes('comrc')?'comercio':s.includes('indús')||s.includes('indus')?'industria':'servicos';
+  const reg={'simples':'simples','presumido':'presumido','real':'real'}[company.taxRegime];
+  if(!reg)return 0;
+  const emp=company.employees||0;
+  const fi=emp===0?0:emp<=5?1:emp<=15?2:3;
+  return RCC_TABELA[setor]?.regimes[reg]?.rows[0]?.[fi]||0;
+}
+
+// ── MODAL NOVO HONORÁRIO ──────────────────────────────────────
+function setTipoCliente(tipo){
+  tipoCliente=tipo;
+  document.getElementById('btnTipoPJ').classList.toggle('on', tipo==='pj');
+  document.getElementById('btnTipoPF').classList.toggle('on', tipo==='pf');
+  document.getElementById('fieldPJ').style.display  = tipo==='pj'?'':'none';
+  document.getElementById('fieldPF').style.display  = tipo==='pf'?'block':'none';
+}
+
+function openNovoHonorario(){
+  editHonId=null;
+  document.getElementById('honTt').textContent='Novo Honorário / Consultoria';
+  document.getElementById('honBtn').textContent='💾 Salvar';
+  document.querySelectorAll('#ovHon .fin').forEach(f=>{ if(f.type!=='number')f.value=''; else f.value=''; });
+  document.getElementById('hVenc').value='10';
+  document.getElementById('hStatus').value='pendente';
+  document.getElementById('hVigencia').value='Indeterminado';
+  document.getElementById('hInicio').value=new Date().toISOString().substring(0,10);
+  const u=auth.getUser(); sv('hResp',u?.name||'');
+  setTipoCliente('pj');
+  document.getElementById('rccFormResult').style.display='none';
+  ui.tab(document.querySelector('#ovHon .m-tab'),'h0');
+  ui.openModal('ovHon');
+}
+
+function editarHonorario(id){
+  const c=allCo.find(x=>x._id===id); if(!c)return;
+  editHonId=id;
+  document.getElementById('honTt').textContent='Editar Honorário — '+c.legalName;
+  document.getElementById('honBtn').textContent='💾 Salvar Alterações';
+  setTipoCliente('pj');
+  sv('hEmp',id);
+  sv('hDesc','Honorários Contábeis Mensais');
+  document.getElementById('hValor').value=c.fee||0;
+  document.getElementById('hVenc').value=c.dueDay||10;
+  sv('hStatus',c.status||'pendente');
+  sv('hSvcs',(c.services||[]).join(', '));
+  ui.tab(document.querySelector('#ovHon .m-tab'),'h0');
+  ui.openModal('ovHon');
+}
+
+async function salvarHonorario(){
+  const btn=document.getElementById('honBtn');
+  const valor=parseFloat(document.getElementById('hValor').value)||0;
+  if(!valor){ ui.toast('⚠️','Informe o valor do honorário'); return; }
+
+  if(tipoCliente==='pj'){
+    const empId=g('hEmp');
+    if(!empId){ ui.toast('⚠️','Selecione a empresa'); return; }
+    btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+    const res=await API.companies.update(empId,{
+      fee:valor,
+      dueDay:parseInt(g('hVenc'))||10,
+      paymentMethod:g('hForma')||'PIX',
+      status:g('hStatus')||'pendente',
+      internalResponsible:g('hResp'),
+      contractStart:g('hInicio')||undefined,
+      contractTerm:g('hVigencia')||'Indeterminado',
+      contractNotes:g('hObs'),
+    });
+    btn.disabled=false; btn.innerHTML='💾 Salvar';
+    if(res?.success){ ui.toast('✅','Honorário salvo!'); ui.closeModal('ovHon'); load(); }
+    else ui.toast('❌',res?.message||'Erro ao salvar');
+  } else {
+    // PF — salva como consultoria (pode ser implementado com modelo de Consultorias)
+    const nome=g('hNomePF');
+    if(!nome){ ui.toast('⚠️','Informe o nome do cliente'); return; }
+    ui.toast('ℹ️','Consultoria PF registrada (integrar com módulo de Consultorias)');
+    ui.closeModal('ovHon');
+  }
+}
+
+async function registrarPagamento(id){
+  document.getElementById('cIc').textContent='💰';
+  document.getElementById('cTt').textContent='Registrar Pagamento';
+  const c=allCo.find(x=>x._id===id);
+  document.getElementById('cMs').textContent=`Confirmar recebimento de ${cur(c?.fee||0)} de "${c?.legalName}"?`;
+  document.getElementById('cBtn').onclick=async()=>{
+    const r=await API.companies.update(id,{status:'pago'});
+    ui.closeModal('ovConf');
+    if(r?.success){ ui.toast('✅','Pagamento registrado!'); load(); }
+    else ui.toast('❌',r?.message||'Erro');
+  };
+  ui.openModal('ovConf');
+}
+
+// ── DETALHE ────────────────────────────────────────────────────
+function verDetalhe(id){
+  const c=allCo.find(x=>x._id===id); if(!c)return;
+  const rccRef=getRccRef(c);
+  const diff=rccRef>0?Math.round(((c.fee||0)-rccRef)*100)/100:null;
+  document.getElementById('spIco').textContent='🏢';
+  document.getElementById('spTt').textContent=c.legalName||c.tradeName;
+  document.getElementById('spSt').textContent=`${LABEL_REG[c.taxRegime]||'—'} · Dia ${c.dueDay||10}`;
+  document.getElementById('spBody').innerHTML=[
+    ['CNPJ',         ui.cnpj(c.cnpj)],
+    ['Regime',       LABEL_REG[c.taxRegime]||'—'],
+    ['Honorário',    `<strong style="font-size:15px;color:var(--green);font-family:'JetBrains Mono',monospace">${cur(c.fee||0)}</strong>`],
+    ['Vencimento',   'Dia '+(c.dueDay||10)],
+    ['Status',       ui.pill(c.status)],
+    ['Serviços',     (c.services||[]).join(', ')||'—'],
+    ['Funcionários', c.employees||'—'],
+    ...(rccRef>0?[
+      ['RCC 2025 Ref.',`<span style="font-family:'JetBrains Mono',monospace;color:var(--txt3)">${cur(rccRef)}</span>`],
+      ['vs RCC',       `<span class="${diff<-100?'badge-below':diff>100?'badge-above':'badge-ok'}">${diff>=0?'+':''}${cur(diff||0)}</span>`],
+    ]:[]),
+  ].map(([l,v])=>`<div class="sp-row"><span style="color:var(--txt3)">${l}</span><span style="color:var(--txt);font-weight:500;text-align:right">${v}</span></div>`).join('');
+  document.getElementById('spFoot').innerHTML=`
+    <button class="btn primary sm" onclick="registrarPagamento('${c._id}')">💰 Pagamento</button>
+    <button class="btn sm" onclick="editarHonorario('${c._id}')">✏️ Editar</button>
+    <a href="/empresas.html" class="btn sm">🏢 Ver Empresa</a>`;
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+}
+function fecharDetalhe(){ document.getElementById('sidePanel').classList.remove('open'); document.getElementById('overlay').style.display='none'; }
+
+// ── RCC CALCULADORA (aba RCC) ─────────────────────────────────
+function calcRCC(){
+  const setor  = g('rccSetor')||'comercio';
+  const regime = g('rccRegime')||'simples';
+  const fi     = parseInt(g('rccFuncs'))||0;
+  const di     = parseInt(g('rccDocs'))||0;
+  const fator  = parseFloat(g('rccRegiao'))||1;
+  const rows   = RCC_TABELA[setor]?.regimes[regime]?.rows;
+  if(!rows)return;
+  const base   = rows[di][fi];
+  const final  = Math.round(base*fator*100)/100;
+  document.getElementById('rccValorFinal').textContent=cur(final);
+  document.getElementById('rccDescFinal').textContent=
+    `${RCC_TABELA[setor].label} · ${RCC_TABELA[setor].regimes[regime].label} · ${FUNCS_LBL[fi]} · ${DOCS_LBL[di]}`;
+  document.getElementById('rccResult').style.display='block';
+}
+
+function aplicarRCCNoForm(){
+  const val=document.getElementById('rccValorFinal').textContent;
+  // Pega só números
+  const num=parseFloat(val.replace(/[^\d,]/g,'').replace(',','.'));
+  if(num>0){ openNovoHonorario(); document.getElementById('hValor').value=num.toFixed(2); ui.toast('✅','Valor RCC aplicado no formulário!'); }
+}
+
+// ── RCC CALCULADORA (dentro do formulário) ────────────────────
+function calcRCCForm(){
+  const setor  = g('hRccSetor')||'comercio';
+  const regime = g('hRccRegime')||'simples';
+  const fi     = parseInt(g('hRccFuncs'))||0;
+  const di     = parseInt(g('hRccDocs'))||0;
+  const fator  = parseFloat(g('hRccRegiao'))||1;
+  const rows   = RCC_TABELA[setor]?.regimes[regime]?.rows;
+  if(!rows)return;
+  const final  = Math.round(rows[di][fi]*fator*100)/100;
+  document.getElementById('rccFormValor').textContent=cur(final);
+  document.getElementById('rccFormDesc').textContent=`${RCC_TABELA[setor].label} · ${RCC_TABELA[setor].regimes[regime].label} · ${FUNCS_LBL[fi]} · ${DOCS_LBL[di]}`;
+  document.getElementById('rccFormResult').style.display='block';
+}
+
+function aplicarRCCNoFormulario(){
+  const val=parseFloat(document.getElementById('rccFormValor').textContent.replace(/[^\d,]/g,'').replace(',','.'));
+  if(val>0){
+    document.getElementById('hValor').value=val.toFixed(2);
+    ui.tab(document.querySelector('#ovHon .m-tab'),'h0');
+    ui.toast('✅','Valor RCC aplicado! Confira na aba Dados.');
+  }
+}
+
+// ── TABELA RCC COMPLETA ────────────────────────────────────────
+function setRccTabela(i){
+  rccTabAtual=i;
+  document.querySelectorAll('[id^="rt"]').forEach((b,idx)=>b.classList.toggle('on',idx===i));
+  renderRccTabela(i);
+}
+
+function renderRccTabela(i){
+  const el=document.getElementById('rccTabelaBody');
+  const fator=parseFloat(g('rccRegiao'))||1;
+  if(i===3){ // Avulsos
+    el.innerHTML=`<table class="rcc-table">
+      <thead><tr><th>Serviço / Atividade</th><th>Valor RCC 2025</th></tr></thead>
+      <tbody>${RCC_AVULSOS.map(o=>`<tr><td>${o.desc}</td><td class="rcc-val">${cur(Math.round(o.valor*fator*100)/100)}</td></tr>`).join('')}
+      </tbody></table>`;
+    return;
+  }
+  const setores=['comercio','industria','servicos'];
+  const setor=RCC_TABELA[setores[i]];
+  let html='';
+  Object.entries(setor.regimes).forEach(([,reg])=>{
+    html+=`<div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:var(--bl);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding:7px 12px;background:rgba(26,111,196,.08);border-radius:var(--rs)">${reg.label}</div>
+      <table class="rcc-table">
+        <thead><tr><th>Documentos/mês</th>${FUNCS_LBL.map(f=>`<th>${f}</th>`).join('')}</tr></thead>
+        <tbody>${reg.rows.map((row,di)=>`
+          <tr>
+            <td style="font-weight:600;color:var(--txt)">${DOCS_LBL[di]}</td>
+            ${row.map(v=>`<td class="rcc-val">${cur(Math.round(v*fator*100)/100)}</td>`).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+function exportarCSV(){
+  if(!allCo.length){ ui.toast('⚠️','Nenhum dado'); return; }
+  const h=['Empresa','CNPJ','Regime','Honorário','Vencimento','Status','RCC Ref.','Diferença'];
+  const rows=allCo.map(c=>{
+    const rcc=getRccRef(c);
+    return [c.legalName||'—',ui.cnpj(c.cnpj),LABEL_REG[c.taxRegime]||'—',(c.fee||0).toFixed(2).replace('.',','),'Dia '+(c.dueDay||10),c.status||'—',rcc>0?rcc.toFixed(2).replace('.',','):'—',rcc>0?((c.fee||0)-rcc).toFixed(2).replace('.',','):'—'];
+  });
+  const csv=[h,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv); a.download='honorarios.csv'; a.click(); ui.toast('⬇️','CSV exportado!');
+}
+
+load();
+</script>
+</body>
+</html>

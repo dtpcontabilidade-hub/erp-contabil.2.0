@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Empresas</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+
+/* ── CARDS GRID ── */
+.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;padding:20px 24px}
+.emp-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .16s;position:relative}
+.emp-card:hover{border-color:var(--bd2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.emp-card-top{height:5px}
+.emp-card-top.pago{background:var(--green)}.emp-card-top.pendente{background:var(--amber)}
+.emp-card-top.atrasado{background:var(--red)}.emp-card-top.inativo{background:var(--txt3)}
+.emp-card-body{padding:14px 15px}
+.emp-card-hd{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.emp-av{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
+.emp-name{font-size:13px;font-weight:600;color:var(--txt);line-height:1.3}
+.emp-cnpj{font-size:10px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-top:1px}
+.emp-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px}
+.emp-pill{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.emp-pill.regime{background:rgba(26,111,196,.13);color:var(--bl)}
+.emp-pill.pago{background:rgba(0,201,167,.12);color:var(--green)}
+.emp-pill.pendente{background:rgba(245,158,11,.12);color:var(--amber)}
+.emp-pill.atrasado{background:rgba(239,68,68,.12);color:var(--red)}
+.emp-pill.inativo{background:rgba(255,255,255,.06);color:var(--txt3)}
+.emp-pill.svc{background:rgba(139,92,246,.1);color:var(--purple)}
+.emp-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-top:10px;border-top:1px solid rgba(255,255,255,.05)}
+.emp-stat-l{font-size:10px;color:var(--txt3)}.emp-stat-v{font-size:12px;font-weight:600;color:var(--txt)}
+.emp-card-ft{padding:8px 15px;background:rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between}
+.emp-resp{font-size:10px;color:var(--txt3)}.emp-actions{display:flex;gap:4px}
+.ea-btn{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.ea-btn:hover{border-color:var(--bd2)}
+
+/* ── VIEW TOGGLE ── */
+.view-tog{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:3px}
+.vt-btn{padding:4px 9px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .13s;border:none;background:none;color:var(--txt3)}
+.vt-btn.on{background:var(--bg5);color:var(--txt)}
+
+/* ── KPIs ── */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:16px 24px 0}
+
+/* ── TABLE VIEW ── */
+.tbl-wrap{padding:0 24px 20px}
+.regime-pill{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.regime-pill.simples{background:rgba(26,111,196,.15);color:var(--bl)}
+.regime-pill.presumido{background:rgba(245,158,11,.12);color:var(--amber)}
+.regime-pill.real{background:rgba(139,92,246,.12);color:var(--purple)}
+.regime-pill.mei{background:rgba(0,201,167,.12);color:var(--green)}
+.regime-pill.imune{background:rgba(20,184,166,.12);color:var(--teal)}
+.c-cell{display:flex;align-items:center;gap:9px}
+.c-av{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.c-n{font-size:13px;font-weight:500;color:var(--txt)}
+.c-sub{font-size:10px;color:var(--txt3);font-family:'JetBrains Mono',monospace}
+.money{font-family:'JetBrains Mono',monospace;font-size:12px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}
+.svc-tags{display:flex;gap:3px;flex-wrap:wrap}
+.svc-mini{font-size:9px;background:rgba(139,92,246,.1);color:var(--purple);padding:1px 6px;border-radius:10px;white-space:nowrap}
+.ra{display:flex;gap:4px;justify-content:flex-end}
+.rb{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.rb:hover{border-color:var(--bd2)}
+
+/* ── MODAL DETALHE ── */
+.socio-item{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:7px}
+.socio-pct{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--bl);width:42px;text-align:right}
+.rec-line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+.info-field{display:flex;flex-direction:column;gap:2px}
+.info-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--txt3)}
+.info-val{font-size:12.5px;color:var(--txt);font-weight:500}
+.info-val.mono{font-family:'JetBrains Mono',monospace}
+.info-val.b{color:var(--bl)}
+.info-val.g{color:var(--green)}
+.info-val.r{color:var(--red)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.info-grid.g2{grid-template-columns:1fr 1fr}
+.info-grid.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+.info-section{margin-bottom:18px}
+.info-section-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--txt3);font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+.svc-tag{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--bd);color:var(--txt3);cursor:pointer;transition:all .13s;user-select:none}
+.svc-tag.on{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.3);color:var(--purple)}
+.svc-grid{display:flex;flex-wrap:wrap;gap:7px}
+
+/* ── SCORE CARD ── */
+.score-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px}
+.score-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.score-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--txt);line-height:1}
+.score-sub{font-size:11px;color:var(--txt3);margin-top:4px}
+
+/* ── HISTORICO ATIVO ── */
+.hist-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.hist-row:last-child{border-bottom:none}
+.hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hist-txt{flex:1;color:var(--txt2)}
+.hist-dt{color:var(--txt3);font-size:10px;white-space:nowrap}
+
+/* ── PROGRESS LTV ── */
+.ltv-bar{background:var(--bg4);border-radius:20px;height:6px;overflow:hidden;margin-top:5px}
+.ltv-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s ease}
+
+/* ── EMPTY ── */
+.empty{padding:40px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:36px;margin-bottom:10px}
+.empty-t{font-size:14px;font-weight:600;color:var(--txt2);margin-bottom:6px}
+.empty-s{font-size:12px}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+  <main class="main-wrap">
+    <header class="topbar">
+      <span class="topbar-title">🏢 Empresas Clientes</span>
+      <span class="tb-badge blue"  id="tbTotal">0 empresas</span>
+      <span class="tb-badge red"   id="tbInadim" style="cursor:pointer" onclick="setStatus('atrasado',document.getElementById('fs3'))">0 inadimplentes</span>
+      <span class="tb-badge green" id="tbFee">R$ 0</span>
+      <div class="topbar-spacer"></div>
+      <div class="srch" style="width:220px"><span style="color:var(--txt3)">🔍</span><input id="srchIn" placeholder="Nome, CNPJ, setor..." oninput="filtrar()"></div>
+      <div class="view-tog">
+        <button class="vt-btn on" id="vCard" onclick="setView('card',this)">⊞ Cards</button>
+        <button class="vt-btn" id="vTabl" onclick="setView('table',this)">☰ Tabela</button>
+      </div>
+      <button class="btn primary" onclick="abrirNova()">+ Nova Empresa</button>
+    </header>
+
+    <!-- FILTROS -->
+    <div class="filter-bar">
+      <span class="ftag on" id="fs0" onclick="setStatus('',this)">Todas</span>
+      <span class="ftag" id="fs1" onclick="setStatus('pago',this)">✅ Em Dia</span>
+      <span class="ftag" id="fs2" onclick="setStatus('pendente',this)">⏳ Pendentes</span>
+      <span class="ftag" id="fs3" onclick="setStatus('atrasado',this)">❌ Em Atraso</span>
+      <span class="ftag" id="fs4" onclick="setStatus('inativo',this)">⛔ Inativos</span>
+      <div class="fsep"></div>
+      <span class="ftag on" id="fr0" onclick="setRegime('',this)">Todos</span>
+      <span class="ftag" id="fr1" onclick="setRegime('simples',this)">Simples</span>
+      <span class="ftag" id="fr2" onclick="setRegime('presumido',this)">Presumido</span>
+      <span class="ftag" id="fr3" onclick="setRegime('real',this)">Lucro Real</span>
+      <span class="ftag" id="fr4" onclick="setRegime('mei',this)">MEI</span>
+      <div class="fsep"></div>
+      <select class="fin" style="height:28px;font-size:11px;width:160px" id="sortSel" onchange="filtrar()">
+        <option value="nome">Ordenar: Nome</option>
+        <option value="hon">Maior Honorário</option>
+        <option value="atrs">Atraso Primeiro</option>
+        <option value="novo">Mais Recentes</option>
+        <option value="func">Mais Funcionários</option>
+      </select>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row" id="kpisRow" style="display:grid"></div>
+
+    <!-- CONTENT -->
+    <div class="page-body" style="overflow-y:auto;padding:0">
+      <div id="viewCard" class="emp-grid"></div>
+      <div id="viewTable" class="tbl-wrap" style="display:none"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ══ MODAL DETALHE ═══════════════════════════════════════ -->
+<div class="ov" id="ovDet">
+<div class="modal xl">
+  <div class="m-top">
+    <div class="m-ico" id="dAv" style="border-radius:12px;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#fff">DT</div>
+    <div class="m-hi">
+      <div class="m-tg" id="dTag"></div>
+      <div class="m-tt" id="dNome"></div>
+      <div class="m-st" id="dSub"></div>
+    </div>
+    <button class="m-cl" onclick="ui.closeModal('ovDet')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'d0')">🏢 Cadastro</div>
+    <div class="m-tab" onclick="ui.tab(this,'d1')">👤 Sócios</div>
+    <div class="m-tab" onclick="ui.tab(this,'d2')">📋 Contrato</div>
+    <div class="m-tab" onclick="ui.tab(this,'d3')">💰 Honorários</div>
+    <div class="m-tab" onclick="ui.tab(this,'d4')">📊 Financeiro</div>
+    <div class="m-tab" onclick="ui.tab(this,'d5')">🕐 Histórico</div>
+  </div>
+  <div class="m-bd">
+
+    <!-- ABA CADASTRO -->
+    <div class="tp on" id="d0">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="dKpis"></div>
+      <div class="info-section">
+        <div class="info-section-title">Dados da Empresa</div>
+        <div class="info-grid" id="dDados"></div>
+      </div>
+      <div class="info-section">
+        <div class="info-section-title">Endereço</div>
+        <div class="info-grid" id="dEnd"></div>
+      </div>
+      <div class="info-section">
+        <div class="info-section-title">Contato</div>
+        <div class="info-grid" id="dContato"></div>
+      </div>
+      <div class="info-section">
+        <div class="info-section-title">Contato Financeiro</div>
+        <div class="info-grid g2" id="dContatoFin"></div>
+      </div>
+      <div class="info-section">
+        <div class="info-section-title">Observações</div>
+        <p id="dObs" style="font-size:12.5px;color:var(--txt2);line-height:1.7;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;min-height:40px"></p>
+      </div>
+    </div>
+
+    <!-- ABA SÓCIOS -->
+    <div class="tp" id="d1">
+      <div id="dSocios"></div>
+      <div class="info-section" style="margin-top:16px">
+        <div class="info-section-title">Dados Bancários</div>
+        <div class="info-grid g4" id="dBancos"></div>
+      </div>
+    </div>
+
+    <!-- ABA CONTRATO -->
+    <div class="tp" id="d2">
+      <div class="info-section">
+        <div class="info-section-title">Contrato</div>
+        <div class="info-grid g4" id="dContrato"></div>
+      </div>
+      <div class="info-section">
+        <div class="info-section-title">Serviços Contratados</div>
+        <div class="svc-grid" id="dSvcs"></div>
+      </div>
+      <div class="info-section" style="margin-top:16px">
+        <div class="info-section-title">Observações do Contrato</div>
+        <p id="dContratObs" style="font-size:12.5px;color:var(--txt2);line-height:1.7;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;min-height:40px"></p>
+      </div>
+    </div>
+
+    <!-- ABA HONORÁRIOS -->
+    <div class="tp" id="d3">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px" id="dHonKpis"></div>
+      <div class="info-section">
+        <div class="info-section-title">Recibo de Honorários <span style="float:right;cursor:pointer;color:var(--bl)" onclick="imprimirRecibo()">🖨️ Imprimir</span></div>
+        <div class="card" style="padding:16px 18px" id="dRecibo"></div>
+      </div>
+      <div class="info-section" style="margin-top:16px">
+        <div class="info-section-title">Análise LTV (Lifetime Value)</div>
+        <div id="dLTV"></div>
+      </div>
+    </div>
+
+    <!-- ABA FINANCEIRO (novo) -->
+    <div class="tp" id="d4">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="dFinanceiro">
+        <div class="empty"><div class="empty-ic">⏳</div><div class="empty-s">Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- ABA HISTÓRICO (novo) -->
+    <div class="tp" id="d5">
+      <div id="dHistorico">
+        <div class="empty"><div class="empty-ic">🕐</div><div class="empty-s">Carregando histórico...</div></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="dEditBtn">✏️ Editar</button>
+    <button class="mfb g" id="dPagBtn">✅ Pagamento</button>
+    <button class="mfb" id="dVDBtn" style="background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.3);color:var(--purple)">👁️ Visão Dual</button>
+    <div class="mfs"></div>
+    <button class="mfb r" id="dDelBtn">🗑️ Desativar</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ MODAL FORM ══════════════════════════════════════════ -->
+<div class="ov" id="ovForm">
+<div class="modal xl">
+  <div class="m-top">
+    <div class="m-ico pu">🏢</div>
+    <div class="m-hi"><div class="m-tg" id="fTg">Cadastro</div><div class="m-tt" id="fTt">Nova Empresa</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovForm')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'f0')">🏢 Empresa</div>
+    <div class="m-tab" onclick="ui.tab(this,'f1')">📍 Endereço</div>
+    <div class="m-tab" onclick="ui.tab(this,'f2')">👤 Sócios</div>
+    <div class="m-tab" onclick="ui.tab(this,'f3')">📋 Contrato</div>
+  </div>
+  <div class="m-bd">
+    <div class="tp on" id="f0">
+      <div class="fg2">
+        <div class="fgp ffu"><label class="fbl">Razão Social *</label><input class="fin" id="fRazao" placeholder="Nome completo conforme CNPJ"></div>
+        <div class="fgp"><label class="fbl">Nome Fantasia</label><input class="fin" id="fFantasia" placeholder="Nome comercial"></div>
+        <div class="fgp"><label class="fbl">CNPJ *</label><input class="fin mono" id="fCnpj" maxlength="18" placeholder="00.000.000/0000-00" oninput="mascaraCNPJ(this)"></div>
+        <div class="fgp"><label class="fbl">IE — Inscrição Estadual</label><input class="fin mono" id="fIE"></div>
+        <div class="fgp"><label class="fbl">IM — Inscrição Municipal</label><input class="fin mono" id="fIM"></div>
+        <div class="fgp"><label class="fbl">CNAE Principal</label><input class="fin" id="fCnae" placeholder="Ex: 6920-6/01"></div>
+        <div class="fgp"><label class="fbl">CNAEs Secundários</label><input class="fin" id="fCnaeS" placeholder="Separados por vírgula"></div>
+        <div class="fgp"><label class="fbl">Natureza Jurídica</label>
+          <select class="fin" id="fNat">
+            <option value="">Selecione...</option>
+            <option>Sociedade Empresária Ltda</option>
+            <option>Empresário Individual (EI)</option>
+            <option>EIRELI</option>
+            <option>Sociedade Anônima (S/A)</option>
+            <option>Sociedade Simples</option>
+            <option>Microempreendedor Individual (MEI)</option>
+            <option>Associação</option>
+            <option>Fundação</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Regime Tributário *</label>
+          <select class="fin" id="fRegime">
+            <option value="">Selecione...</option>
+            <option value="simples">Simples Nacional</option>
+            <option value="presumido">Lucro Presumido</option>
+            <option value="real">Lucro Real</option>
+            <option value="mei">MEI</option>
+            <option value="imune">Imune/Isento</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Porte da Empresa</label>
+          <select class="fin" id="fPorte">
+            <option value="mei">MEI</option><option value="me">ME — Microempresa</option>
+            <option value="epp" selected>EPP — Pequeno Porte</option>
+            <option value="medio">Médio Porte</option><option value="grande">Grande Porte</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Setor / Ramo de Atividade</label><input class="fin" id="fSetor" placeholder="Ex: Comércio, Serviços..."></div>
+        <div class="fgp"><label class="fbl">Data de Abertura</label><input class="fin" type="date" id="fAbert"></div>
+        <div class="fgp"><label class="fbl">Nº de Funcionários</label><input class="fin" type="number" id="fFuncs" min="0"></div>
+        <div class="fgp"><label class="fbl">Faturamento Anual (R$)</label><input class="fin" type="number" id="fFat" step="1000"></div>
+        <div class="fgp ffu"><label class="fbl">Objeto Social</label><textarea class="fin" id="fObjeto" rows="2" style="resize:none"></textarea></div>
+      </div>
+    </div>
+
+    <div class="tp" id="f1">
+      <div class="fg3">
+        <div class="fgp"><label class="fbl">CEP</label><input class="fin mono" id="fCep" placeholder="00000-000" onblur="buscarCep()"></div>
+        <div class="fgp ffu" style="grid-column:span 2"><label class="fbl">Logradouro</label><input class="fin" id="fLogr" placeholder="Rua, Avenida..."></div>
+        <div class="fgp"><label class="fbl">Número</label><input class="fin" id="fNum"></div>
+        <div class="fgp"><label class="fbl">Complemento</label><input class="fin" id="fCompl" placeholder="Sala, Apto..."></div>
+        <div class="fgp"><label class="fbl">Bairro</label><input class="fin" id="fBairro"></div>
+        <div class="fgp"><label class="fbl">Cidade</label><input class="fin" id="fCidade"></div>
+        <div class="fgp"><label class="fbl">UF</label><input class="fin" id="fUF" maxlength="2"></div>
+        <div class="fgp ffu" style="grid-column:1/-1;margin-top:8px"><div class="info-section-title" style="margin-bottom:10px">Contato Principal</div></div>
+        <div class="fgp"><label class="fbl">Responsável *</label><input class="fin" id="fResp" placeholder="Nome completo"></div>
+        <div class="fgp"><label class="fbl">Cargo</label><input class="fin" id="fCargo" placeholder="Ex: Sócio-Diretor"></div>
+        <div class="fgp"><label class="fbl">CPF do Responsável</label><input class="fin mono" id="fRespCpf" placeholder="000.000.000-00"></div>
+        <div class="fgp"><label class="fbl">E-mail</label><input class="fin" type="email" id="fEmail"></div>
+        <div class="fgp"><label class="fbl">Telefone</label><input class="fin" id="fTel" placeholder="(00) 0000-0000"></div>
+        <div class="fgp"><label class="fbl">WhatsApp</label><input class="fin" id="fWhats" placeholder="(00) 90000-0000"></div>
+        <div class="fgp"><label class="fbl">Site</label><input class="fin" id="fSite" placeholder="https://"></div>
+        <div class="fgp"><label class="fbl">Instagram</label><input class="fin" id="fInsta" placeholder="@empresa"></div>
+        <div class="fgp ffu" style="grid-column:1/-1;margin-top:8px"><div class="info-section-title" style="margin-bottom:10px">Contato Financeiro (se diferente)</div></div>
+        <div class="fgp"><label class="fbl">Nome — Contato Financeiro</label><input class="fin" id="fFinNome"></div>
+        <div class="fgp"><label class="fbl">E-mail Financeiro</label><input class="fin" type="email" id="fFinEmail"></div>
+        <div class="fgp"><label class="fbl">Telefone Financeiro</label><input class="fin" id="fFinTel"></div>
+      </div>
+    </div>
+
+    <div class="tp" id="f2">
+      <div id="fSociosList" style="margin-bottom:12px"></div>
+      <button class="btn green" onclick="addSocio()">+ Adicionar Sócio</button>
+      <div style="margin-top:18px"><div class="info-section-title" style="margin-bottom:12px">Dados Bancários</div></div>
+      <div class="fg3">
+        <div class="fgp"><label class="fbl">Banco</label><input class="fin" id="fBanco" placeholder="Ex: Nubank, Itaú..."></div>
+        <div class="fgp"><label class="fbl">Agência</label><input class="fin mono" id="fAgencia"></div>
+        <div class="fgp"><label class="fbl">Conta</label><input class="fin mono" id="fConta"></div>
+        <div class="fgp"><label class="fbl">Chave PIX</label><input class="fin" id="fPix" placeholder="CNPJ, e-mail, telefone..."></div>
+        <div class="fgp"><label class="fbl">Banco 2 (opcional)</label><input class="fin" id="fBanco2"></div>
+        <div class="fgp"><label class="fbl">Conta 2</label><input class="fin mono" id="fConta2"></div>
+      </div>
+    </div>
+
+    <div class="tp" id="f3">
+      <div class="fg4">
+        <div class="fgp"><label class="fbl">Honorário Mensal (R$) *</label><input class="fin" type="number" id="fHon" step="50" min="0" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Dia Vencimento</label><input class="fin" type="number" id="fVenc" min="1" max="31" value="10"></div>
+        <div class="fgp"><label class="fbl">Forma Pagamento</label>
+          <select class="fin" id="fForma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Status</label>
+          <select class="fin" id="fStatus">
+            <option value="pendente">⏳ Pendente</option>
+            <option value="pago">✅ Em Dia</option>
+            <option value="atrasado">❌ Em Atraso</option>
+            <option value="inativo">⛔ Inativo</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Início do Contrato</label><input class="fin" type="date" id="fDtContr"></div>
+        <div class="fgp"><label class="fbl">Vigência</label>
+          <select class="fin" id="fVigencia"><option value="Indeterminado">Indeterminado</option><option value="12 meses">12 meses</option><option value="24 meses">24 meses</option><option value="36 meses">36 meses</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Índice Reajuste</label>
+          <select class="fin" id="fAjuste"><option value="IGPM">IGPM</option><option value="IPCA">IPCA</option><option value="INPC">INPC</option><option value="Fixo">Fixo</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Multa Contratual (%)</label><input class="fin" type="number" id="fMulta" min="0" value="2"></div>
+        <div class="fgp"><label class="fbl">Juros Atraso (%/mês)</label><input class="fin" type="number" id="fJuros" min="0" value="1"></div>
+        <div class="fgp"><label class="fbl">Resp. DTP Contábil</label><input class="fin" id="fRespDTP"></div>
+      </div>
+      <div style="margin-top:16px"><div class="info-section-title" style="margin-bottom:12px">Serviços Contratados</div></div>
+      <div class="svc-grid" id="fSvcs" style="margin-bottom:16px">
+        <span class="svc-tag on" data-s="Contabilidade">📒 Contabilidade</span>
+        <span class="svc-tag" data-s="Fiscal/Tributário">🧾 Fiscal</span>
+        <span class="svc-tag" data-s="BPO Financeiro">💳 BPO Financeiro</span>
+        <span class="svc-tag" data-s="Folha de Pagamento">👥 Folha</span>
+        <span class="svc-tag" data-s="eSocial">📱 eSocial</span>
+        <span class="svc-tag" data-s="FGTS Digital">🏦 FGTS Digital</span>
+        <span class="svc-tag" data-s="Abertura de Empresa">🏢 Abertura</span>
+        <span class="svc-tag" data-s="Auditoria">🔍 Auditoria</span>
+        <span class="svc-tag" data-s="Consultoria Tributária">💡 Consultoria</span>
+        <span class="svc-tag" data-s="Certidões e Alvarás">📄 Certidões</span>
+        <span class="svc-tag" data-s="Planejamento Tributário">📊 Plan. Tributário</span>
+        <span class="svc-tag" data-s="Gestão de Obrigações">📋 Obrigações</span>
+      </div>
+      <div class="fg2">
+        <div class="fgp ffu"><label class="fbl">Observações do Contrato</label><textarea class="fin" id="fObs" rows="2" style="resize:none"></textarea></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="fBtn" onclick="salvar()">✅ Salvar</button>
+    <button class="mfb" onclick="ui.closeModal('ovForm')">Cancelar</button>
+    <div class="mfs"></div>
+    <span style="font-size:11px;color:var(--txt3)">* obrigatório</span>
+  </div>
+</div>
+</div>
+
+<!-- CONFIRM -->
+<div class="ov" id="ovConf">
+<div class="modal sm">
+  <div class="conf-bd"><div class="conf-ic" id="cIc">⚠️</div><div class="conf-tt" id="cTt">Confirmar</div><div class="conf-ms" id="cMs"></div></div>
+  <div class="conf-ft"><button class="mfb r" id="cBtn">Confirmar</button><button class="mfb" onclick="ui.closeModal('ovConf')">Cancelar</button></div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+// CORES vem do ui.js (window.CORES)
+const RL={simples:'Simples Nacional',presumido:'Luc. Presumido',real:'Lucro Real',mei:'MEI',imune:'Imune/Isento'};
+const SL={pago:'Em Dia',pendente:'Pendente',atrasado:'Em Atraso',inativo:'Inativo'};
+const cur=v=>'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const curK=v=>v>=1000?'R$\u00a0'+(v/1000).toFixed(1).replace('.',',')+'k':cur(v);
+const dt=s=>{if(!s)return'—';return new Date(s.length===10?s+'T12:00:00':s).toLocaleDateString('pt-BR');};
+const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
+
+let dados=[],fStatus='',fRegime='',editId=null,socios=[],curView='card',detEmpId=null;
+
+document.querySelectorAll('#fSvcs .svc-tag').forEach(t=>t.onclick=()=>t.classList.toggle('on'));
+
+// ── CARREGAR ────────────────────────────────────────────────
+async function carregar(){
+  const [listR, statsR] = await Promise.all([
+    API.companies.list({limit:200}),
+    API.companies.stats(),
+  ]);
+  if(!listR?.success) return ui.toast('❌','Erro ao carregar empresas');
+
+  dados = listR.companies || [];
+  filtrar();
+  renderKPIs(statsR);
+}
+
+function renderKPIs(sr){
+  if(!sr?.success) return;
+  const s=sr.stats, by=s.byStatus||{};
+  document.getElementById('tbTotal').textContent  = s.total+' empresa(s)';
+  document.getElementById('tbInadim').textContent = (by.atrasado||0)+' inadimplentes';
+  document.getElementById('tbFee').textContent    = curK(s.monthlyFee||0)+'/mes';
+  const kr = document.getElementById('kpisRow');
+  kr.style.gridTemplateColumns = 'repeat(6,1fr)';
+  kr.style.gap = '10px';
+  kr.innerHTML=[
+    {l:'Total Carteira',   v:s.total,                    c:'bl', s:'empresas ativas'},
+    {l:'Em Dia',           v:by.pago||0,                 c:'gn', s:'honorarios pagos'},
+    {l:'Pendentes',        v:by.pendente||0,              c:'am', s:'aguardando'},
+    {l:'Em Atraso',        v:by.atrasado||0,              c:'rd', s:'requer atencao'},
+    {l:'Honorario/Mes',   v:curK(s.monthlyFee||0),       c:'pu', s:'recorrente'},
+    {l:'LTV 12 meses',     v:curK((s.monthlyFee||0)*12), c:'bl', s:'estimado anual'},
+  ].map(k=>'<div class="sc '+k.c+'" style="padding:12px 14px"><div class="sc-l">'+k.l+'</div><div class="sc-v" style="font-size:18px">'+k.v+'</div><div class="sc-s">'+k.s+'</div></div>').join('');
+}
+
+// ── FILTRAR ─────────────────────────────────────────────────
+function filtrar(){
+  const q=g('srchIn').toLowerCase();
+  const sort=g('sortSel');
+  let lista=dados.filter(e=>{
+    if(fStatus&&e.status!==fStatus)return false;
+    if(fRegime&&e.taxRegime!==fRegime)return false;
+    if(q&&!(e.legalName||'').toLowerCase().includes(q)&&!(e.tradeName||'').toLowerCase().includes(q)&&!(e.cnpj||'').includes(q)&&!(e.sector||'').toLowerCase().includes(q))return false;
+    return true;
+  });
+  if(sort==='hon') lista.sort((a,b)=>(b.fee||0)-(a.fee||0));
+  else if(sort==='atrs') lista.sort((a,b)=>(a.status==='atrasado'?-1:1));
+  else if(sort==='novo') lista.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  else if(sort==='func') lista.sort((a,b)=>(b.employees||0)-(a.employees||0));
+  else lista.sort((a,b)=>(a.legalName||'').localeCompare(b.legalName||''));
+  curView==='card'?renderCards(lista):renderTable(lista);
+}
+
+function setStatus(s,el){
+  fStatus=s;
+  document.querySelectorAll('[id^="fs"]').forEach(e=>e.classList.remove('on','gon','aon','ron'));
+  el.classList.add(s==='pago'?'gon':s==='atrasado'?'ron':s==='pendente'?'aon':'on');
+  filtrar();
+}
+function setRegime(r,el){
+  fRegime=r;
+  document.querySelectorAll('[id^="fr"]').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  filtrar();
+}
+function setView(v,el){
+  curView=v;
+  document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on');
+  document.getElementById('viewCard').style.display=v==='card'?'grid':'none';
+  document.getElementById('viewTable').style.display=v==='table'?'block':'none';
+  filtrar();
+}
+
+// ── RENDER CARDS ─────────────────────────────────────────────
+function renderCards(lista){
+  const el=document.getElementById('viewCard');
+  if(!lista.length){ el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-ic">🏢</div><div class="empty-t">Nenhuma empresa</div><div class="empty-s"><span onclick="abrirNova()" style="color:var(--bl);cursor:pointer">+ Cadastrar nova empresa</span></div></div>`; return; }
+  el.innerHTML=lista.map((e,i)=>{
+    const cor=CORES[i%CORES.length];
+    const svcs=(e.services||[]).slice(0,3);
+    const maisS=(e.services||[]).length>3?`<span class="emp-pill svc">+${(e.services||[]).length-3}</span>`:'';
+    return `
+    <div class="emp-card" onclick="ver('${e._id}')">
+      <div class="emp-card-top ${e.status||'pendente'}"></div>
+      <div class="emp-card-body">
+        <div class="emp-card-hd">
+          <div class="emp-av" style="background:${cor}">${ui.ini(e.legalName)}</div>
+          <div style="flex:1;min-width:0">
+            <div class="emp-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.legalName}</div>
+            <div class="emp-cnpj">${ui.cnpj(e.cnpj)}</div>
+          </div>
+        </div>
+        <div class="emp-pills">
+          <span class="emp-pill regime">${RL[e.taxRegime]||e.taxRegime||'—'}</span>
+          <span class="emp-pill ${e.status||'pendente'}">${SL[e.status||'pendente']}</span>
+          ${svcs.map(s=>`<span class="emp-pill svc">${s.split(' ')[0]}</span>`).join('')}${maisS}
+        </div>
+        <div class="emp-stats">
+          <div><div class="emp-stat-l">Honorário</div><div class="emp-stat-v" style="color:var(--green)">${cur(e.fee||0)}</div></div>
+          <div><div class="emp-stat-l">Funcionários</div><div class="emp-stat-v">${e.employees||'—'}</div></div>
+          <div><div class="emp-stat-l">Regime</div><div class="emp-stat-v">${e.taxRegime?.toUpperCase()||'—'}</div></div>
+          <div><div class="emp-stat-l">Resp. DTP</div><div class="emp-stat-v" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(e.internalResponsible||'—').split(' ')[0]}</div></div>
+        </div>
+      </div>
+      <div class="emp-card-ft">
+        <span class="emp-resp">${e.contactName||'—'}</span>
+        <div class="emp-actions">
+          <div class="ea-btn" onclick="event.stopPropagation();abrirVD('${e._id}')" title="Visão Dual">👁️</div>
+          <div class="ea-btn" onclick="event.stopPropagation();editId=null;editar('${e._id}')" title="Editar">✏️</div>
+          <div class="ea-btn" onclick="event.stopPropagation();pagar('${e._id}')" title="Pagamento">✅</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER TABLE ─────────────────────────────────────────────
+function renderTable(lista){
+  const el=document.getElementById('viewTable');
+  if(!lista.length){ el.innerHTML='<div class="empty"><div class="empty-ic">🏢</div><div class="empty-t">Nenhuma empresa</div></div>'; return; }
+  el.innerHTML=`<table class="tbl">
+    <thead><tr><th>Empresa</th><th>CNPJ</th><th>Regime</th><th>Serviços</th><th>Honorário</th><th>Status</th><th>Funcionários</th><th>Responsável</th><th style="text-align:center">Ações</th></tr></thead>
+    <tbody>${lista.map((e,i)=>`
+      <tr style="animation-delay:${i*20}ms">
+        <td onclick="ver('${e._id}')" style="cursor:pointer">
+          <div class="c-cell">
+            <div class="c-av" style="background:${CORES[i%CORES.length]}">${ui.ini(e.legalName)}</div>
+            <div><div class="c-n">${e.legalName}</div><div class="c-sub">${e.tradeName||''}</div></div>
+          </div>
+        </td>
+        <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--txt3)">${ui.cnpj(e.cnpj)}</span></td>
+        <td><span class="regime-pill ${e.taxRegime}">${RL[e.taxRegime]||'—'}</span></td>
+        <td><div class="svc-tags">${(e.services||[]).slice(0,2).map(s=>`<span class="svc-mini">${s.split(' ')[0]}</span>`).join('')}${(e.services||[]).length>2?`<span class="svc-mini">+${(e.services||[]).length-2}</span>`:''}</div></td>
+        <td><span class="money g">${cur(e.fee||0)}</span></td>
+        <td>${ui.pill(e.status)}</td>
+        <td style="font-size:12px;color:var(--txt2)">${e.employees||'—'}</td>
+        <td style="font-size:11px;color:var(--txt3)">${(e.internalResponsible||'—').split(' ').slice(0,2).join(' ')}</td>
+        <td><div class="ra">
+          <div class="rb" onclick="abrirVD('${e._id}')" title="Visão Dual">👁️</div>
+          <div class="rb" onclick="ver('${e._id}')" title="Ver detalhes">🔍</div>
+          <div class="rb" onclick="editar('${e._id}')" title="Editar">✏️</div>
+          <div class="rb" onclick="pagar('${e._id}')" title="Pagamento">✅</div>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ── VER DETALHES ─────────────────────────────────────────────
+async function ver(id){
+  const r=await API.companies.get(id);
+  if(!r?.success)return ui.toast('❌','Erro ao carregar');
+  const e=r.company,idx=dados.findIndex(x=>x._id===id);
+  detEmpId=id; editId=id;
+  const cor=CORES[Math.max(idx,0)%CORES.length];
+  const sc={pago:'g',pendente:'a',atrasado:'r',inativo:''}[e.status]||'';
+
+  document.getElementById('dAv').textContent=ui.ini(e.legalName);
+  document.getElementById('dAv').style.background=cor;
+  document.getElementById('dTag').textContent=`${e.sector||'—'} · ${e.legalNature||'—'} · ${e.companySize?.toUpperCase()||'—'}`;
+  document.getElementById('dNome').textContent=e.legalName;
+  document.getElementById('dSub').textContent=`CNPJ: ${ui.cnpj(e.cnpj)} · ${RL[e.taxRegime]||'—'} · ${e.tradeName||''}`;
+
+  // KPIs
+  document.getElementById('dKpis').innerHTML=[
+    {l:'Honorário Mensal',v:cur(e.fee||0),c:'var(--green)'},
+    {l:'Status',v:SL[e.status||'pendente'],c:{pago:'var(--green)',pendente:'var(--amber)',atrasado:'var(--red)',inativo:'var(--txt3)'}[e.status]||'var(--txt)'},
+    {l:'Funcionários',v:e.employees||'—',c:'var(--txt)'},
+    {l:'Faturamento/Ano',v:curK(e.annualRevenue||0),c:'var(--txt)'},
+  ].map(k=>`<div class="score-card"><div class="score-lbl">${k.l}</div><div class="score-val" style="color:${k.c}">${k.v}</div></div>`).join('');
+
+  // Info fields helper
+  const fi=(l,v,mono,color)=>`<div class="info-field"><div class="info-lbl">${l}</div><div class="info-val${mono?' mono':''}${color?' '+color:''}">${v||'—'}</div></div>`;
+
+  document.getElementById('dDados').innerHTML=[
+    fi('Razão Social',e.legalName),fi('Nome Fantasia',e.tradeName),
+    fi('CNPJ',ui.cnpj(e.cnpj),true),fi('IE',e.stateReg,true),fi('IM',e.cityReg,true),
+    fi('CNAE',e.cnae),fi('Natureza Jurídica',e.legalNature),fi('Regime',RL[e.taxRegime]),
+    fi('Porte',e.companySize?.toUpperCase()),fi('Setor',e.sector),
+    fi('Abertura',dt(e.foundedAt)),fi('Funcionários',e.employees),
+  ].join('');
+
+  const a=e.address||{};
+  document.getElementById('dEnd').innerHTML=[
+    fi('Logradouro',`${a.street||'—'}, ${a.number||''}`),fi('Complemento',a.complement),
+    fi('Bairro',a.neighborhood),fi('Cidade',a.city),fi('UF',a.state),fi('CEP',a.cep,true),
+  ].join('');
+
+  document.getElementById('dContato').innerHTML=[
+    fi('Responsável',e.contactName),fi('Cargo',e.contactRole),
+    fi('E-mail',e.contactEmail,false,'b'),fi('Telefone',e.contactPhone),
+    fi('WhatsApp',e.contactMobile),fi('Site',e.website),
+    fi('Instagram',e.instagram),fi('CPF',e.contactCpf,true),
+  ].join('');
+
+  document.getElementById('dContatoFin').innerHTML=[
+    fi('Nome — Financeiro',e.financeContact),fi('E-mail Financeiro',e.financeEmail,false,'b'),fi('Telefone Financeiro',e.financePhone),
+  ].join('');
+
+  document.getElementById('dObs').textContent=e.notes||'Sem observações.';
+
+  // Sócios
+  document.getElementById('dSocios').innerHTML=(e.partners||[]).map((s,i)=>`
+    <div class="socio-item">
+      <div class="c-av" style="background:${CORES[i%CORES.length]};border-radius:50%">${ui.ini(s.name||'?')}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--txt)">${s.name}</div>
+        <div style="font-size:11px;color:var(--txt3)">${s.role||'—'} · CPF: ${s.cpf||'—'} · ${s.email||'—'}</div>
+      </div>
+      <div class="socio-pct">${s.share||0}%</div>
+    </div>`).join('')||'<div class="empty" style="padding:14px"><div class="empty-s">Nenhum sócio cadastrado</div></div>';
+
+  document.getElementById('dBancos').innerHTML=[
+    fi('Banco',e.bankName),fi('Agência',e.bankAgency,true),fi('Conta',e.bankAccount,true),fi('Chave PIX',e.pixKey),
+    e.bankName2?fi('Banco 2',e.bankName2):'',e.bankAccount2?fi('Conta 2',e.bankAccount2,true):'',
+  ].join('');
+
+  // Contrato
+  document.getElementById('dContrato').innerHTML=[
+    fi('Início',dt(e.contractStart)),fi('Vigência',e.contractTerm||'Indeterminado'),
+    fi('Índice Reajuste',e.contractAdjust||'IGPM'),fi('Resp. DTP',e.internalResponsible),
+    fi('Honorário',cur(e.fee||0)),fi('Vencimento','Dia '+(e.dueDay||10)),
+    fi('Multa',e.lateFee+'%'),fi('Juros',e.interestRate+'%/mês'),
+  ].join('');
+  document.getElementById('dSvcs').innerHTML=`<div class="svc-grid">${(e.services||[]).map(s=>`<span class="svc-tag on">${s}</span>`).join('')||'<span style="font-size:12px;color:var(--txt3)">Nenhum serviço cadastrado</span>'}</div>`;
+  document.getElementById('dContratObs').textContent=e.contractNotes||e.notes||'Sem observações.';
+
+  // Honorários + LTV
+  const meses = e.contractStart ? Math.floor((new Date()-new Date(e.contractStart))/2592000000) : 0;
+  const ltv    = (e.fee||0) * meses;
+  const ltvEst = (e.fee||0) * 60; // 5 anos
+  const ltvPct = ltvEst>0 ? Math.min(Math.round(ltv/ltvEst*100),100) : 0;
+
+  document.getElementById('dHonKpis').innerHTML=[
+    {l:'Honorário Mensal',v:cur(e.fee||0),c:'var(--green)'},
+    {l:'LTV Realizado',v:curK(ltv),c:'var(--bl)'},
+    {l:'LTV Estimado (5 anos)',v:curK(ltvEst),c:'var(--txt)'},
+    {l:'Cliente há',v:meses>0?meses+' meses':dt(e.contractStart),c:'var(--txt)'},
+  ].map(k=>`<div class="score-card"><div class="score-lbl">${k.l}</div><div class="score-val" style="color:${k.c};font-size:16px">${k.v}</div></div>`).join('');
+
+  document.getElementById('dRecibo').innerHTML=`
+    <div class="rec-line"><span style="color:var(--txt2)">Recibo Nº</span><span style="font-weight:500">DTP-${new Date().getFullYear()}-${id.slice(-4).toUpperCase()}</span></div>
+    <div class="rec-line"><span style="color:var(--txt2)">Cliente</span><span style="font-weight:500">${e.legalName}</span></div>
+    <div class="rec-line"><span style="color:var(--txt2)">CNPJ</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${ui.cnpj(e.cnpj)}</span></div>
+    <div class="rec-line"><span style="color:var(--txt2)">Serviços</span><span style="font-weight:500">${(e.services||[]).join(', ')||'—'}</span></div>
+    <div class="rec-line"><span style="color:var(--txt2)">Competência</span><span style="font-weight:500">${ui.competence?ui.competence(new Date()):new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0 0;border-top:1px solid var(--bd2);margin-top:6px">
+      <span style="font-weight:700;font-size:13px">TOTAL A PAGAR</span>
+      <span style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--green)">${cur(e.fee||0)}</span>
+    </div>`;
+
+  document.getElementById('dLTV').innerHTML=`
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+      <span style="color:var(--txt2)">LTV realizado vs estimado (5 anos)</span>
+      <span style="color:var(--bl);font-weight:600">${ltvPct}%</span>
+    </div>
+    <div class="ltv-bar"><div class="ltv-fill" style="width:${ltvPct}%"></div></div>
+    <div style="font-size:11px;color:var(--txt3);margin-top:5px">${cur(ltv)} realizado de ${curK(ltvEst)} estimado</div>`;
+
+  // Aba financeiro — carrega dados do BPO
+  carregarFinanceiro(id);
+
+  // Aba histórico — obrigações recentes
+  carregarHistorico(id);
+
+  // Botões
+  document.getElementById('dEditBtn').onclick=()=>{ui.closeModal('ovDet');editar(id);};
+  document.getElementById('dPagBtn').onclick=()=>pagar(id);
+  document.getElementById('dDelBtn').onclick=()=>desativar(id,e.legalName);
+  document.getElementById('dVDBtn').onclick=()=>{ui.closeModal('ovDet');abrirVD(id);};
+
+  ui.tab(document.querySelector('#ovDet .m-tab'),'d0');
+  ui.openModal('ovDet');
+}
+
+async function carregarFinanceiro(companyId){
+  const [sumR,dreR]=await Promise.all([
+    API.bpo.summary({company:companyId}),
+    API.bpo.dre({company:companyId}),
+  ]);
+  const el=document.getElementById('dFinanceiro');
+  if(!sumR?.success){el.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-s">Dados financeiros indisponíveis</div></div>';return;}
+  const s=sumR.summary,d=dreR?.dre||{};
+  el.innerHTML=`
+    <div>
+      <div class="info-section-title" style="margin-bottom:10px">Resumo Financeiro</div>
+      ${[['Total Receitas',cur(s.totalReceitas||0),'var(--green)'],['Total Despesas',cur(s.totalDespesas||0),'var(--red)'],['A Receber',cur(s.aReceberTotal||0),'var(--amber)'],['A Pagar',cur(s.aPagarTotal||0),'var(--amber)'],['Resultado',cur(s.saldo||0),(s.saldo||0)>=0?'var(--green)':'var(--red)']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt2)">${l}</span><span style="color:${c};font-weight:600">${v}</span></div>`).join('')}
+    </div>
+    <div>
+      <div class="info-section-title" style="margin-bottom:10px">DRE — Top Categorias</div>
+      <div style="font-size:11px;color:var(--txt3);margin-bottom:8px">Receitas</div>
+      ${(d.receitas||[]).slice(0,3).map(r=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px"><span style="color:var(--txt2)">${r.category}</span><span style="color:var(--green)">${cur(r.amount)}</span></div>`).join('')||'<div style="font-size:11px;color:var(--txt3)">Sem dados</div>'}
+      <div style="font-size:11px;color:var(--txt3);margin:10px 0 8px">Despesas</div>
+      ${(d.despesas||[]).slice(0,3).map(r=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px"><span style="color:var(--txt2)">${r.category}</span><span style="color:var(--red)">${cur(r.amount)}</span></div>`).join('')||'<div style="font-size:11px;color:var(--txt3)">Sem dados</div>'}
+    </div>`;
+}
+
+async function carregarHistorico(companyId){
+  const r=await API.duties.list({company:companyId,limit:10});
+  const el=document.getElementById('dHistorico');
+  if(!r?.success){el.innerHTML='<div class="empty"><div class="empty-s">Histórico indisponível</div></div>';return;}
+  const duties=r.duties||[];
+  if(!duties.length){el.innerHTML='<div class="empty"><div class="empty-ic">📋</div><div class="empty-s">Nenhuma obrigação registrada</div></div>';return;}
+  const dotColor=s=>({pendente:'var(--amber)',atrasado:'var(--red)',entregue:'var(--green)',pago:'var(--green)',em_andamento:'var(--bl)'})[s]||'var(--txt3)';
+  el.innerHTML=`
+    <div class="info-section-title" style="margin-bottom:12px">Últimas Obrigações (${duties.length})</div>
+    ${duties.map(d=>`
+      <div class="hist-row">
+        <div class="hist-dot" style="background:${dotColor(d.status)}"></div>
+        <div class="hist-txt"><strong>${d.name}</strong> — ${d.type||'—'}</div>
+        <div style="text-align:right">
+          <div class="hist-dt">${dt(d.dueDate)}</div>
+          <div style="font-size:9px;color:${dotColor(d.status)};font-weight:600">${d.status?.toUpperCase()}</div>
+        </div>
+      </div>`).join('')}`;
+}
+
+// ── FORM ─────────────────────────────────────────────────────
+function limpar(){
+  document.querySelectorAll('#ovForm .fin').forEach(f=>{if(f.type==='date')f.value='';else if(f.tagName==='SELECT')f.selectedIndex=0;else f.value='';});
+  sv('fVenc','10');sv('fMulta','2');sv('fJuros','1');sv('fPorte','epp');sv('fStatus','pendente');sv('fVigencia','Indeterminado');sv('fAjuste','IGPM');
+  const u=auth.getUser(); sv('fRespDTP',u?.name||'');
+  document.querySelectorAll('#fSvcs .svc-tag').forEach(t=>t.className='svc-tag'+(t.dataset.s==='Contabilidade'?' on':''));
+  socios=[]; renderSocios();
+}
+
+function abrirNova(){ editId=null; document.getElementById('fTg').textContent='Cadastro'; document.getElementById('fTt').textContent='Nova Empresa'; document.getElementById('fBtn').textContent='✅ Salvar'; limpar(); ui.tab(document.querySelector('#ovForm .m-tab'),'f0'); ui.openModal('ovForm'); }
+
+async function editar(id){
+  const r=await API.companies.get(id); if(!r?.success) return ui.toast('❌','Erro');
+  const e=r.company; editId=id;
+  document.getElementById('fTg').textContent='Editar'; document.getElementById('fTt').textContent=e.legalName; document.getElementById('fBtn').textContent='💾 Salvar Alterações';
+  sv('fRazao',e.legalName); sv('fFantasia',e.tradeName); sv('fCnpj',ui.cnpj(e.cnpj));
+  sv('fIE',e.stateReg); sv('fIM',e.cityReg); sv('fCnae',e.cnae); sv('fCnaeS',e.cnaesSecondary); sv('fNat',e.legalNature);
+  sv('fRegime',e.taxRegime); sv('fPorte',e.companySize); sv('fSetor',e.sector);
+  sv('fAbert',e.foundedAt?.substring(0,10)); sv('fFuncs',e.employees); sv('fFat',e.annualRevenue); sv('fObjeto',e.businessObject);
+  const a=e.address||{};
+  sv('fCep',a.cep); sv('fLogr',a.street); sv('fNum',a.number); sv('fCompl',a.complement); sv('fBairro',a.neighborhood); sv('fCidade',a.city); sv('fUF',a.state);
+  sv('fResp',e.contactName); sv('fCargo',e.contactRole); sv('fRespCpf',e.contactCpf); sv('fEmail',e.contactEmail); sv('fTel',e.contactPhone); sv('fWhats',e.contactMobile); sv('fSite',e.website); sv('fInsta',e.instagram);
+  sv('fFinNome',e.financeContact); sv('fFinEmail',e.financeEmail); sv('fFinTel',e.financePhone);
+  sv('fBanco',e.bankName); sv('fAgencia',e.bankAgency); sv('fConta',e.bankAccount); sv('fPix',e.pixKey); sv('fBanco2',e.bankName2); sv('fConta2',e.bankAccount2);
+  sv('fHon',e.fee); sv('fVenc',e.dueDay||10); sv('fForma',e.paymentMethod||'PIX'); sv('fStatus',e.status||'pendente');
+  sv('fDtContr',e.contractStart?.substring(0,10)); sv('fVigencia',e.contractTerm||'Indeterminado'); sv('fAjuste',e.contractAdjust||'IGPM');
+  sv('fMulta',e.lateFee||2); sv('fJuros',e.interestRate||1); sv('fRespDTP',e.internalResponsible); sv('fObs',e.contractNotes||e.notes||'');
+  document.querySelectorAll('#fSvcs .svc-tag').forEach(t=>t.className='svc-tag'+((e.services||[]).includes(t.dataset.s)?' on':''));
+  socios=(e.partners||[]).map(p=>({...p})); renderSocios();
+  ui.tab(document.querySelector('#ovForm .m-tab'),'f0'); ui.openModal('ovForm');
+}
+
+async function salvar(){
+  const razao=g('fRazao'),cnpj=g('fCnpj'),regime=g('fRegime');
+  if(!razao||!cnpj||!regime) return ui.toast('⚠️','Preencha Razão Social, CNPJ e Regime');
+  const svcs=[...document.querySelectorAll('#fSvcs .svc-tag.on')].map(t=>t.dataset.s);
+  const p={
+    legalName:razao, tradeName:g('fFantasia'), cnpj:cnpj.replace(/\D/g,''),
+    stateReg:g('fIE'), cityReg:g('fIM'), cnae:g('fCnae'), cnaesSecondary:g('fCnaeS'), legalNature:g('fNat'),
+    taxRegime:regime, companySize:g('fPorte')||'epp', sector:g('fSetor'),
+    foundedAt:g('fAbert')||undefined, employees:parseInt(g('fFuncs'))||0, annualRevenue:parseFloat(g('fFat'))||0, businessObject:g('fObjeto'),
+    address:{street:g('fLogr'),number:g('fNum'),complement:g('fCompl'),neighborhood:g('fBairro'),city:g('fCidade'),state:g('fUF'),cep:g('fCep').replace(/\D/g,''),country:'Brasil'},
+    contactName:g('fResp'), contactRole:g('fCargo'), contactCpf:g('fRespCpf'), contactEmail:g('fEmail'), contactPhone:g('fTel'), contactMobile:g('fWhats'), website:g('fSite'), instagram:g('fInsta'),
+    financeContact:g('fFinNome'), financeEmail:g('fFinEmail'), financePhone:g('fFinTel'),
+    bankName:g('fBanco'), bankAgency:g('fAgencia'), bankAccount:g('fConta'), pixKey:g('fPix'), bankName2:g('fBanco2'), bankAccount2:g('fConta2'),
+    fee:parseFloat(g('fHon'))||0, dueDay:parseInt(g('fVenc'))||10, paymentMethod:g('fForma')||'PIX',
+    lateFee:parseFloat(g('fMulta'))||2, interestRate:parseFloat(g('fJuros'))||1,
+    contractStart:g('fDtContr')||undefined, contractTerm:g('fVigencia')||'Indeterminado', contractAdjust:g('fAjuste')||'IGPM',
+    internalResponsible:g('fRespDTP'), status:g('fStatus')||'pendente',
+    contractNotes:g('fObs'), notes:g('fObs'),
+    services:svcs, partners:socios,
+  };
+  const btn=document.getElementById('fBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+  const res=editId?await API.companies.update(editId,p):await API.companies.create(p);
+  btn.disabled=false; btn.innerHTML=editId?'💾 Salvar Alterações':'✅ Salvar';
+  if(res?.success){ ui.toast(editId?'💾':'✅',res.message); ui.closeModal('ovForm'); carregar(); }
+  else ui.toast('❌',res?.message||'Erro ao salvar');
+}
+
+// ── SÓCIOS ───────────────────────────────────────────────────
+function addSocio(){ socios.push({name:'',cpf:'',share:0,role:'',email:''}); renderSocios(); }
+function renderSocios(){
+  document.getElementById('fSociosList').innerHTML=socios.map((s,i)=>`
+    <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:11px;color:var(--txt2);text-transform:uppercase;font-weight:600">Sócio ${i+1}</span>
+        <button class="mfb r" style="height:24px;font-size:10px" onclick="socios.splice(${i},1);renderSocios()">✕ Remover</button>
+      </div>
+      <div class="fg3">
+        <div class="fgp ffu"><label class="fbl">Nome Completo</label><input class="fin" value="${s.name||''}" oninput="socios[${i}].name=this.value" placeholder="Nome do sócio"></div>
+        <div class="fgp"><label class="fbl">CPF</label><input class="fin mono" value="${s.cpf||''}" oninput="socios[${i}].cpf=this.value" placeholder="000.000.000-00"></div>
+        <div class="fgp"><label class="fbl">Participação %</label><input class="fin" type="number" value="${s.share||''}" min="0" max="100" oninput="socios[${i}].share=parseFloat(this.value)||0"></div>
+        <div class="fgp"><label class="fbl">Cargo</label><input class="fin" value="${s.role||''}" oninput="socios[${i}].role=this.value" placeholder="Ex: Sócio-Administrador"></div>
+        <div class="fgp"><label class="fbl">E-mail</label><input class="fin" type="email" value="${s.email||''}" oninput="socios[${i}].email=this.value"></div>
+      </div>
+    </div>`).join('')||'<div style="padding:12px;text-align:center;color:var(--txt3);font-size:12px;border:1px dashed var(--bd);border-radius:var(--rs)">Clique em "Adicionar Sócio"</div>';
+}
+
+// ── PAGAMENTO ────────────────────────────────────────────────
+async function pagar(id){
+  const e=dados.find(x=>x._id===id);
+  document.getElementById('cIc').textContent='💰'; document.getElementById('cTt').textContent='Registrar Pagamento';
+  document.getElementById('cMs').textContent=`Confirmar recebimento de ${cur(e?.fee||0)} de "${e?.legalName}"?`;
+  document.getElementById('cBtn').onclick=async()=>{
+    const r=await API.companies.update(id,{status:'pago'});
+    ui.closeModal('ovConf');
+    if(r?.success){ui.toast('✅','Pagamento registrado!');carregar();}
+    else ui.toast('❌','Erro');
+  };
+  ui.closeModal('ovDet'); ui.openModal('ovConf');
+}
+
+function desativar(id,nome){
+  document.getElementById('cIc').textContent='🗑️'; document.getElementById('cTt').textContent='Desativar';
+  document.getElementById('cMs').textContent=`Desativar "${nome}"? Os dados serão preservados.`;
+  document.getElementById('cBtn').onclick=async()=>{
+    const r=await API.companies.remove(id);
+    ui.closeModal('ovConf'); ui.closeModal('ovDet');
+    if(r?.success){ui.toast('🗑️','Empresa desativada');carregar();}
+    else ui.toast('❌','Erro');
+  };
+  ui.openModal('ovConf');
+}
+
+// ── VISÃO DUAL ───────────────────────────────────────────────
+async function abrirVD(companyId){
+  const r=await fetch(`/api/auth/impersonate/${companyId}`,{method:'POST',headers:{Authorization:'Bearer '+auth.getToken()}}).then(x=>x.json()).catch(()=>null);
+  if(!r?.success){ui.toast('⚠️',r?.message||'Nenhum usuário cliente. Configure na Central de Gestão.');return;}
+  localStorage.setItem('dtp_contador_token',auth.getToken());
+  localStorage.setItem('dtp_contador_user',localStorage.getItem('dtp_user')||sessionStorage.getItem('dtp_user'));
+  localStorage.setItem('dtp_token',r.token);
+  localStorage.setItem('dtp_user',JSON.stringify(r.user));
+  window.location.href='/cliente/dashboard.html';
+}
+
+// ── UTILS ────────────────────────────────────────────────────
+async function buscarCep(){
+  const d=await ui.cep(g('fCep'));
+  if(d){sv('fLogr',d.logradouro);sv('fBairro',d.bairro);sv('fCidade',d.localidade);sv('fUF',d.uf);}
+}
+
+function mascaraCNPJ(el){
+  let v=el.value.replace(/\D/g,'').slice(0,14);
+  v=v.replace(/^(\d{2})(\d)/,'$1.$2');
+  v=v.replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3');
+  v=v.replace(/\.(\d{3})(\d)/,'.$1/$2');
+  v=v.replace(/(\d{4})(\d)/,'$1-$2');
+  el.value=v;
+}
+
+function imprimirRecibo(){
+  const empresa = document.getElementById('dNome')?.textContent||'—';
+  const recibo  = document.getElementById('dRecibo')?.innerHTML||'';
+  const ltv     = document.getElementById('dLTV')?.innerHTML||'';
+  abrirJanelaImpressao(
+    'Recibo de Honorários', empresa, 'Honorários Mensais',
+    '<h2>Recibo de Honorários</h2><div class="card" style="padding:16px">' + recibo + '</div>' +
+    '<h2>Análise LTV</h2><div class="card" style="padding:16px">' + ltv + '</div>'
+  );
+}
+// ── IMPRESSÃO ISOLADA — abre janela limpa só com o relatório ──
+function abrirJanelaImpressao(titulo, empresa, subtitulo, htmlConteudo) {
+  const dataGer = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const estilos = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;background:#fff;padding:20px 28px}
+    .rpt-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:20px}
+    .rpt-logo{font-size:20px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}
+    .rpt-logo span{font-size:11px;display:block;font-weight:400;color:#666;margin-top:2px}
+    .rpt-meta{text-align:right;font-size:11px;color:#666;line-height:1.8}
+    .rpt-meta strong{color:#1a1a2e;font-size:14px;display:block;margin-bottom:4px}
+    .rpt-footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ec;font-size:10px;color:#999;display:flex;justify-content:space-between}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11.5px}
+    th{background:#eff6ff;color:#1d4ed8;padding:8px 10px;text-align:left;border:1px solid #dde3ec;font-weight:600}
+    td{padding:7px 10px;border:1px solid #eef0f5;color:#333;vertical-align:top}
+    tr:nth-child(even) td{background:#f8fafc}
+    .tbl thead th{background:#1a6fc4;color:#fff}
+    h2{font-size:14px;font-weight:700;color:#1a1a2e;margin:16px 0 8px;padding-bottom:6px;border-bottom:2px solid #1a6fc4}
+    h3{font-size:12px;font-weight:600;color:#1d4ed8;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+    .dem-row{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #f0f0f0;font-size:12px}
+    .dem-row.sub{padding-left:26px;color:#555;font-size:11.5px}
+    .dem-row.total{font-weight:700;background:#f0f4f8;border-top:2px solid #dde3ec;padding:10px 12px;font-size:13px}
+    .dem-row.resultado{background:#1a6fc4;color:#fff;font-weight:800;font-size:14px;padding:12px}
+    .dem-hd{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:7px 12px;margin-bottom:0}
+    .dem-hd.ativo,.dem-hd.rec{background:#e8faf6;color:#0e7a5e}
+    .dem-hd.passivo,.dem-hd.desp{background:#fef2f2;color:#b91c1c}
+    .dem-hd.pl{background:#eff6ff;color:#1d4ed8}
+    .dem-hd.neutro{background:#f8f8f8;color:#555}
+    .card{border:1px solid #dde3ec;border-radius:8px;overflow:hidden;margin-bottom:16px;break-inside:avoid}
+    .card-h{padding:10px 14px;border-bottom:1px solid #eee;background:#f8fafc;font-weight:600;font-size:12px}
+    .dem-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .hr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+    .hr-section{border:1px solid #eee;border-radius:6px;overflow:hidden}
+    .hr-hd{padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #eee}
+    .hr-hd.gn{background:#e8faf6;color:#0e7a5e}.hr-hd.rd{background:#fef2f2;color:#b91c1c}
+    .hr-row{display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid #f5f5f5;font-size:11.5px}
+    .hr-total{display:flex;justify-content:space-between;padding:8px 10px;border-top:2px solid #dde3ec;font-weight:700;font-size:12px}
+    .enc-banner{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#eff6ff;border:1px solid #dbeafe;border-radius:6px;padding:10px;margin-top:8px}
+    .enc-item{text-align:center}
+    .enc-lbl{font-size:10px;color:#555;margin-bottom:3px}
+    .enc-val{font-size:13px;font-weight:700;color:#1d4ed8}
+    .money{font-family:'Courier New',monospace;font-size:11.5px}
+    .money.g{color:#0e7a5e}.money.r{color:#b91c1c}.money.a{color:#92400e}
+    .st-pill,.badge,.pill,.nav-badge,.rb,.ra,.btn,.tab-btn,.tab-strip,
+    select,input,button,.m-tabs,.view-btn,.filter-bar,.topbar,
+    aside,.sb-footer,.side-panel,#overlay,.ov,
+    [onclick],[style*="cursor:pointer"]{pointer-events:none}
+    .card-pag,.pagArea,#pagArea,#pagBtns,#pagInfo{display:none!important}
+    canvas{max-width:100%}
+    @page{margin:15mm;size:A4}
+    @media print{body{padding:0}.card{break-inside:avoid}}
+  `;
+  const janela = window.open('','_blank','width=960,height=750,scrollbars=yes');
+  janela.document.write(
+    '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<title>' + titulo + ' — ' + empresa + '</title>' +
+    '<style>' + estilos + '</style></head><body>' +
+    '<div class="rpt-header">' +
+      '<div><div class="rpt-logo">DTP Contábil <span>ERP Multi-Empresa</span></div></div>' +
+      '<div class="rpt-meta"><strong>' + titulo + '</strong>' + empresa + '<br>' + subtitulo + '<br>Gerado em: ' + dataGer + '</div>' +
+    '</div>' +
+    htmlConteudo +
+    '<div class="rpt-footer"><span>DTP Contábil ERP — Relatório gerado automaticamente</span><span>' + dataGer + '</span></div>' +
+    '</body></html>'
+  );
+  janela.document.close();
+  setTimeout(function(){ janela.focus(); janela.print(); }, 800);
+}
+
+if(new URLSearchParams(location.search).get('new')) abrirNova();
+carregar();
+</script>
+</body>
+</html>

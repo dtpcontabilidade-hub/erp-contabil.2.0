@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Consultorias</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .15s}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.bl::before{background:var(--blue)}.kpi.gn::before{background:var(--green)}
+.kpi.rd::before{background:var(--red)}.kpi.am::before{background:var(--amber)}.kpi.pu::before{background:var(--purple)}.kpi.tl::before{background:var(--teal)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10px;color:var(--txt3);margin-top:4px}
+.side-panel{position:fixed;top:0;right:-480px;width:480px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd2);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.3)}
+.side-panel.open{right:0}
+.sp-top{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sp-close{margin-left:auto;background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer}
+.sp-body{flex:1;overflow-y:auto;padding:16px 20px}
+.sp-foot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;flex-wrap:wrap}
+.acao-item{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px}
+.prio-alta{background:rgba(239,68,68,.12);color:var(--red);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.prio-media{background:rgba(245,158,11,.12);color:var(--amber);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.prio-baixa{background:rgba(0,201,167,.12);color:var(--green);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.money{font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}
+.ra{display:flex;gap:4px;justify-content:flex-end}
+.rb{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.rb:hover{border-color:var(--bd2)}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+  <header class="topbar">
+    <span class="topbar-title">💡 Consultorias</span>
+    <span class="tb-badge blue"  id="tbTotal">0 consultorias</span>
+    <span class="tb-badge red"   id="tbAlta">0 alta prioridade</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="fEmp" style="height:32px;font-size:11px;width:210px" onchange="load()"><option value="">Todas as empresas</option></select>
+    <select class="fin" id="fTipo" style="height:32px;font-size:11px;width:145px" onchange="load()">
+      <option value="">Todos os tipos</option>
+      <option value="tributaria">Tributária</option>
+      <option value="empresarial">Empresarial</option>
+    </select>
+    <select class="fin" id="fStatus" style="height:32px;font-size:11px;width:135px" onchange="load()">
+      <option value="">Todos os status</option>
+      <option value="aberta">Aberta</option>
+      <option value="em_andamento">Em Andamento</option>
+      <option value="concluida">Concluída</option>
+    </select>
+    <button class="btn primary" onclick="openNova()">+ Nova Consultoria</button>
+    <button class="btn sm" onclick="exportarCSV()">⬇ CSV</button>
+  </header>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+    <div class="kpi-row">
+      <div class="kpi bl"><div class="kpi-l">Total</div><div class="kpi-v" id="kA">—</div><div class="kpi-s">consultorias</div></div>
+      <div class="kpi am"><div class="kpi-l">Abertas</div><div class="kpi-v" id="kO">—</div><div class="kpi-s">aguardando</div></div>
+      <div class="kpi tl"><div class="kpi-l">Em Andamento</div><div class="kpi-v" id="kM">—</div><div class="kpi-s">em execução</div></div>
+      <div class="kpi gn"><div class="kpi-l">Concluídas</div><div class="kpi-v" id="kC">—</div><div class="kpi-s">finalizadas</div></div>
+      <div class="kpi pu"><div class="kpi-l">Honorários</div><div class="kpi-v" id="kH">—</div><div class="kpi-s">total cobrado</div></div>
+      <div class="kpi rd"><div class="kpi-l">Economia Estimada</div><div class="kpi-v" id="kE">—</div><div class="kpi-s">para o cliente</div></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <span class="card-ht">💡 Consultorias Tributárias & Empresariais</span>
+        <span style="font-size:11px;color:var(--txt3)" id="tCount"></span>
+      </div>
+      <div id="tBody"><div class="empty"><div class="empty-ic">⏳</div></div></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- PAINEL DETALHE -->
+<div class="side-panel" id="sidePanel">
+  <div class="sp-top">
+    <div style="width:40px;height:40px;border-radius:10px;background:rgba(139,92,246,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💡</div>
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--txt)" id="spTt">—</div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:2px" id="spSt">—</div>
+    </div>
+    <button class="sp-close" onclick="fecharPanel()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+<div id="overlay" onclick="fecharPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199"></div>
+
+<!-- MODAL NOVA CONSULTORIA -->
+<div class="ov" id="ovCons">
+<div class="modal xl">
+  <div class="m-top">
+    <div class="m-ico pu">💡</div>
+    <div class="m-hi"><div class="m-tg">Consultoria</div><div class="m-tt" id="consTt">Nova Consultoria</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovCons')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'c0')">📋 Dados</div>
+    <div class="m-tab" onclick="ui.tab(this,'c1')">🔎 Diagnóstico</div>
+    <div class="m-tab" onclick="ui.tab(this,'c2')">✅ Ações</div>
+    <div class="m-tab" onclick="ui.tab(this,'c3')">📝 Parecer</div>
+  </div>
+  <div class="m-bd">
+    <div class="tp on" id="c0">
+      <div class="fg2">
+        <div class="fgp ffu"><label class="fbl">Empresa *</label>
+          <select class="fin" id="cEmp"><option value="">Selecione...</option></select>
+        </div>
+        <div class="fgp ffu"><label class="fbl">Título *</label><input class="fin" id="cTitulo" placeholder="Ex: Planejamento Tributário 2026"></div>
+        <div class="fgp"><label class="fbl">Tipo *</label>
+          <select class="fin" id="cTipo">
+            <option value="tributaria">Tributária</option>
+            <option value="empresarial">Empresarial</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Prioridade</label>
+          <select class="fin" id="cPrio">
+            <option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Status</label>
+          <select class="fin" id="cSt">
+            <option value="aberta">Aberta</option><option value="em_andamento">Em Andamento</option><option value="concluida">Concluída</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Data Início</label><input class="fin" type="date" id="cInicio"></div>
+        <div class="fgp"><label class="fbl">Data Fim Prevista</label><input class="fin" type="date" id="cFim"></div>
+        <div class="fgp"><label class="fbl">Honorário (R$)</label><input class="fin" type="number" id="cHon" min="0" step="50" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Economia Estimada (R$)</label><input class="fin" type="number" id="cEcon" min="0" step="100" placeholder="0,00"></div>
+        <div class="fgp ffu"><label class="fbl">Tags</label><input class="fin" id="cTags" placeholder="Ex: IRPJ, Simples, Holding (separadas por vírgula)"></div>
+      </div>
+    </div>
+    <div class="tp" id="c1">
+      <div class="fgp ffu" style="margin-bottom:12px"><label class="fbl">Diagnóstico da Situação</label><textarea class="fin" id="cDiag" rows="8" style="resize:vertical" placeholder="Descreva detalhadamente a situação atual do cliente, pontos críticos identificados, riscos e oportunidades..."></textarea></div>
+    </div>
+    <div class="tp" id="c2">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--txt2)">Plano de ação da consultoria</span>
+        <button class="btn sm" onclick="addAcao()">+ Adicionar Ação</button>
+      </div>
+      <div id="acoesForm"></div>
+    </div>
+    <div class="tp" id="c3">
+      <div class="fgp ffu" style="margin-bottom:12px"><label class="fbl">Parecer Técnico Final</label><textarea class="fin" id="cParecer" rows="8" style="resize:vertical" placeholder="Conclusões técnicas, recomendações e medidas adotadas..."></textarea></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="consBtn" onclick="salvarConsultoria()">💾 Salvar</button>
+    <button class="mfb" onclick="ui.closeModal('ovCons')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let editId=null, acoes=[], allCons=[];
+const g   = id => document.getElementById(id)?.value?.trim()||'';
+const sv  = (id,v) => { const e=document.getElementById(id); if(e) e.value=v||''; };
+const curK= v => v>=1000?'R$\u00a0'+(v/1000).toFixed(1)+'k':'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+const cur = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+
+const PRIO_COR={alta:'var(--red)',media:'var(--amber)',baixa:'var(--green)'};
+const ST_COR={aberta:'var(--bl)',em_andamento:'var(--amber)',concluida:'var(--green)',cancelada:'var(--txt3)'};
+
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  const o=r.companies.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  ['fEmp','cEmp'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML+=(id==='fEmp'?'':'')+o; });
+});
+
+(()=>{
+  document.getElementById('cInicio').value=new Date().toISOString().substring(0,10);
+})();
+
+async function load(){
+  const params=new URLSearchParams({limit:100});
+  const emp=g('fEmp'),tipo=g('fTipo'),st=g('fStatus');
+  if(emp)params.set('company',emp); if(tipo)params.set('tipo',tipo); if(st)params.set('status',st);
+
+  const [listR,statsR]=await Promise.all([
+    fetch('/api/consultorias?'+params,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()),
+    fetch('/api/consultorias/stats',{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()),
+  ]);
+
+  if(statsR?.success){
+    const s=statsR.stats;
+    document.getElementById('kA').textContent=s.total;
+    document.getElementById('kO').textContent=s.abertas;
+    document.getElementById('kM').textContent=s.em_andamento;
+    document.getElementById('kC').textContent=s.concluidas;
+    document.getElementById('kH').textContent=curK(s.totalHonorarios||0);
+    document.getElementById('kE').textContent=curK(s.totalEconomia||0);
+    document.getElementById('tbTotal').textContent=s.total+' consultorias';
+    document.getElementById('tbAlta').textContent=s.alta_prioridade+' alta prioridade';
+  }
+
+  if(!listR?.success)return;
+  allCons=listR.items||[];
+  document.getElementById('tCount').textContent=listR.pagination.total+' registro(s)';
+
+  if(!allCons.length){
+    document.getElementById('tBody').innerHTML='<div class="empty"><div class="empty-ic">💡</div><div class="empty-t">Nenhuma consultoria</div><div class="empty-s"><span onclick="openNova()" style="color:var(--bl);cursor:pointer">+ Iniciar consultoria</span></div></div>';
+    return;
+  }
+
+  document.getElementById('tBody').innerHTML=`<div style="overflow-x:auto"><table class="tbl">
+    <thead><tr><th>Empresa</th><th>Título</th><th>Tipo</th><th>Prioridade</th><th>Honorário</th><th>Economia Est.</th><th>Início</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${allCons.map((c,i)=>`
+      <tr style="animation-delay:${i*20}ms">
+        <td style="font-size:12px">${c.company?.tradeName||c.company?.legalName||'—'}</td>
+        <td style="font-size:13px;font-weight:500;color:var(--txt)">${c.titulo}</td>
+        <td><span class="badge b">${c.tipo}</span></td>
+        <td><span class="prio-${c.prioridade}">${c.prioridade}</span></td>
+        <td class="money g">${cur(c.honorario||0)}</td>
+        <td class="money" style="color:var(--teal)">${cur(c.economiaEstimada||0)}</td>
+        <td style="font-size:12px;color:var(--txt3)">${c.dataInicio?ui.date(c.dataInicio):'—'}</td>
+        <td><span style="font-size:11px;font-weight:600;color:${ST_COR[c.status]||'var(--txt3)'}">${c.status?.replace('_',' ')}</span></td>
+        <td><div class="ra">
+          <div class="rb" onclick="verDetalhe('${c._id}')" title="Detalhes">🔍</div>
+          <div class="rb" onclick="editarConsultoria('${c._id}')" title="Editar">✏️</div>
+          <div class="rb" onclick="imprimirConsultoria('${c._id}')" title="Imprimir">🖨️</div>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+async function verDetalhe(id){
+  const r=await fetch(`/api/consultorias/${id}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json());
+  if(!r?.success)return;
+  const c=r.item;
+  document.getElementById('spTt').textContent=c.titulo;
+  document.getElementById('spSt').textContent=(c.company?.tradeName||'—')+' · '+c.tipo+' · '+c.prioridade+' prioridade';
+  document.getElementById('spBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      ${[['Honorário',cur(c.honorario||0),'var(--green)'],['Economia Est.',cur(c.economiaEstimada||0),'var(--teal)']].map(([l,v,col])=>`
+        <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--txt3);margin-bottom:4px">${l}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:${col}">${v}</div>
+        </div>`).join('')}
+    </div>
+    ${[['Empresa',c.company?.legalName||'—'],['Tipo',c.tipo],['Prioridade',c.prioridade],['Status',c.status?.replace('_',' ')],['Início',c.dataInicio?ui.date(c.dataInicio):'—'],['Fim Previsto',c.dataFim?ui.date(c.dataFim):'—'],['Tags',(c.tags||[]).join(', ')||'—']].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt3)">${l}</span><span style="color:var(--txt);font-weight:500">${v}</span></div>`).join('')}
+    ${c.diagnostico?`<div style="margin-top:14px;padding:12px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs)"><div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:6px">DIAGNÓSTICO</div><div style="font-size:12px;color:var(--txt2);line-height:1.7">${c.diagnostico}</div></div>`:''}
+    ${(c.acoes||[]).length?`<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Ações (${c.acoes.length})</div>
+    ${c.acoes.map(a=>`<div class="acao-item"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:500;color:var(--txt)">${a.descricao}</span><span style="font-size:11px;color:${a.status==='concluida'?'var(--green)':a.status==='em_andamento'?'var(--amber)':'var(--txt3)'};font-weight:600">${a.status}</span></div>${a.responsavel?`<div style="font-size:11px;color:var(--txt3);margin-top:4px">Resp.: ${a.responsavel} ${a.prazo?'· Prazo: '+ui.date(a.prazo):''}</div>`:''}</div>`).join('')}
+    </div>`:''}
+    ${c.parecer?`<div style="margin-top:10px;padding:12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs)"><div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:6px">PARECER TÉCNICO</div><div style="font-size:12px;color:var(--txt2);line-height:1.7">${c.parecer}</div></div>`:''}`;
+  document.getElementById('spFoot').innerHTML=`
+    <button class="btn primary sm" onclick="editarConsultoria('${c._id}')">✏️ Editar</button>
+    <button class="btn sm" onclick="imprimirConsultoria('${c._id}')">🖨️ Imprimir</button>
+    <div style="flex:1"></div>
+    <select class="fin" style="height:28px;font-size:11px;width:140px" onchange="atualizarStatus('${c._id}',this.value)">
+      <option value="">Atualizar status...</option>
+      <option value="aberta">Aberta</option><option value="em_andamento">Em Andamento</option><option value="concluida">Concluída</option>
+    </select>`;
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+}
+
+async function atualizarStatus(id,status){
+  if(!status)return;
+  await fetch(`/api/consultorias/${id}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth.getToken()},body:JSON.stringify({status})});
+  ui.toast('✅','Status atualizado'); fecharPanel(); load();
+}
+
+function fecharPanel(){ document.getElementById('sidePanel').classList.remove('open'); document.getElementById('overlay').style.display='none'; }
+
+function openNova(){
+  editId=null; acoes=[];
+  document.getElementById('consTt').textContent='Nova Consultoria';
+  document.getElementById('consBtn').textContent='💾 Salvar';
+  ['cTitulo','cDiag','cParecer','cTags'].forEach(id=>sv(id,''));
+  document.getElementById('cHon').value=''; document.getElementById('cEcon').value='';
+  document.getElementById('cTipo').value='tributaria'; document.getElementById('cSt').value='aberta';
+  document.getElementById('cPrio').value='media';
+  document.getElementById('cInicio').value=new Date().toISOString().substring(0,10);
+  renderAcoes();
+  ui.tab(document.querySelector('#ovCons .m-tab'),'c0');
+  ui.openModal('ovCons');
+}
+
+async function editarConsultoria(id){
+  fecharPanel();
+  const r=await fetch(`/api/consultorias/${id}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json());
+  if(!r?.success)return;
+  const c=r.item; editId=id;
+  document.getElementById('consTt').textContent='Editar — '+c.titulo;
+  sv('cEmp',c.company?._id||''); sv('cTitulo',c.titulo); sv('cTipo',c.tipo);
+  sv('cSt',c.status); sv('cPrio',c.prioridade||'media');
+  sv('cDiag',c.diagnostico||''); sv('cParecer',c.parecer||'');
+  sv('cTags',(c.tags||[]).join(', '));
+  document.getElementById('cHon').value=c.honorario||'';
+  document.getElementById('cEcon').value=c.economiaEstimada||'';
+  if(c.dataInicio) sv('cInicio',new Date(c.dataInicio).toISOString().substring(0,10));
+  if(c.dataFim)    sv('cFim',new Date(c.dataFim).toISOString().substring(0,10));
+  acoes=JSON.parse(JSON.stringify(c.acoes||[])); renderAcoes();
+  ui.tab(document.querySelector('#ovCons .m-tab'),'c0');
+  ui.openModal('ovCons');
+}
+
+function addAcao(){ acoes.push({descricao:'',responsavel:'',prazo:'',status:'pendente',resultado:''}); renderAcoes(); }
+
+function renderAcoes(){
+  document.getElementById('acoesForm').innerHTML=acoes.length
+    ? acoes.map((a,i)=>`
+      <div class="acao-item">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input class="fin" style="flex:1;height:28px;font-size:12px" value="${a.descricao}" placeholder="Descrição da ação..." oninput="acoes[${i}].descricao=this.value">
+          <select class="fin" style="height:28px;font-size:11px;width:130px" onchange="acoes[${i}].status=this.value">
+            <option value="pendente"${a.status==='pendente'?' selected':''}>Pendente</option>
+            <option value="em_andamento"${a.status==='em_andamento'?' selected':''}>Em Andamento</option>
+            <option value="concluida"${a.status==='concluida'?' selected':''}>Concluída</option>
+          </select>
+          <button class="btn sm" style="color:var(--red);height:28px;padding:0 8px;flex-shrink:0" onclick="acoes.splice(${i},1);renderAcoes()">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input class="fin" style="height:26px;font-size:11px" value="${a.responsavel||''}" placeholder="Responsável..." oninput="acoes[${i}].responsavel=this.value">
+          <input class="fin" type="date" style="height:26px;font-size:11px" value="${a.prazo||''}" oninput="acoes[${i}].prazo=this.value">
+        </div>
+      </div>`).join('')
+    : '<div style="padding:14px;text-align:center;font-size:12px;color:var(--txt3);border:1px dashed var(--bd);border-radius:var(--rs)">Clique em "+ Adicionar Ação"</div>';
+}
+
+async function salvarConsultoria(){
+  const titulo=g('cTitulo'),empId=g('cEmp');
+  if(!titulo||!empId){ ui.toast('⚠️','Preencha empresa e título'); return; }
+  const tags=g('cTags').split(',').map(t=>t.trim()).filter(Boolean);
+  const payload={
+    company:empId, titulo, tipo:g('cTipo'), status:g('cSt'), prioridade:g('cPrio'),
+    honorario:parseFloat(document.getElementById('cHon').value)||0,
+    economiaEstimada:parseFloat(document.getElementById('cEcon').value)||0,
+    diagnostico:g('cDiag')||undefined, parecer:g('cParecer')||undefined,
+    dataInicio:g('cInicio')||undefined, dataFim:g('cFim')||undefined,
+    acoes, tags,
+  };
+  const btn=document.getElementById('consBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+  const method=editId?'PUT':'POST';
+  const url=editId?`/api/consultorias/${editId}`:'/api/consultorias';
+  const res=await fetch(url,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth.getToken()},body:JSON.stringify(payload)}).then(r=>r.json());
+  btn.disabled=false; btn.innerHTML='💾 Salvar';
+  if(res?.success){ ui.toast('✅',res.message); ui.closeModal('ovCons'); load(); }
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+function imprimirConsultoria(id){
+  fetch(`/api/consultorias/${id}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()).then(r=>{
+    if(!r?.success)return;
+    const c=r.item;
+    const janela=window.open('','_blank','width=900,height=700');
+    janela.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Consultoria — ${c.titulo}</title>
+    <style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;padding:24px;background:#fff}
+    .header{display:flex;justify-content:space-between;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:20px}
+    .logo{font-size:18px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}.logo span{font-size:11px;display:block;font-weight:400;color:#666}
+    .meta{text-align:right;font-size:11px;color:#666;line-height:1.8}.meta strong{font-size:14px;color:#1a1a2e;display:block}
+    h2{font-size:13px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;padding-bottom:5px;border-bottom:2px solid #1a6fc4}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+    .kbox{border:1px solid #dde3ec;border-radius:8px;padding:12px;text-align:center}
+    .kbox .l{font-size:10px;color:#666;margin-bottom:4px;text-transform:uppercase}
+    .kbox .v{font-size:16px;font-weight:700;font-family:'Courier New',monospace;color:#1a6fc4}
+    table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11.5px}
+    th{background:#eff6ff;color:#1d4ed8;padding:7px 10px;text-align:left;border:1px solid #dde3ec;font-weight:600}
+    td{padding:6px 10px;border:1px solid #eef0f5}
+    .secao{margin-bottom:14px;padding:12px;background:#f8fafc;border-radius:6px;border:1px solid #eee}
+    .secao .l{font-size:11px;font-weight:700;color:#1d4ed8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+    .secao .t{font-size:12px;color:#333;line-height:1.7}
+    .footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ec;font-size:10px;color:#999;display:flex;justify-content:space-between}
+    @page{margin:15mm;size:A4}</style></head><body>
+    <div class="header">
+      <div><div class="logo">DTP Contábil <span>ERP Multi-Empresa</span></div></div>
+      <div class="meta"><strong>Relatório de Consultoria ${c.tipo==='tributaria'?'Tributária':'Empresarial'}</strong>
+        ${c.company?.legalName||'—'} · Prioridade: ${c.prioridade}<br>
+        Status: ${c.status?.replace('_',' ')} · Gerado em: ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
+      </div>
+    </div>
+    <h1 style="font-size:16px;font-weight:800;color:#1a1a2e;margin-bottom:16px">${c.titulo}</h1>
+    <div class="grid2">
+      <div class="kbox"><div class="l">Honorário</div><div class="v">R$ ${(c.honorario||0).toFixed(2).replace('.',',')}</div></div>
+      <div class="kbox"><div class="l">Economia Estimada</div><div class="v">R$ ${(c.economiaEstimada||0).toFixed(2).replace('.',',')}</div></div>
+    </div>
+    ${c.diagnostico?`<h2>Diagnóstico</h2><div class="secao"><div class="t">${c.diagnostico}</div></div>`:''}
+    ${(c.acoes||[]).length?`<h2>Plano de Ação</h2><table><thead><tr><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Status</th></tr></thead><tbody>${c.acoes.map(a=>`<tr><td>${a.descricao}</td><td>${a.responsavel||'—'}</td><td>${a.prazo?ui.date(a.prazo):'—'}</td><td>${a.status}</td></tr>`).join('')}</tbody></table>`:''}
+    ${c.parecer?`<h2>Parecer Técnico</h2><div class="secao"><div class="t">${c.parecer}</div></div>`:''}
+    <div class="footer"><span>DTP Contábil ERP</span><span>${new Date().toLocaleDateString('pt-BR')}</span></div>
+    </body></html>`);
+    janela.document.close(); setTimeout(()=>{janela.focus();janela.print();},600);
+  });
+}
+
+function exportarCSV(){
+  if(!allCons.length){ui.toast('⚠️','Nenhum dado');return;}
+  const h=['Empresa','Título','Tipo','Prioridade','Honorário','Economia Est.','Início','Status'];
+  const rows=allCons.map(c=>[c.company?.legalName||'—',c.titulo,c.tipo,c.prioridade,(c.honorario||0).toFixed(2).replace('.',','),(c.economiaEstimada||0).toFixed(2).replace('.',','),c.dataInicio?ui.date(c.dataInicio):'—',c.status]);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv); a.download='consultorias.csv'; a.click(); ui.toast('⬇️','CSV exportado!');
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — FP&A</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+.var-pos{color:var(--green);font-weight:600}.var-neg{color:var(--red);font-weight:600}
+.linha-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 80px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.linha-row:last-child{border-bottom:none}
+.tab-btn{padding:8px 16px;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--bg3);color:var(--txt2);transition:all .14s}
+.tab-btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.side-panel{position:fixed;top:0;right:-480px;width:480px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd2);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.3)}
+.side-panel.open{right:0}
+.sp-top{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sp-close{margin-left:auto;background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer}
+.sp-body{flex:1;overflow-y:auto;padding:18px 20px}
+.sp-foot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px}
+.linha-det{display:grid;grid-template-columns:1fr 90px 90px 90px 70px;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;align-items:center}
+.linha-det:last-child{border-bottom:none}
+.linha-det-hd{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);font-weight:600}
+.prog-track{background:var(--bg4);border-radius:20px;height:4px;overflow:hidden;margin-top:3px}
+.prog-fill{height:100%;border-radius:20px;transition:width .6s ease}
+.money{font-family:'JetBrains Mono',monospace;font-size:12px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}.money.a{color:var(--amber)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+  <main class="main-wrap">
+    <header class="topbar">
+      <span class="topbar-title">FP&amp;A</span>
+      <span class="tb-badge blue" id="tbTotal">0 planos</span>
+      <span class="tb-badge green" id="tbVar">0% variação</span>
+      <div class="topbar-spacer"></div>
+      <select class="fin" style="height:32px;font-size:11px;width:210px" id="selEmp" onchange="load();loadDash()"><option value="">Todas as empresas</option></select>
+      <select class="fin" style="height:32px;font-size:11px;width:150px" id="selComp" onchange="load();loadDash()"></select>
+      <button class="btn primary" onclick="abrirNovo()">+ Novo Plano</button>
+    </header>
+    <div class="filter-bar" style="gap:6px">
+      <button class="tab-btn on" id="tb-dash" onclick="setTab('dash',this)">📊 Dashboard</button>
+      <button class="tab-btn"    id="tb-orc"  onclick="setTab('orc',this)">📋 Orçamentos</button>
+      <button class="tab-btn"    id="tb-proj" onclick="setTab('proj',this)">🔮 Projeções</button>
+      <button class="tab-btn"    id="tb-cen"  onclick="setTab('cen',this)">🎯 Cenários</button>
+    </div>
+    <div class="page-body" style="overflow-y:auto">
+      <!-- DASHBOARD -->
+      <div id="pane-dash">
+        <div class="sg" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px" id="dashKpis"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+          <div class="card">
+            <div class="card-h"><span class="card-ht">💰 Receitas: Orçado vs Realizado</span></div>
+            <div style="padding:16px 17px" id="dashRec"></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-ht">💸 Despesas: Orçado vs Realizado</span></div>
+            <div style="padding:16px 17px" id="dashDesp"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📊 Resultado: Orçado vs Realizado</span></div>
+          <div style="padding:16px 17px" id="dashResult"></div>
+        </div>
+      </div>
+      <!-- LISTA -->
+      <div id="pane-orc" style="display:none">
+        <div class="card"><div class="card-h"><span class="card-ht" id="tTit">Orçamentos</span><span style="font-size:11px;color:var(--txt3)" id="tCount"></span></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Empresa</th><th>Competência</th><th>Tipo</th><th>Cenário</th><th>Título</th><th>Rec. Orçado</th><th>Desp. Orçado</th><th>Resultado</th><th>Status</th><th></th></tr></thead><tbody id="tbody"></tbody></table></div></div>
+      </div>
+      <div id="pane-proj" style="display:none">
+        <div class="card"><div class="card-h"><span class="card-ht">Projeções</span></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Empresa</th><th>Competência</th><th>Cenário</th><th>Título</th><th>Rec. Projetado</th><th>Desp. Projetado</th><th>Resultado</th><th>Status</th><th></th></tr></thead><tbody id="projBody"></tbody></table></div></div>
+      </div>
+      <div id="pane-cen" style="display:none">
+        <!-- Análise comparativa de cenários -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px" id="cenSummary"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div class="card">
+            <div class="card-h"><span class="card-ht">📊 Comparativo de Cenários</span></div>
+            <div style="padding:14px 16px" id="cenComparativo"></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-ht">💡 Análise de Sensibilidade</span></div>
+            <div style="padding:14px 16px" id="cenSensibilidade"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px" id="cenarios"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- PAINEL LATERAL DETALHE -->
+<div class="side-panel" id="sidePanel">
+  <div class="sp-top">
+    <div style="width:40px;height:40px;border-radius:10px;background:rgba(139,92,246,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📊</div>
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--txt)" id="spTt">—</div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:2px" id="spSt">—</div>
+    </div>
+    <button class="sp-close" onclick="fecharPanel()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+<div id="overlay" onclick="fecharPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199"></div>
+
+<!-- MODAL FORM -->
+<div class="ov" id="ovForm">
+<div class="modal xl">
+  <div class="m-top">
+    <div class="m-ico pu">📊</div>
+    <div class="m-hi"><div class="m-tg" id="fTg">Novo Plano</div><div class="m-tt" id="fTt">FP&amp;A</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovForm')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'f0')">📋 Dados Gerais</div>
+    <div class="m-tab"    onclick="ui.tab(this,'f1')">💰 Receitas</div>
+    <div class="m-tab"    onclick="ui.tab(this,'f2')">💸 Despesas</div>
+  </div>
+  <div class="m-bd">
+    <div class="tp on" id="f0">
+      <div class="fg2">
+        <div class="fgp ffu"><label class="fbl">Título *</label><input class="fin" id="fTitulo" placeholder="Ex: Orçamento 2026 - DTP"></div>
+        <div class="fgp"><label class="fbl">Empresa (vazio = DTP)</label><select class="fin" id="fEmpForm"><option value="">DTP Soluções Contábeis</option></select></div>
+        <div class="fgp"><label class="fbl">Competência *</label><input class="fin" type="month" id="fComp"></div>
+        <div class="fgp"><label class="fbl">Tipo</label>
+          <select class="fin" id="fTipo"><option value="orcamento">Orçamento</option><option value="projecao">Projeção</option><option value="cenario">Cenário</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Cenário</label>
+          <select class="fin" id="fCenario"><option value="base">Base</option><option value="otimista">Otimista</option><option value="pessimista">Pessimista</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Status</label>
+          <select class="fin" id="fStatus"><option value="rascunho">Rascunho</option><option value="aprovado">Aprovado</option></select>
+        </div>
+        <div class="fgp ffu"><label class="fbl">Notas</label><textarea class="fin" id="fNotas" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="tp" id="f1">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <span style="font-size:12px;color:var(--txt2)">Linha de receitas previstas</span>
+        <button class="btn green sm" onclick="addLinha('receita')">+ Adicionar Receita</button>
+      </div>
+      <div class="linha-row" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3)">
+        <span>Categoria</span><span>Orçado</span><span>Realizado</span><span>Projetado</span><span></span>
+      </div>
+      <div id="linhasRec"></div>
+    </div>
+    <div class="tp" id="f2">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <span style="font-size:12px;color:var(--txt2)">Linha de despesas previstas</span>
+        <button class="btn red sm" onclick="addLinha('despesa')">+ Adicionar Despesa</button>
+      </div>
+      <div class="linha-row" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3)">
+        <span>Categoria</span><span>Orçado</span><span>Realizado</span><span>Projetado</span><span></span>
+      </div>
+      <div id="linhasDesp"></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="fBtn" onclick="salvar()">💾 Salvar</button>
+    <button class="mfb" onclick="ui.closeModal('ovForm')">Cancelar</button>
+    <div class="mfs"></div>
+    <span style="font-size:12px;color:var(--txt3)" id="totaisForm">Resultado: R$ 0,00</span>
+  </div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
+const cur=v=>'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+const curK=v=>v>=1000?'R$\u00a0'+(v/1000).toFixed(1).replace('.',',')+'\u00a0k':cur(v);
+
+let linhas=[],curTab='dash';
+
+(()=>{
+  const now=new Date();
+  let co='<option value="">Todas as competências</option>';
+  for(let i=0;i<24;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const v=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;co+=`<option value="${v}"${i===0?' selected':''}>${ui.competence(v)}</option>`;}
+  document.getElementById('selComp').innerHTML=co;
+  sv('fComp',`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
+})();
+
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  const o=r.companies.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  ['selEmp','fEmpForm'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML+=(id==='selEmp'?'':'')+ o;});
+});
+
+function setTab(tab,el){curTab=tab;['dash','orc','proj','cen'].forEach(t=>{document.getElementById('tb-'+t).className='tab-btn';document.getElementById('pane-'+t).style.display='none';});el.className='tab-btn on';document.getElementById('pane-'+tab).style.display='block';if(tab==='dash')loadDash();else if(tab==='cen')loadCenarios();else load();}
+
+async function loadDash(){
+  const emp=g('selEmp'),comp=g('selComp');
+  const p={};if(emp)p.company=emp;if(comp)p.competence=comp;
+  const r=await API.fpa.dashboard(p);if(!r?.success)return;
+  const d=r.dashboard;
+  document.getElementById('tbTotal').textContent=d.totalFPAs+' planos';
+  const varR=d.variacaoReceitas||0;
+  document.getElementById('tbVar').textContent=(varR>=0?'+':'')+varR+'% receitas';
+
+  document.getElementById('dashKpis').innerHTML=[
+    {l:'Rec. Orçado',v:curK(d.orcadoReceitas||0),c:'gn'},{l:'Rec. Realizado',v:curK(d.realizadoReceitas||0),c:'gn'},
+    {l:'Desp. Orçado',v:curK(d.orcadoDespesas||0),c:'rd'},{l:'Resultado Realizado',v:curK(d.resultadoRealizado||0),c:d.resultadoRealizado>=0?'gn':'rd'},
+  ].map(k=>`<div class="sc ${k.c}"><div class="sc-l">${k.l}</div><div class="sc-v">${k.v}</div></div>`).join('');
+
+  const barComp=(orc,real,label)=>{const max=Math.max(orc,real,1);return`
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-bottom:5px"><span>Orçado</span><strong style="color:var(--txt)">${cur(orc)}</strong></div>
+      <div style="background:var(--bg4);border-radius:20px;height:8px;overflow:hidden"><div style="width:${orc/max*100}%;height:100%;background:var(--blue);border-radius:20px"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin:5px 0"><span>Realizado</span><strong style="color:var(--txt)">${cur(real)}</strong></div>
+      <div style="background:var(--bg4);border-radius:20px;height:8px;overflow:hidden"><div style="width:${real/max*100}%;height:100%;background:var(--green);border-radius:20px"></div></div>
+      <div style="font-size:11px;margin-top:5px">Variação: <span class="${real-orc>=0?'var-pos':'var-neg'}">${real-orc>=0?'+':''}${orc>0?Math.round((real-orc)/orc*100):0}%</span></div>
+    </div>`;};
+
+  document.getElementById('dashRec').innerHTML=barComp(d.orcadoReceitas||0,d.realizadoReceitas||0,'Receitas');
+  document.getElementById('dashDesp').innerHTML=barComp(d.orcadoDespesas||0,d.realizadoDespesas||0,'Despesas');
+  document.getElementById('dashResult').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      ${[['Resultado Orçado',d.resultadoOrcado||0,'blue'],['Resultado Realizado',d.resultadoRealizado||0,d.resultadoRealizado>=0?'green':'red']].map(([l,v,c])=>`
+        <div style="text-align:center;padding:20px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--bd)">
+          <div style="font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">${l}</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--${c})">${cur(v)}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function load(){
+  const emp=g('selEmp'),comp=g('selComp');
+  const p={limit:50,tipo:curTab==='proj'?'projecao':'orcamento'};
+  if(emp)p.company=emp;if(comp)p.competence=comp;
+  const r=await API.fpa.list(p);if(!r?.success)return;
+  document.getElementById('tCount').textContent=`${r.pagination.total} registro(s)`;
+  const bodyId=curTab==='proj'?'projBody':'tbody';
+  if(!r.items.length){document.getElementById(bodyId).innerHTML=`<tr><td colspan="10"><div class="empty"><div class="empty-ic">📊</div><div class="empty-t">Nenhum plano</div></div></td></tr>`;return;}
+  const STATUS={rascunho:'inat',aprovado:'pago',revisao:'pend'};
+  document.getElementById(bodyId).innerHTML=r.items.map((p,i)=>{
+    const recOrc=p.linhas.filter(l=>l.tipo==='receita').reduce((a,l)=>a+l.orcado,0);
+    const despOrc=p.linhas.filter(l=>l.tipo==='despesa').reduce((a,l)=>a+l.orcado,0);
+    const res=recOrc-despOrc;
+    return`<tr onclick="verPlano('${p._id}')" style="animation-delay:${i*.02}s">
+      <td style="font-size:12px">${p.company?.tradeName||p.company?.legalName||'DTP'}</td>
+      <td style="font-size:12px">${ui.competence(p.competence)}</td>
+      ${curTab!=='proj'?`<td><span class="badge b">${p.tipo}</span></td>`:''}
+      <td><span class="badge ${p.cenario==='otimista'?'g':p.cenario==='pessimista'?'r':'b'}">${p.cenario}</span></td>
+      <td style="font-size:13px;font-weight:500;color:var(--txt)">${p.titulo||'—'}</td>
+      <td class="money g">${cur(recOrc)}</td>
+      <td class="money r">${cur(despOrc)}</td>
+      <td class="money ${res>=0?'g':'r'}">${cur(res)}</td>
+      <td><span class="pill ${STATUS[p.status]||'inat'}">${p.status}</span></td>
+      <td><div class="ra"><div class="rb del" onclick="event.stopPropagation();remover('${p._id}')">🗑️</div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadCenarios(){
+  const emp=g('selEmp'),comp=g('selComp');
+  // Busca TODOS os planos (não só tipo cenario) para ter mais dados
+  const p={limit:100};if(emp)p.company=emp;if(comp)p.competence=comp;
+  const r=await API.fpa.list(p);if(!r?.success)return;
+  const todos=r.items;
+
+  // Agrupa por cenário
+  const grupos={base:[],otimista:[],pessimista:[]};
+  todos.forEach(pl=>{ const g=pl.cenario||'base'; if(grupos[g]) grupos[g].push(pl); else grupos.base.push(pl); });
+
+  // Calcula totais por cenário
+  const calcTotais=(planos)=>{
+    const recOrc=planos.flatMap(p=>p.linhas.filter(l=>l.tipo==='receita')).reduce((a,l)=>a+(l.orcado||0),0);
+    const despOrc=planos.flatMap(p=>p.linhas.filter(l=>l.tipo==='despesa')).reduce((a,l)=>a+(l.orcado||0),0);
+    const recReal=planos.flatMap(p=>p.linhas.filter(l=>l.tipo==='receita')).reduce((a,l)=>a+(l.realizado||0),0);
+    const despReal=planos.flatMap(p=>p.linhas.filter(l=>l.tipo==='despesa')).reduce((a,l)=>a+(l.realizado||0),0);
+    return {recOrc,despOrc,res:recOrc-despOrc,recReal,despReal,resReal:recReal-despReal,qtd:planos.length};
+  };
+
+  const totBase=calcTotais(grupos.base);
+  const totOtim=calcTotais(grupos.otimista);
+  const totPess=calcTotais(grupos.pessimista);
+
+  // Summary cards por cenário
+  document.getElementById('cenSummary').innerHTML=[
+    {nome:'🔵 Cenário Base',    tot:totBase,  cor:'var(--blue)',  bg:'rgba(26,111,196,.1)'},
+    {nome:'🟢 Cenário Otimista',tot:totOtim,  cor:'var(--green)', bg:'rgba(0,201,167,.1)'},
+    {nome:'🔴 Cenário Pessimista',tot:totPess, cor:'var(--red)',   bg:'rgba(239,68,68,.1)'},
+  ].map(({nome,tot,cor,bg})=>`
+    <div style="background:${bg};border:1px solid ${cor}30;border-radius:var(--r);padding:14px 16px;position:relative">
+      <div style="font-size:12px;font-weight:700;color:${cor};margin-bottom:10px">${nome}</div>
+      <div style="font-size:11px;color:var(--txt3);margin-bottom:4px">${tot.qtd} plano(s)</div>
+      ${[['Receita Orçada',cur(tot.recOrc),'var(--green)'],['Despesa Orçada',cur(tot.despOrc),'var(--red)'],['Resultado',cur(tot.res),tot.res>=0?'var(--green)':'var(--red)']].map(([l,v,c])=>`
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px">
+          <span style="color:var(--txt2)">${l}</span>
+          <span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:600">${v}</span>
+        </div>`).join('')}
+      <div style="margin-top:10px;padding:8px;background:rgba(255,255,255,.04);border-radius:var(--rs);font-size:11px;text-align:center">
+        Realizado: <strong style="color:${totBase.resReal>=0?'var(--green)':'var(--red)'}">${cur(tot.resReal)}</strong>
+      </div>
+    </div>`).join('');
+
+  // Comparativo
+  const maxRec=Math.max(totBase.recOrc,totOtim.recOrc,totPess.recOrc,1);
+  document.getElementById('cenComparativo').innerHTML=[
+    {l:'Base',rec:totBase.recOrc,desp:totBase.despOrc,res:totBase.res,cor:'var(--blue)'},
+    {l:'Otimista',rec:totOtim.recOrc,desp:totOtim.despOrc,res:totOtim.res,cor:'var(--green)'},
+    {l:'Pessimista',rec:totPess.recOrc,desp:totPess.despOrc,res:totPess.res,cor:'var(--red)'},
+  ].map(({l,rec,desp,res,cor})=>`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+        <span style="color:${cor};font-weight:600">${l}</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:${res>=0?'var(--green)':'var(--red)'};font-weight:700">${cur(res)}</span>
+      </div>
+      <div style="background:var(--bg4);border-radius:4px;height:6px;overflow:hidden;margin-bottom:3px">
+        <div style="height:100%;border-radius:4px;background:var(--green);width:${Math.round(rec/maxRec*100)}%;transition:width 1s"></div>
+      </div>
+      <div style="background:var(--bg4);border-radius:4px;height:4px;overflow:hidden">
+        <div style="height:100%;border-radius:4px;background:var(--red);width:${Math.round(desp/maxRec*100)}%;transition:width 1s;opacity:.7"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--txt3);margin-top:3px">
+        <span>Rec: ${cur(rec)}</span><span>Desp: ${cur(desp)}</span>
+      </div>
+    </div>`).join('');
+
+  // Sensibilidade
+  const baseRes=totBase.res||1;
+  document.getElementById('cenSensibilidade').innerHTML=`
+    <div style="font-size:12px;color:var(--txt3);margin-bottom:12px">Impacto no resultado vs cenário base</div>
+    ${[
+      {l:'Otimista vs Base', diff:totOtim.res-totBase.res, pct:baseRes!==0?Math.round((totOtim.res-totBase.res)/Math.abs(baseRes)*100):0},
+      {l:'Pessimista vs Base', diff:totPess.res-totBase.res, pct:baseRes!==0?Math.round((totPess.res-totBase.res)/Math.abs(baseRes)*100):0},
+    ].map(({l,diff,pct})=>`
+      <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
+          <span style="color:var(--txt)">${l}</span>
+          <span style="font-family:'JetBrains Mono',monospace;color:${diff>=0?'var(--green)':'var(--red)'};font-weight:700">${diff>=0?'+':''}${cur(diff)}</span>
+        </div>
+        <div style="font-size:11px;color:${pct>=0?'var(--green)':'var(--red)'}">Variação: ${pct>=0?'+':''}${pct}%</div>
+      </div>`).join('')}
+    <div style="margin-top:14px;padding:10px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs);font-size:11px;color:var(--bl)">
+      💡 Crie planos com cenário "otimista" ou "pessimista" para ativar a análise completa
+    </div>`;
+
+  // Cards individuais dos planos
+  if(!todos.length){
+    document.getElementById('cenarios').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-ic">🎯</div><div class="empty-t">Nenhum plano criado ainda</div><div class="empty-s">Crie planos na aba Orçamentos para ver os cenários aqui</div></div>';
+    return;
+  }
+  document.getElementById('cenarios').innerHTML=todos.map(pl=>{
+    const recOrc=pl.linhas.filter(l=>l.tipo==='receita').reduce((a,l)=>a+(l.orcado||0),0);
+    const despOrc=pl.linhas.filter(l=>l.tipo==='despesa').reduce((a,l)=>a+(l.orcado||0),0);
+    const res=recOrc-despOrc;
+    const cor={otimista:'var(--green)',pessimista:'var(--red)',base:'var(--blue)'}[pl.cenario]||'var(--blue)';
+    const varPct=recOrc>0?Math.round((pl.linhas.filter(l=>l.tipo==='receita').reduce((a,l)=>a+(l.realizado||0),0)-recOrc)/recOrc*100):0;
+    return `<div class="card" onclick="verPlano('${pl._id}')" style="cursor:pointer;border-top:3px solid ${cor};transition:all .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div class="card-h">
+        <span class="card-ht" style="color:${cor}">${pl.cenario.charAt(0).toUpperCase()+pl.cenario.slice(1)}</span>
+        <span style="font-size:10px;color:var(--txt3)">${ui.competence(pl.competence)}</span>
+      </div>
+      <div style="padding:14px 17px">
+        <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:12px">${pl.titulo||'—'}</div>
+        ${[['Receitas Orçadas',cur(recOrc),'g'],['Despesas Orçadas',cur(despOrc),'r'],['Resultado',cur(res),res>=0?'g':'r']].map(([l,v,mc])=>`
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px">
+            <span style="color:var(--txt2)">${l}</span><span class="money ${mc}">${v}</span>
+          </div>`).join('')}
+        <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;font-size:11px">
+          <span style="color:var(--txt3)">Variação real</span>
+          <span style="font-weight:700;color:${varPct>=0?'var(--green)':'var(--red)'}">${varPct>=0?'+':''}${varPct}%</span>
+        </div>
+        <div style="background:var(--bg4);border-radius:20px;height:4px;overflow:hidden;margin-top:5px">
+          <div style="height:100%;border-radius:20px;background:${cor};width:${Math.min(100,Math.abs(varPct))}%"></div>
+        </div>
+        <div style="margin-top:10px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:var(--rs);font-size:11px;color:var(--txt3)">
+          ${pl.status?.charAt(0).toUpperCase()+pl.status?.slice(1)} · ${pl.linhas?.length||0} linhas
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirNovo(){linhas=[];renderLinhas();document.getElementById('fTitulo').value='';document.getElementById('fEmpForm').value='';document.getElementById('fTipo').value='orcamento';document.getElementById('fCenario').value='base';document.getElementById('fStatus').value='rascunho';document.getElementById('fNotas').value='';const now=new Date();sv('fComp',`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);ui.tab(document.querySelector('#ovForm .m-tab'),'f0');ui.openModal('ovForm');}
+
+function addLinha(tipo){linhas.push({categoria:'',tipo,orcado:0,realizado:0,projetado:0});renderLinhas();}
+function renderLinhas(){
+  const rec=linhas.filter(l=>l.tipo==='receita');
+  const desp=linhas.filter(l=>l.tipo==='despesa');
+  const render=(arr,tipo)=>arr.length?arr.map((l,i)=>{const idx=linhas.indexOf(l);return`<div class="linha-row"><input class="fin" style="height:32px;font-size:12px" value="${l.categoria}" placeholder="Categoria..." oninput="linhas[${idx}].categoria=this.value"><input class="fin" type="number" style="height:32px;font-size:12px" value="${l.orcado||''}" placeholder="0" oninput="linhas[${idx}].orcado=parseFloat(this.value)||0;calcTotais()"><input class="fin" type="number" style="height:32px;font-size:12px" value="${l.realizado||''}" placeholder="0" oninput="linhas[${idx}].realizado=parseFloat(this.value)||0"><input class="fin" type="number" style="height:32px;font-size:12px" value="${l.projetado||''}" placeholder="0" oninput="linhas[${idx}].projetado=parseFloat(this.value)||0"><button class="btn sm" style="color:var(--red);height:32px;padding:0 8px" onclick="linhas.splice(${idx},1);renderLinhas()">✕</button></div>`;}).join(''):'<div style="padding:12px;text-align:center;color:var(--txt3);font-size:12px;border:1px dashed var(--bd);border-radius:var(--rs)">Clique em "+ Adicionar" para incluir linhas</div>';
+  document.getElementById('linhasRec').innerHTML=render(rec,'receita');
+  document.getElementById('linhasDesp').innerHTML=render(desp,'despesa');
+  calcTotais();
+}
+function calcTotais(){const rec=linhas.filter(l=>l.tipo==='receita').reduce((a,l)=>a+(l.orcado||0),0);const desp=linhas.filter(l=>l.tipo==='despesa').reduce((a,l)=>a+(l.orcado||0),0);document.getElementById('totaisForm').textContent=`Resultado: ${cur(rec-desp)}`;}
+
+async function verPlano(id){
+  const r = await API.fpa.get(id);
+  if(!r?.success) return ui.toast('❌','Erro ao carregar');
+  const p = r.item;
+
+  const recLinhas  = p.linhas.filter(l=>l.tipo==='receita');
+  const despLinhas = p.linhas.filter(l=>l.tipo==='despesa');
+
+  const totalRecOrc  = recLinhas.reduce((a,l)=>a+(l.orcado||0),0);
+  const totalRecReal = recLinhas.reduce((a,l)=>a+(l.realizado||0),0);
+  const totalRecProj = recLinhas.reduce((a,l)=>a+(l.projetado||0),0);
+  const totalDespOrc  = despLinhas.reduce((a,l)=>a+(l.orcado||0),0);
+  const totalDespReal = despLinhas.reduce((a,l)=>a+(l.realizado||0),0);
+  const totalDespProj = despLinhas.reduce((a,l)=>a+(l.projetado||0),0);
+
+  const resOrc  = totalRecOrc  - totalDespOrc;
+  const resReal = totalRecReal - totalDespReal;
+  const resProj = totalRecProj - totalDespProj;
+  const varReal = totalRecOrc>0 ? Math.round((totalRecReal-totalRecOrc)/totalRecOrc*100) : 0;
+
+  document.getElementById('spTt').textContent = p.titulo||'—';
+  document.getElementById('spSt').textContent =
+    (p.company?.tradeName||p.company?.legalName||'DTP') +
+    ' · ' + ui.competence(p.competence) +
+    ' · ' + p.cenario.charAt(0).toUpperCase()+p.cenario.slice(1);
+
+  const barVar = (orc,real) => {
+    if(!orc&&!real) return '';
+    const max=Math.max(orc,real,1);
+    const v=orc>0?Math.round((real-orc)/orc*100):0;
+    return `<div style="margin-top:3px;display:flex;align-items:center;gap:4px">
+      <div class="prog-track" style="flex:1"><div class="prog-fill" style="width:${Math.min(real/max*100,100)}%;background:${real>=orc?'var(--green)':'var(--red)'}"></div></div>
+      <span style="font-size:10px;font-weight:600;color:${v>=0?'var(--green)':'var(--red)'};">${v>=0?'+':''}${v}%</span>
+    </div>`;
+  };
+
+  const secLinhas = (linhas, tipo) => {
+    if(!linhas.length) return '<div style="padding:8px;text-align:center;font-size:12px;color:var(--txt3)">Nenhuma linha</div>';
+    const cor = tipo==='receita'?'var(--green)':'var(--red)';
+    return `
+      <div class="linha-det linha-det-hd" style="margin-bottom:4px">
+        <span>Categoria</span>
+        <span style="text-align:right">Orçado</span>
+        <span style="text-align:right">Realizado</span>
+        <span style="text-align:right">Projetado</span>
+        <span style="text-align:right">Var.%</span>
+      </div>
+      ${linhas.map(l=>{
+        const v=l.orcado>0?Math.round(((l.realizado||0)-l.orcado)/l.orcado*100):0;
+        return `<div class="linha-det">
+          <span style="color:var(--txt);font-weight:500">${l.categoria||'—'}</span>
+          <span class="money" style="text-align:right;color:${cor}">${cur(l.orcado||0)}</span>
+          <span class="money" style="text-align:right;color:${cor}">${cur(l.realizado||0)}</span>
+          <span class="money" style="text-align:right;color:var(--txt2)">${cur(l.projetado||0)}</span>
+          <span style="text-align:right;font-size:11px;font-weight:700;color:${v>=0?'var(--green)':'var(--red)'}">${l.orcado>0?(v>=0?'+':'')+v+'%':'—'}</span>
+        </div>
+        ${barVar(l.orcado||0,l.realizado||0)}`;
+      }).join('')}`;
+  };
+
+  document.getElementById('spBody').innerHTML = `
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      ${[
+        ['Resultado Orçado',  cur(resOrc),  resOrc>=0?'var(--green)':'var(--red)'],
+        ['Resultado Realizado',cur(resReal),resReal>=0?'var(--green)':'var(--red)'],
+        ['Resultado Projetado',cur(resProj),resProj>=0?'var(--green)':'var(--red)'],
+      ].map(([l,v,c])=>`<div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--txt3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">${l}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:${c}">${v}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- Totais resumo -->
+    <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:8px">Resumo Orçado vs Realizado</div>
+      ${[
+        ['Receitas',    totalRecOrc,  totalRecReal,  'var(--green)'],
+        ['Despesas',    totalDespOrc, totalDespReal, 'var(--red)'],
+        ['Resultado',   resOrc,       resReal,        resReal>=0?'var(--green)':'var(--red)'],
+      ].map(([l,orc,real,c])=>{
+        const v=orc>0?Math.round((real-orc)/Math.abs(orc)*100):0;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px">
+          <span style="color:var(--txt2);flex:1">${l}</span>
+          <span class="money" style="color:var(--txt3);margin-right:8px">${cur(orc)}</span>
+          <span class="money" style="color:${c};margin-right:8px">${cur(real)}</span>
+          <span style="font-size:11px;font-weight:700;color:${v>=0?'var(--green)':'var(--red)'};width:40px;text-align:right">${orc>0?(v>=0?'+':'')+v+'%':'—'}</span>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Linhas Receitas -->
+    <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">
+      💰 Receitas (${recLinhas.length} linhas)
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 12px;margin-bottom:14px">
+      ${secLinhas(recLinhas,'receita')}
+    </div>
+
+    <!-- Linhas Despesas -->
+    <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">
+      💸 Despesas (${despLinhas.length} linhas)
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 12px;margin-bottom:14px">
+      ${secLinhas(despLinhas,'despesa')}
+    </div>
+
+    <!-- Notas -->
+    ${p.notas?`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs);padding:10px 12px;font-size:12px;color:var(--amber)">
+      📝 ${p.notas}
+    </div>`:''}
+  `;
+
+  document.getElementById('spFoot').innerHTML = `
+    <button class="btn primary sm" onclick="editarPlano('${p._id}')">✏️ Editar</button>
+    <button class="btn sm" onclick="imprimirPlano('${p._id}')">🖨️ Imprimir</button>
+    <div style="flex:1"></div>
+    <button class="btn sm" style="color:var(--red)" onclick="fecharPanel();remover('${p._id}')">🗑️ Remover</button>
+  `;
+
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').style.display = 'block';
+}
+
+function fecharPanel(){
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('overlay').style.display = 'none';
+}
+
+async function editarPlano(id){
+  fecharPanel();
+  const r = await API.fpa.get(id);
+  if(!r?.success) return;
+  const p = r.item;
+  linhas = JSON.parse(JSON.stringify(p.linhas||[]));
+  document.getElementById('fTitulo').value = p.titulo||'';
+  document.getElementById('fEmpForm').value = p.company?._id||'';
+  document.getElementById('fTipo').value = p.tipo||'orcamento';
+  document.getElementById('fCenario').value = p.cenario||'base';
+  document.getElementById('fStatus').value = p.status||'rascunho';
+  document.getElementById('fNotas').value = p.notas||'';
+  document.getElementById('fComp').value = p.competence||'';
+  renderLinhas();
+  document.getElementById('fTg').textContent = 'Editar Plano';
+  document.getElementById('fBtn').onclick = async () => {
+    const btn=document.getElementById('fBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+    const payload={titulo:g('fTitulo'),competence:g('fComp'),tipo:g('fTipo'),cenario:g('fCenario'),status:g('fStatus'),notas:g('fNotas'),linhas};
+    const empVal=g('fEmpForm'); if(empVal) payload.company=empVal;
+    const res = await API.fpa.update(id, payload);
+    btn.disabled=false; btn.innerHTML='💾 Salvar';
+    if(res?.success){ ui.toast('✅','Atualizado!'); ui.closeModal('ovForm'); loadDash(); load(); }
+    else ui.toast('❌', res?.message||'Erro');
+  };
+  ui.tab(document.querySelector('#ovForm .m-tab'),'f0');
+  ui.openModal('ovForm');
+}
+
+function imprimirPlano(id){
+  API.fpa.get(id).then(r=>{
+    if(!r?.success) return;
+    const p=r.item;
+    const recLinhas=p.linhas.filter(l=>l.tipo==='receita');
+    const despLinhas=p.linhas.filter(l=>l.tipo==='despesa');
+    const totalRecOrc=recLinhas.reduce((a,l)=>a+(l.orcado||0),0);
+    const totalDespOrc=despLinhas.reduce((a,l)=>a+(l.orcado||0),0);
+    const totalRecReal=recLinhas.reduce((a,l)=>a+(l.realizado||0),0);
+    const totalDespReal=despLinhas.reduce((a,l)=>a+(l.realizado||0),0);
+
+    const linhaHTML = (linhas, tipo) => linhas.map(l=>{
+      const v=l.orcado>0?Math.round(((l.realizado||0)-l.orcado)/l.orcado*100):null;
+      return `<tr>
+        <td>${l.categoria||'—'}</td>
+        <td style="text-align:right;font-family:'Courier New',monospace">${l.orcado?.toFixed(2).replace('.',',')}</td>
+        <td style="text-align:right;font-family:'Courier New',monospace">${(l.realizado||0).toFixed(2).replace('.',',')}</td>
+        <td style="text-align:right;font-family:'Courier New',monospace">${(l.projetado||0).toFixed(2).replace('.',',')}</td>
+        <td style="text-align:right;font-weight:700;color:${v==null?'#666':v>=0?'#0e7a5e':'#b91c1c'}">${v!=null?(v>=0?'+':'')+v+'%':'—'}</td>
+      </tr>`;
+    }).join('');
+
+    const janela = window.open('','_blank','width=900,height=700');
+    janela.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>FP&A — ${p.titulo}</title>
+    <style>
+      body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;padding:24px;background:#fff}
+      .header{display:flex;justify-content:space-between;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:20px}
+      .logo{font-size:20px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}
+      .logo span{font-size:11px;display:block;font-weight:400;color:#666}
+      .meta{text-align:right;font-size:11px;color:#666;line-height:1.8}
+      .meta strong{font-size:14px;color:#1a1a2e;display:block}
+      h2{font-size:13px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;padding-bottom:5px;border-bottom:2px solid #1a6fc4}
+      table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11.5px}
+      th{background:#eff6ff;color:#1d4ed8;padding:7px 10px;text-align:left;border:1px solid #dde3ec;font-weight:600}
+      td{padding:6px 10px;border:1px solid #eef0f5}
+      tr:nth-child(even) td{background:#f8fafc}
+      .total-row td{font-weight:700;background:#f0f4f8;border-top:2px solid #dde3ec}
+      .resultado{background:#1a6fc4;color:#fff;font-weight:800;font-size:14px;padding:12px 16px;border-radius:6px;display:flex;justify-content:space-between;margin-top:16px}
+      .footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ec;font-size:10px;color:#999;display:flex;justify-content:space-between}
+      @page{margin:15mm;size:A4}
+    </style></head><body>
+    <div class="header">
+      <div><div class="logo">DTP Contábil <span>ERP Multi-Empresa</span></div></div>
+      <div class="meta"><strong>FP&A — ${p.titulo||'Plano'}</strong>
+        ${p.company?.legalName||'DTP Soluções Contábeis'}<br>
+        Competência: ${ui.competence(p.competence)} · Cenário: ${p.cenario}<br>
+        Gerado em: ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
+      </div>
+    </div>
+    <h2>💰 Receitas</h2>
+    <table><thead><tr><th>Categoria</th><th style="text-align:right">Orçado</th><th style="text-align:right">Realizado</th><th style="text-align:right">Projetado</th><th style="text-align:right">Variação</th></tr></thead>
+    <tbody>${linhaHTML(recLinhas,'receita')}
+    <tr class="total-row"><td>TOTAL RECEITAS</td><td style="text-align:right;font-family:'Courier New',monospace">${totalRecOrc.toFixed(2).replace('.',',')}</td><td style="text-align:right;font-family:'Courier New',monospace">${totalRecReal.toFixed(2).replace('.',',')}</td><td></td><td></td></tr>
+    </tbody></table>
+    <h2>💸 Despesas</h2>
+    <table><thead><tr><th>Categoria</th><th style="text-align:right">Orçado</th><th style="text-align:right">Realizado</th><th style="text-align:right">Projetado</th><th style="text-align:right">Variação</th></tr></thead>
+    <tbody>${linhaHTML(despLinhas,'despesa')}
+    <tr class="total-row"><td>TOTAL DESPESAS</td><td style="text-align:right;font-family:'Courier New',monospace">${totalDespOrc.toFixed(2).replace('.',',')}</td><td style="text-align:right;font-family:'Courier New',monospace">${totalDespReal.toFixed(2).replace('.',',')}</td><td></td><td></td></tr>
+    </tbody></table>
+    <div class="resultado">
+      <span>RESULTADO (Orçado: R$ ${(totalRecOrc-totalDespOrc).toFixed(2).replace('.',',')})</span>
+      <span>Realizado: R$ ${(totalRecReal-totalDespReal).toFixed(2).replace('.',',')}</span>
+    </div>
+    ${p.notas?`<div style="margin-top:16px;padding:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11.5px"><strong>Notas:</strong> ${p.notas}</div>`:''}
+    <div class="footer"><span>DTP Contábil ERP</span><span>${new Date().toLocaleDateString('pt-BR')}</span></div>
+    </body></html>`);
+    janela.document.close();
+    setTimeout(()=>{ janela.focus(); janela.print(); }, 700);
+  });
+}
+
+async function salvar(){
+  const titulo=g('fTitulo'),comp=g('fComp');
+  if(!titulo||!comp)return ui.toast('⚠️','Preencha título e competência');
+  const empVal=g('fEmpForm');
+  const payload={titulo,competence:comp,tipo:g('fTipo'),cenario:g('fCenario'),status:g('fStatus'),notas:g('fNotas'),linhas};
+  if(empVal)payload.company=empVal;
+  const btn=document.getElementById('fBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span>Salvando...';
+  const r=await API.fpa.create(payload);
+  btn.disabled=false;btn.innerHTML='💾 Salvar';
+  if(r?.success){ui.toast('✅',r.message);ui.closeModal('ovForm');loadDash();load();}
+  else ui.toast('❌',r?.message||'Erro');
+}
+
+async function remover(id){if(!confirm('Remover este plano?'))return;const r=await API.fpa.remove(id);if(r?.success){ui.toast('🗑️','Removido');load();}else ui.toast('❌','Erro');}
+
+// API helpers
+window.API.fpa={
+  list:      (p={})=>fetch('/api/fpa?'+new URLSearchParams(Object.fromEntries(Object.entries(p).filter(([,v])=>v!==''))),{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()),
+  dashboard: (p={})=>fetch('/api/fpa/dashboard?'+new URLSearchParams(Object.fromEntries(Object.entries(p).filter(([,v])=>v!==''))),{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()),
+  get:       id=>fetch(`/api/fpa/${id}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()),
+  create:    d=>fetch('/api/fpa',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth.getToken()},body:JSON.stringify(d)}).then(r=>r.json()),
+  update:    (id,d)=>fetch(`/api/fpa/${id}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth.getToken()},body:JSON.stringify(d)}).then(r=>r.json()),
+  remove:    id=>fetch(`/api/fpa/${id}`,{method:'DELETE',headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()),
+};
+
+loadDash();
+</script>
+</body>
+</html>

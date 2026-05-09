@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Controladoria</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+html,body{overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .15s}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.bl::before{background:var(--blue)}.kpi.gn::before{background:var(--green)}
+.kpi.rd::before{background:var(--red)}.kpi.am::before{background:var(--amber)}.kpi.pu::before{background:var(--purple)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10px;color:var(--txt3);margin-top:4px}
+.tab-strip{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:4px;width:fit-content}
+.tab-btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt2);transition:all .14s;white-space:nowrap}
+.tab-btn.on{background:var(--blue);color:#fff}
+.tab-btn:hover:not(.on){background:rgba(255,255,255,.06)}
+.ind-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;transition:all .15s}
+.ind-card:hover{border-color:var(--bd2)}
+.ind-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.ind-lbl{font-size:11px;color:var(--txt3);margin-top:3px}
+.ind-ref{font-size:10px;margin-top:4px}
+.semaforo{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.semaforo.verde{background:var(--green)}.semaforo.amarelo{background:var(--amber)}.semaforo.vermelho{background:var(--red)}
+.money{font-family:'JetBrains Mono',monospace;font-size:12px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}.money.a{color:var(--amber)}
+.bar-track{background:var(--bg4);border-radius:20px;height:6px;overflow:hidden;margin-top:4px}
+.bar-fill{height:100%;border-radius:20px;transition:width .9s ease}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+  <header class="topbar">
+    <span class="topbar-title">🎛️ Controladoria</span>
+    <span class="tb-badge blue" id="tbEmp">—</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="selEmp" style="height:32px;font-size:11px;width:220px" onchange="load()">
+      <option value="">Todas as empresas</option>
+    </select>
+    <select class="fin" id="selExerc" style="height:32px;font-size:11px;width:100px" onchange="load()"></select>
+    <button class="btn sm primary" onclick="load()">↻ Atualizar</button>
+    <button class="btn sm" onclick="imprimirRelatorio()">🖨️ Relatório</button>
+  </header>
+
+  <div class="filter-bar" style="gap:8px">
+    <div class="tab-strip">
+      <button class="tab-btn on" id="tab-ind"    onclick="setTab('ind')">📊 Indicadores</button>
+      <button class="tab-btn"    id="tab-orcado"  onclick="setTab('orcado')">⚖️ Orçado vs Real</button>
+      <button class="tab-btn"    id="tab-fluxo"   onclick="setTab('fluxo')">💧 Fluxo de Caixa</button>
+      <button class="tab-btn"    id="tab-custos"  onclick="setTab('custos')">📦 Custos</button>
+      <button class="tab-btn"    id="tab-folha"   onclick="setTab('folha')">👥 RH & Folha</button>
+    </div>
+  </div>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+
+    <!-- KPIs principais -->
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi bl"><div class="kpi-l">Receita Bruta</div><div class="kpi-v" id="kRec">—</div><div class="kpi-s">no exercício</div></div>
+      <div class="kpi gn"><div class="kpi-l">Lucro Líquido</div><div class="kpi-v" id="kLuc">—</div><div class="kpi-s">resultado</div></div>
+      <div class="kpi am"><div class="kpi-l">Margem Líquida</div><div class="kpi-v" id="kMarg">—</div><div class="kpi-s">% sobre receita</div></div>
+      <div class="kpi rd"><div class="kpi-l">Total Impostos</div><div class="kpi-v" id="kImp">—</div><div class="kpi-s">carga tributária</div></div>
+      <div class="kpi pu"><div class="kpi-l">EBITDA</div><div class="kpi-v" id="kEbitda">—</div><div class="kpi-s">resultado operacional</div></div>
+    </div>
+
+    <!-- INDICADORES -->
+    <div id="pane-ind">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px" id="indGrid"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📈 Receita vs Despesa (12 meses)</span></div>
+          <div style="padding:14px;height:200px"><canvas id="chartEvol"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">🎯 Painel de Semáforos</span></div>
+          <div style="padding:14px 16px" id="semaforoPanel"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORÇADO VS REAL -->
+    <div id="pane-orcado" style="display:none">
+      <div style="padding:10px 14px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--r);margin-bottom:14px;font-size:12px;color:var(--bl)">
+        💡 Comparativo entre o orçamento planejado no FP&A e o realizado nos lançamentos contábeis
+      </div>
+      <div id="orcadoContent"></div>
+    </div>
+
+    <!-- FLUXO DE CAIXA -->
+    <div id="pane-fluxo" style="display:none">
+      <div id="fluxoContent"></div>
+    </div>
+
+    <!-- CUSTOS -->
+    <div id="pane-custos" style="display:none">
+      <div id="custosContent"></div>
+    </div>
+
+    <!-- RH & FOLHA -->
+    <div id="pane-folha" style="display:none">
+      <div id="folhaContent"></div>
+    </div>
+
+  </div>
+</main>
+</div>
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let txs=[], payrolls=[], fpaPlans=[], charts={};
+const cur  = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const curK = v => v>=1000?'R$\u00a0'+(v/1000).toFixed(1)+'k':cur(v);
+const pct  = (v,t) => t>0?(v/t*100).toFixed(1)+'%':'0%';
+const r2   = v => Math.round((v||0)*100)/100;
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// INIT
+(()=>{
+  const now=new Date();
+  let o='';
+  for(let y=now.getFullYear();y>=now.getFullYear()-5;y--)
+    o+=`<option value="${y}"${y===now.getFullYear()?' selected':''}>${y}</option>`;
+  document.getElementById('selExerc').innerHTML=o;
+})();
+
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  document.getElementById('selEmp').innerHTML='<option value="">Todas as empresas</option>'+
+    r.companies.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  document.getElementById('tbEmp').textContent=r.companies.length+' empresas';
+});
+
+function setTab(tab){
+  ['ind','orcado','fluxo','custos','folha'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('on',t===tab);
+    document.getElementById('pane-'+t).style.display=t===tab?'block':'none';
+  });
+  if(tab==='orcado') renderOrcado();
+  if(tab==='fluxo')  renderFluxo();
+  if(tab==='custos') renderCustos();
+  if(tab==='folha')  renderFolha();
+}
+
+// LOAD PRINCIPAL
+async function load(){
+  const empId = document.getElementById('selEmp').value;
+  const exerc = document.getElementById('selExerc').value;
+  const now   = new Date();
+  const comp  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  const params={limit:2000};
+  if(empId) params.company=empId;
+
+  const [txR,payR,fpaR] = await Promise.all([
+    API.transactions.list(params),
+    API.payroll.list({competence:comp,...(empId?{company:empId}:{})}),
+    API.fpa.list({...(empId?{company:empId}:{}),limit:50}),
+  ]);
+
+  txs      = (txR?.transactions||[]).filter(t=>t.status!=='cancelado'&&t.competence?.startsWith(exerc));
+  payrolls = payR?.payrolls||[];
+  fpaPlans = fpaR?.items||[];
+
+  calcKPIs();
+  renderIndicadores();
+  renderGrafico();
+  renderSemaforos();
+
+  const tab=document.querySelector('.tab-btn.on')?.id?.replace('tab-','');
+  if(tab==='orcado') renderOrcado();
+  if(tab==='fluxo')  renderFluxo();
+  if(tab==='custos') renderCustos();
+  if(tab==='folha')  renderFolha();
+}
+
+function somaGrupo(pref) { return r2(txs.filter(t=>t.debitAccount?.startsWith(pref)||t.creditAccount?.startsWith(pref)).reduce((a,t)=>a+t.amount,0)); }
+
+function calcKPIs(){
+  const rec  = somaGrupo('4');
+  const custo= somaGrupo('5');
+  const desp = somaGrupo('6');
+  const lucro= r2(rec-custo-desp);
+  const ebitda=r2(rec-custo-desp+somaGrupo('6.6'));
+  const imp  = somaGrupo('6.7');
+  document.getElementById('kRec').textContent   = curK(rec);
+  document.getElementById('kLuc').textContent   = curK(lucro);
+  document.getElementById('kMarg').textContent  = pct(lucro,rec);
+  document.getElementById('kImp').textContent   = curK(imp);
+  document.getElementById('kEbitda').textContent= curK(ebitda);
+  document.getElementById('kLuc').style.color   = lucro>=0?'var(--green)':'var(--red)';
+}
+
+function renderIndicadores(){
+  const rec   = somaGrupo('4');
+  const custo = somaGrupo('5');
+  const desp  = somaGrupo('6');
+  const lucro = r2(rec-custo-desp);
+  const ebitda= r2(rec-custo-desp+somaGrupo('6.6'));
+  const at    = somaGrupo('1');
+  const pass  = somaGrupo('2');
+  const pl    = somaGrupo('3');
+
+  const indicadores=[
+    {nome:'Margem Bruta',       val:pct(r2(rec-custo),rec),  ref:'> 40%',  cor:r2(rec-custo)/Math.max(rec,1)>=0.4?'gn':'rd', desc:'(Rec-CPV)/Receita'},
+    {nome:'Margem EBITDA',      val:pct(ebitda,rec),          ref:'> 20%',  cor:ebitda/Math.max(rec,1)>=0.2?'gn':'am',      desc:'EBITDA/Receita'},
+    {nome:'Margem Líquida',     val:pct(lucro,rec),            ref:'> 10%',  cor:lucro/Math.max(rec,1)>=0.1?'gn':'rd',       desc:'Lucro/Receita'},
+    {nome:'Liquidez Geral',     val:at>0?(at/Math.max(pass,1)).toFixed(2):'—', ref:'> 1.0', cor:at/Math.max(pass,1)>=1?'gn':'rd', desc:'Ativo/Passivo'},
+    {nome:'Endividamento',      val:pl>0?(pass/Math.max(pl,1)*100).toFixed(1)+'%':'—', ref:'< 60%', cor:pass/Math.max(pl,1)<=0.6?'gn':'rd', desc:'Passivo/PL'},
+    {nome:'Carga Tributária',   val:pct(somaGrupo('6.7'),rec), ref:'< 20%',  cor:somaGrupo('6.7')/Math.max(rec,1)<=0.2?'gn':'am', desc:'Impostos/Receita'},
+  ];
+
+  const cor2={gn:'var(--green)',am:'var(--amber)',rd:'var(--red)'};
+  document.getElementById('indGrid').innerHTML=indicadores.map(ind=>`
+    <div class="ind-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="ind-val" style="color:${cor2[ind.cor]||'var(--txt)'}">${ind.val}</div>
+          <div class="ind-lbl">${ind.nome}</div>
+          <div class="ind-ref" style="color:${cor2[ind.cor]}">${ind.desc} · Ref: ${ind.ref}</div>
+        </div>
+        <div class="semaforo ${ind.cor==='gn'?'verde':ind.cor==='am'?'amarelo':'vermelho'}"></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderGrafico(){
+  const now=new Date(), meses=[], rec=[], desp=[];
+  for(let i=11;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const m=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    meses.push(MESES[d.getMonth()]);
+    const txMes=txs.filter(t=>t.competence===m);
+    rec.push(r2(txMes.filter(t=>t.creditAccount?.startsWith('4')).reduce((a,t)=>a+t.amount,0)));
+    desp.push(r2(txMes.filter(t=>t.debitAccount?.startsWith('6')||t.debitAccount?.startsWith('5')).reduce((a,t)=>a+t.amount,0)));
+  }
+  if(charts.evol) charts.evol.destroy();
+  const ctx=document.getElementById('chartEvol')?.getContext('2d');
+  if(!ctx) return;
+  charts.evol=new Chart(ctx,{type:'bar',data:{labels:meses,datasets:[
+    {label:'Receita',data:rec,backgroundColor:'rgba(0,201,167,.5)',borderColor:'#00c9a7',borderWidth:1.5,borderRadius:3},
+    {label:'Despesa',data:desp,type:'line',borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',borderWidth:2,pointRadius:3,tension:.4},
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{color:'#6b94b2',font:{size:10},boxWidth:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b94b2',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b94b2',font:{size:9}}}}}});
+}
+
+function renderSemaforos(){
+  const rec  = somaGrupo('4');
+  const custo= somaGrupo('5');
+  const desp = somaGrupo('6');
+  const lucro= r2(rec-custo-desp);
+  const items=[
+    {nome:'Resultado Financeiro', ok:lucro>=0, val:cur(lucro)},
+    {nome:'Receita no Mês',       ok:rec>0,    val:rec>0?'Positiva':'Sem dados'},
+    {nome:'Obrigações em Dia',    ok:true,     val:'Verificar em Obrigações'},
+    {nome:'Folha Processada',     ok:payrolls.length>0, val:payrolls.length>0?payrolls.length+' folha(s)':'Nenhuma'},
+    {nome:'SPED Entregue',        ok:false,    val:'Verificar em Escrituração'},
+  ];
+  document.getElementById('semaforoPanel').innerHTML=items.map(i=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px">
+      <div class="semaforo ${i.ok?'verde':'vermelho'}"></div>
+      <span style="flex:1;color:var(--txt)">${i.nome}</span>
+      <span style="color:${i.ok?'var(--green)':'var(--red)'};font-weight:500">${i.val}</span>
+    </div>`).join('');
+}
+
+function renderOrcado(){
+  if(!fpaPlans.length){
+    document.getElementById('orcadoContent').innerHTML='<div class="empty"><div class="empty-ic">⚖️</div><div class="empty-t">Nenhum plano FP&A encontrado</div><div class="empty-s"><a href="/fpa.html" style="color:var(--bl)">Criar orçamento no FP&A →</a></div></div>';
+    return;
+  }
+  const rec  = somaGrupo('4');
+  const desp = somaGrupo('6');
+  const lucro= r2(rec-desp);
+
+  document.getElementById('orcadoContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+      ${fpaPlans.slice(0,3).map(p=>{
+        const recOrc  = p.linhas?.filter(l=>l.tipo==='receita').reduce((a,l)=>a+(l.orcado||0),0)||0;
+        const recReal = rec;
+        const varPct  = recOrc>0?r2((recReal-recOrc)/recOrc*100):0;
+        return `<div class="card" style="padding:14px 16px">
+          <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:10px">${p.titulo||'Plano'}</div>
+          ${[['Receita Orçada',cur(recOrc),'var(--txt3)'],['Receita Realizada',cur(recReal),'var(--green)'],['Variação',varPct+'%',varPct>=0?'var(--green)':'var(--red)']].map(([l,v,c])=>`
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px">
+              <span style="color:var(--txt2)">${l}</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:600">${v}</span>
+            </div>`).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="card">
+      <div class="card-h"><span class="card-ht">Comparativo Geral</span></div>
+      <div style="padding:14px 16px">
+        ${[['Receita Realizada',cur(rec),'var(--green)'],['Despesas Realizadas',cur(desp),'var(--red)'],['Lucro Líquido',cur(lucro),lucro>=0?'var(--green)':'var(--red)']].map(([l,v,c])=>`
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px">
+            <span style="color:var(--txt2)">${l}</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:700">${v}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function renderFluxo(){
+  const now=new Date();
+  const meses=[]; const entradas=[]; const saidas=[]; const saldos=[];
+  let saldoAcum=0;
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const m=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    meses.push(MESES[d.getMonth()]+'/'+String(d.getFullYear()).slice(2));
+    const txMes=txs.filter(t=>t.competence===m);
+    const ent=r2(txMes.filter(t=>t.type==='credit').reduce((a,t)=>a+t.amount,0));
+    const sai=r2(txMes.filter(t=>t.type==='debit').reduce((a,t)=>a+t.amount,0));
+    saldoAcum=r2(saldoAcum+ent-sai);
+    entradas.push(ent); saidas.push(sai); saldos.push(saldoAcum);
+  }
+
+  document.getElementById('fluxoContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+      <div class="card">
+        <div class="card-h"><span class="card-ht">💧 Fluxo de Caixa — 6 meses</span></div>
+        <div style="padding:14px;height:220px"><canvas id="chartFluxo"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-ht">Resumo Mensal</span></div>
+        <div style="padding:14px 16px">
+          ${meses.map((m,i)=>`
+            <div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                <span style="color:var(--txt2)">${m}</span>
+                <span style="font-family:'JetBrains Mono',monospace;color:${saldos[i]>=0?'var(--green)':'var(--red)'};font-weight:600">${curK(saldos[i])}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--txt3)">
+                <span>+${curK(entradas[i])}</span><span>-${curK(saidas[i])}</span>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  setTimeout(()=>{
+    if(charts.fluxo) charts.fluxo.destroy();
+    const ctx=document.getElementById('chartFluxo')?.getContext('2d');
+    if(!ctx)return;
+    charts.fluxo=new Chart(ctx,{type:'bar',data:{labels:meses,datasets:[
+      {label:'Entradas',data:entradas,backgroundColor:'rgba(0,201,167,.5)',borderColor:'#00c9a7',borderWidth:1.5,borderRadius:3},
+      {label:'Saídas',data:saidas,backgroundColor:'rgba(239,68,68,.4)',borderColor:'#ef4444',borderWidth:1.5,borderRadius:3},
+      {label:'Saldo Acum.',data:saldos,type:'line',borderColor:'#3b90e8',backgroundColor:'rgba(59,144,232,.1)',borderWidth:2,pointRadius:3,tension:.4},
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{color:'#6b94b2',font:{size:10},boxWidth:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b94b2',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b94b2',font:{size:9}}}}}});
+  },100);
+}
+
+function renderCustos(){
+  const catMap={};
+  const catGrupo={};
+  // Agrupa por categoria principal
+  const GRUPOS={'5':'Custo dos Serviços','6':'Despesas Operacionais','6.1':'Desp. Administrativas','6.2':'Desp. Comerciais','6.3':'Desp. Financeiras','6.7':'Impostos e Tributos'};
+  txs.filter(t=>t.debitAccount?.startsWith('5')||t.debitAccount?.startsWith('6')).forEach(t=>{
+    const cat=t.category||t.description||t.debitAccount?.substring(0,3)||'Outros';
+    const grp=t.debitAccount?.startsWith('5')?'Custo dos Serviços':'Despesas Operacionais';
+    catMap[cat]=(catMap[cat]||0)+t.amount;
+    catGrupo[grp]=(catGrupo[grp]||0)+t.amount;
+  });
+  const cats=Object.entries(catMap).sort(([,a],[,b])=>b-a);
+  const grupos=Object.entries(catGrupo).sort(([,a],[,b])=>b-a);
+  const total=cats.reduce((a,[,v])=>a+v,0);
+  const rec=somaGrupo('4');
+  const margBruta=rec>0?Math.round((rec-somaGrupo('5'))/rec*100):0;
+  const margLiq=rec>0?Math.round((rec-total)/rec*100):0;
+
+  const linhas=cats.length?cats:[
+    ['Pessoal e Encargos',0],['Aluguel e Ocupação',0],['Serviços de Terceiros',0],
+    ['Materiais e Insumos',0],['Marketing e Vendas',0],['Impostos e Taxas',0],['Outros',0]
+  ];
+  const totalReal=linhas.reduce((a,[,v])=>a+v,0)||1;
+
+  document.getElementById('custosContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+      ${[
+        ['Total Custos+Desp.',cur(total),'var(--red)'],
+        ['Receita Bruta',cur(rec),'var(--green)'],
+        ['Margem Bruta',margBruta+'%',margBruta>=40?'var(--green)':margBruta>=20?'var(--amber)':'var(--red)'],
+        ['Margem Líquida',margLiq+'%',margLiq>=15?'var(--green)':margLiq>=5?'var(--amber)':'var(--red)'],
+      ].map(([l,v,cor])=>`<div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;text-align:center">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:4px">${l}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:${cor}">${v}</div>
+      </div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card">
+        <div class="card-h"><span class="card-ht">📦 Custos por Categoria</span></div>
+        <div style="padding:14px 16px">
+          ${linhas.map(([cat,val])=>{
+            const p=totalReal>0?Math.round(val/totalReal*100):0;
+            return `<div style="margin-bottom:11px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span style="color:var(--txt)">${cat}</span>
+                <div style="display:flex;gap:10px;align-items:center">
+                  <span style="font-family:'JetBrains Mono',monospace;color:${val>0?'var(--red)':'var(--txt3)'}">${cur(val)}</span>
+                  <span style="font-size:10px;color:var(--txt3);min-width:28px;text-align:right">${p}%</span>
+                </div>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${p>30?'var(--red)':p>15?'var(--amber)':'var(--bl)'}"></div></div>
+            </div>`;
+          }).join('')}
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:2px solid var(--bd2);font-size:13px;font-weight:700">
+            <span style="color:var(--txt)">TOTAL GERAL</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--red)">${cur(total)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-ht">🏗️ Estrutura de Custos</span></div>
+        <div style="padding:14px 16px">
+          ${grupos.length?grupos.map(([grp,val])=>{
+            const p=totalReal>0?Math.round(val/totalReal*100):0;
+            return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
+                <span style="color:var(--txt);font-weight:500">${grp}</span>
+                <span style="font-family:'JetBrains Mono',monospace;color:var(--red)">${cur(val)}</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:var(--red)"></div></div>
+              <div style="font-size:10px;color:var(--txt3);margin-top:3px">${p}% do total de custos</div>
+            </div>`;
+          }).join(''):
+          ['Custo dos Serviços','Despesas Administrativas','Despesas Financeiras'].map(g=>`
+            <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
+                <span style="color:var(--txt)">${g}</span><span class="money r">${cur(0)}</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--red)"></div></div>
+              <div style="font-size:10px;color:var(--txt3);margin-top:3px">Sem lançamentos</div>
+            </div>`).join('')}
+          <div style="margin-top:14px;padding:10px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs);font-size:12px;color:var(--amber)">
+            💡 Adicione lançamentos com contas de custo (5.x) e despesa (6.x) para ver a análise completa
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderFolha(){
+  const tot={gross:0,net:0,inss:0,irrf:0,fgts:0,custo:0,hc:0,inssPatr:0};
+  payrolls.forEach(p=>{
+    tot.gross   +=p.totalGross||0; tot.net    +=p.totalNet||0;
+    tot.inss    +=p.totalINSSEmployee||0; tot.irrf+=p.totalIRRF||0;
+    tot.fgts    +=p.totalFGTS||0;  tot.custo  +=p.totalCost||0;
+    tot.hc      +=p.headcount||0;  tot.inssPatr+=p.totalINSSEmployer||0;
+  });
+  const custoMedio=tot.hc>0?Math.round(tot.custo/tot.hc):0;
+  const pctEncargos=tot.gross>0?Math.round((tot.custo-tot.gross)/tot.gross*100):0;
+  const allEmps=payrolls.flatMap(p=>p.employees||[]);
+
+  document.getElementById('folhaContent').innerHTML=`
+    <!-- KPIs RH -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+      ${[
+        ['👥 Headcount',tot.hc+' funcionários','var(--bl)'],
+        ['💰 Custo Total Emp.',cur(tot.custo),'var(--red)'],
+        ['💵 Salário Líquido Médio',cur(tot.hc>0?tot.net/tot.hc:0),'var(--green)'],
+        ['📊 Encargos s/ Folha',pctEncargos+'%','var(--amber)'],
+      ].map(([l,v,cor])=>`<div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--txt3);margin-bottom:4px">${l}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:${cor}">${v}</div>
+      </div>`).join('')}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+
+      <!-- Composição da folha -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">💼 Composição da Folha</span></div>
+        <div style="padding:14px 16px">
+          ${[
+            ['Total Bruto',tot.gross,'var(--txt)',true],
+            ['(-) INSS Funcionários',tot.inss,'var(--amber)',false],
+            ['(-) IRRF',tot.irrf,'var(--amber)',false],
+            ['= Total Líquido',tot.net,'var(--green)',true],
+            ['(+) INSS Patronal (20%)',tot.inssPatr,'var(--red)',false],
+            ['(+) FGTS (8%)',tot.fgts,'var(--red)',false],
+            ['= Custo Total Empresa',tot.custo,'var(--red)',true],
+          ].map(([l,v,cor,bold])=>`
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px${bold?';font-weight:700;border-top:1px solid var(--bd2);margin-top:4px;padding-top:10px':''}">
+              <span style="color:${bold?'var(--txt)':'var(--txt2)'}">${l}</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:${cor}">${cur(v)}</span>
+            </div>`).join('')}
+          ${!tot.hc?'<div style="margin-top:12px;padding:10px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs);font-size:12px;color:var(--bl)">💡 Crie uma folha de pagamento para ver os dados aqui</div>':''}
+        </div>
+      </div>
+
+      <!-- Folhas por empresa -->
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">🏢 Folhas por Empresa</span>
+          <a href="/folha.html" style="font-size:11px;color:var(--bl)">Gerenciar →</a>
+        </div>
+        ${payrolls.length?`<div style="overflow-x:auto"><table class="tbl">
+          <thead><tr><th>Empresa</th><th>Func.</th><th>Bruto</th><th>Líquido</th><th>Custo</th><th>Status</th></tr></thead>
+          <tbody>${payrolls.map(p=>`<tr>
+            <td style="font-size:12px;font-weight:500">${p.company?.tradeName||p.company?.legalName||'—'}</td>
+            <td style="text-align:center;font-weight:600;color:var(--bl)">${p.headcount||0}</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${cur(p.totalGross||0)}</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--green)">${cur(p.totalNet||0)}</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--red)">${cur(p.totalCost||0)}</td>
+            <td><span style="font-size:11px;font-weight:600;color:${p.status==='paga'?'var(--green)':p.status==='fechada'?'var(--amber)':'var(--txt3)'}">${p.status}</span></td>
+          </tr>`).join('')}</tbody>
+        </table></div>`:`<div class="empty"><div class="empty-ic">👥</div><div class="empty-t">Nenhuma folha criada</div><div class="empty-s"><a href="/folha.html?new=1" style="color:var(--bl)">Criar folha do mês →</a></div></div>`}
+      </div>
+    </div>
+
+    <!-- Funcionários individuais -->
+    ${allEmps.length?`<div class="card">
+      <div class="card-h">
+        <span class="card-ht">👤 Funcionários — Detalhe Individual</span>
+        <span style="font-size:11px;color:var(--txt3)">${allEmps.length} funcionário(s)</span>
+      </div>
+      <div style="overflow-x:auto"><table class="tbl">
+        <thead><tr><th>Nome</th><th>Cargo</th><th>Admissão</th><th>Salário Base</th><th>INSS</th><th>IRRF</th><th>Líquido</th><th>FGTS</th><th>Custo Total</th></tr></thead>
+        <tbody>${allEmps.filter(e=>e.status==='ativo').map(e=>`<tr>
+          <td style="font-size:12.5px;font-weight:500;color:var(--txt)">${e.name||'—'}</td>
+          <td style="font-size:11.5px;color:var(--txt3)">${e.role||'—'}</td>
+          <td style="font-size:11.5px;color:var(--txt3)">${e.dataAdmissao?new Date(e.dataAdmissao).toLocaleDateString('pt-BR'):'—'}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${cur(e.salaryBase||0)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--amber)">${cur(e.inssEmployee||0)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--amber)">${cur(e.irrf||0)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--green)">${cur(e.netSalary||e.salaryBase||0)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--red)">${cur(e.fgts||0)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--red);font-weight:600">${cur(e.totalCost||0)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`:''}`;
+}
+
+function imprimirRelatorio(){
+  const empNome = document.querySelector('#selEmp option:checked')?.textContent?.trim()||'Todas as Empresas';
+  const exerc   = document.getElementById('selExerc')?.value||'';
+  const rec   = somaGrupo('4'), custo=somaGrupo('5'), desp=somaGrupo('6');
+  const lucro = r2(rec-custo-desp);
+  const janela = window.open('','_blank','width=900,height=700');
+  janela.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Controladoria — ${empNome}</title>
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;padding:24px;background:#fff}
+  .header{display:flex;justify-content:space-between;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:20px}
+  .logo{font-size:18px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}.logo span{font-size:11px;display:block;font-weight:400;color:#666}
+  .meta{text-align:right;font-size:11px;color:#666;line-height:1.8}.meta strong{font-size:14px;color:#1a1a2e;display:block}
+  h2{font-size:13px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;padding-bottom:5px;border-bottom:2px solid #1a6fc4}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+  .kbox{border:1px solid #dde3ec;border-radius:8px;padding:12px;text-align:center}
+  .kbox .l{font-size:10px;color:#666;text-transform:uppercase;margin-bottom:4px}
+  .kbox .v{font-size:15px;font-weight:700;font-family:'Courier New',monospace;color:#1a6fc4}
+  table{width:100%;border-collapse:collapse;font-size:11.5px}th{background:#eff6ff;color:#1d4ed8;padding:7px;text-align:left;border:1px solid #dde3ec}td{padding:6px 7px;border:1px solid #eef0f5}
+  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ec;font-size:10px;color:#999;display:flex;justify-content:space-between}
+  @page{margin:15mm;size:A4}</style></head><body>
+  <div class="header">
+    <div><div class="logo">DTP Contábil <span>ERP — Controladoria</span></div></div>
+    <div class="meta"><strong>Relatório de Controladoria</strong>${empNome} · Exercício ${exerc}<br>Gerado em: ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  </div>
+  <h2>Indicadores Financeiros</h2>
+  <div class="grid">
+    <div class="kbox"><div class="l">Receita Bruta</div><div class="v">R$ ${rec.toFixed(2).replace('.',',')}</div></div>
+    <div class="kbox"><div class="l">Despesas Totais</div><div class="v">R$ ${desp.toFixed(2).replace('.',',')}</div></div>
+    <div class="kbox"><div class="l">Lucro Líquido</div><div class="v" style="color:${lucro>=0?'#0e7a5e':'#b91c1c'}">R$ ${lucro.toFixed(2).replace('.',',')}</div></div>
+    <div class="kbox"><div class="l">Margem Líquida</div><div class="v">${rec>0?(lucro/rec*100).toFixed(1):0}%</div></div>
+    <div class="kbox"><div class="l">Total Funcionários</div><div class="v">${payrolls.reduce((a,p)=>a+(p.headcount||0),0)}</div></div>
+    <div class="kbox"><div class="l">Custo Folha</div><div class="v">R$ ${payrolls.reduce((a,p)=>a+(p.totalCost||0),0).toFixed(2).replace('.',',')}</div></div>
+  </div>
+  <div class="footer"><span>DTP Contábil ERP</span><span>${new Date().toLocaleDateString('pt-BR')}</span></div>
+  </body></html>`);
+  janela.document.close(); setTimeout(()=>{janela.focus();janela.print();},600);
+}
+
+load();
+</script>
+</body>
+</html>

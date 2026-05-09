@@ -1,0 +1,2526 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Central de Gestão</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+/* ── LAYOUT SPLIT ── */
+.split-layout{display:flex;flex:1;overflow:hidden;height:100%}
+.split-left{width:320px;min-width:320px;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.split-right{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* ── EMPRESA CARD ── */
+.emp-card{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:all .12s;position:relative}
+.emp-card:hover{background:rgba(26,111,196,.06)}
+.emp-card.sel{background:rgba(26,111,196,.1);border-left:3px solid var(--blue)}
+.emp-card.sel .emp-name{color:var(--txt)}
+.emp-av{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#fff;flex-shrink:0}
+.emp-name{font-size:13px;font-weight:500;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emp-cnpj{font-size:10px;color:var(--txt3);margin-top:2px}
+.emp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.emp-dot.ok{background:var(--green)}.emp-dot.none{background:var(--txt3)}.emp-dot.pend{background:var(--amber)}
+
+/* ── MÓDULOS TOGGLE ── */
+.mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.mod-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;display:flex;align-items:center;gap:10px;transition:all .13s;cursor:pointer}
+.mod-card:hover{border-color:var(--bd2)}
+.mod-card.on{background:rgba(0,201,167,.06);border-color:rgba(0,201,167,.3)}
+.mod-card.off{opacity:.5}
+.mod-ico{font-size:18px;flex-shrink:0}
+.mod-label{font-size:12.5px;font-weight:500;color:var(--txt);flex:1}
+.mod-toggle{width:36px;height:20px;border-radius:20px;background:var(--bg4);border:1px solid var(--bd);position:relative;transition:all .2s;flex-shrink:0;cursor:pointer}
+.mod-toggle.on{background:var(--green);border-color:var(--green)}
+.mod-toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s}
+.mod-toggle.on::after{left:18px}
+
+/* ── PERM ITEM ── */
+.perm-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px}
+.perm-row:last-child{border-bottom:none}
+
+/* ── USER CARD ── */
+.user-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.user-online{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.user-online.sim{background:rgba(0,201,167,.12);color:var(--green)}
+.user-online.nao{background:rgba(255,255,255,.05);color:var(--txt3)}
+
+/* ── KPI MINI ── */
+.kpi-mini-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.kpi-mini{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;text-align:center}
+.kpi-mini-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:4px}
+.kpi-mini-v{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--txt)}
+
+/* ── TABS ── */
+.tab-strip{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:4px;width:fit-content}
+.tab-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt2);transition:all .14s;white-space:nowrap}
+.tab-btn.on{background:var(--blue);color:#fff}
+.tab-btn:hover:not(.on){background:rgba(255,255,255,.06)}
+
+/* ── SWITCH ── */
+.switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--bg4);border:1px solid var(--bd);border-radius:24px;transition:.2s}
+.slider:before{position:absolute;content:'';width:18px;height:18px;left:2px;top:2px;background:var(--txt3);border-radius:50%;transition:.2s}
+input:checked+.slider{background:var(--green);border-color:var(--green)}
+input:checked+.slider:before{transform:translateX(20px);background:#fff}
+
+.sec-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--txt3);font-weight:600;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+/* TEMA SLIDER */
+.tema-slider-wrap{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:12px}
+.tema-slider{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:20px;outline:none;cursor:pointer;background:linear-gradient(90deg,#000,var(--bg),#fff)}
+.tema-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--blue);cursor:pointer;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.tema-preset{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tema-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--bg4);color:var(--txt2);transition:all .13s}
+.tema-btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.tema-btn:hover:not(.on){border-color:var(--bd2);color:var(--txt)}
+.quick-link{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);text-decoration:none;color:var(--txt2);font-size:12.5px;transition:color .12s}
+.quick-link:hover{color:var(--txt)}
+.quick-link:last-child{border-bottom:none}
+.quick-link span{color:var(--txt3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+
+  <header class="topbar">
+    <span class="topbar-title">⚙️ Central de Gestão</span>
+    <span class="tb-badge blue"  id="tbTotal">— empresas</span>
+    <span class="tb-badge green" id="tbAtivos">— com portal ativo</span>
+    <span class="tb-badge amber" id="tbSem">— sem acesso</span>
+    <div class="topbar-spacer"></div>
+    <div class="tab-strip">
+      <button class="tab-btn on" id="tab-portal"   onclick="setTab('portal')">👤 Portal Clientes</button>
+      <button class="tab-btn"    id="tab-permissoes" onclick="setTab('permissoes')">🔐 Permissões</button>
+      <button class="tab-btn"    id="tab-usuarios"  onclick="setTab('usuarios')">👥 Usuários DTP</button>
+      <button class="tab-btn"    id="tab-stats"     onclick="setTab('stats')">📊 Estatísticas</button>
+      <button class="tab-btn"    id="tab-sistema"   onclick="setTab('sistema')">⚙️ Sistema</button>
+    </div>
+  </header>
+
+  <div class="page-body" style="overflow:hidden;padding:0;display:flex;flex-direction:column;height:100%">
+
+    <!-- ── TAB PORTAL CLIENTES ── -->
+    <div id="pane-portal" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <div class="split-layout">
+
+        <!-- LISTA DE EMPRESAS -->
+        <div class="split-left">
+          <div style="padding:10px 12px;border-bottom:1px solid var(--bd)">
+            <div class="srch"><span style="color:var(--txt3)">🔍</span>
+              <input id="srchEmp" placeholder="Buscar empresa..." oninput="filtrarEmpresas()">
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto" id="empList">
+            <div class="empty"><div class="empty-ic">⏳</div></div>
+          </div>
+        </div>
+
+        <!-- DETALHE / CONFIG -->
+        <div class="split-right" id="empDetalhe">
+          <div class="empty" style="margin-top:40px">
+            <div class="empty-ic">👈</div>
+            <div class="empty-t">Selecione uma empresa</div>
+            <div class="empty-s">Escolha uma empresa à esquerda para configurar o acesso do cliente</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── TAB USUÁRIOS DTP ── -->
+    <div id="pane-usuarios" style="display:none;overflow-y:auto;padding:20px 24px">
+      <div class="kpi-mini-row" id="userKpis"></div>
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">👥 Usuários da DTP Contábil</span>
+          <button class="btn primary sm" onclick="openNovoUser()">+ Novo Usuário</button>
+        </div>
+        <div id="usersList"><div class="empty"><div class="empty-ic">⏳</div></div></div>
+      </div>
+    </div>
+
+    <!-- ── TAB ESTATÍSTICAS ── -->
+    <div id="pane-permissoes" style="display:none;overflow-y:auto;padding:20px 24px">
+      <!-- Banner explicativo -->
+      <div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(26,111,196,.1));border:1px solid rgba(139,92,246,.25);border-radius:var(--r);padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px">
+        <div style="font-size:32px">🔐</div>
+        <div style="flex:1">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--txt);margin-bottom:3px">Gestão de Permissões do Portal</div>
+          <div style="font-size:12px;color:var(--txt2)">Cadastre múltiplos usuários por empresa cliente. Cada usuário pode ter acesso diferente: dono vê tudo, RH só folha, financeiro só BPO, etc.</div>
+        </div>
+        <button class="btn primary" onclick="abrirNovoUsuarioCliente()">+ Novo Usuário do Portal</button>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="permKpis"></div>
+
+      <!-- Filtros + busca -->
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+        <input class="fin" id="permSearch" placeholder="🔍 Buscar empresa ou usuário..." style="flex:1;min-width:240px;max-width:380px" oninput="renderPermissoes()">
+        <select class="fin" id="permFiltro" style="width:200px" onchange="renderPermissoes()">
+          <option value="">Todas as empresas</option>
+          <option value="com">Com usuários cadastrados</option>
+          <option value="sem">Sem usuários (potencial)</option>
+        </select>
+        <button class="btn sm" onclick="loadPermissoes()">↻ Atualizar</button>
+      </div>
+
+      <!-- Lista expansível de empresas -->
+      <div id="permLista"><div class="empty"><div class="empty-ic">⏳</div><div class="empty-t">Carregando...</div></div></div>
+    </div>
+
+    <div id="pane-stats" style="display:none;overflow-y:auto;padding:20px 24px">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="statsKpis"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="card-h"><span class="card-ht">🏢 Carteira por Regime</span><button class="btn sm" onclick="loadStats()">↻</button></div>
+          <div style="padding:14px 16px" id="statsRegime"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">💰 Honorários por Status</span></div>
+          <div style="padding:14px 16px" id="statsHon"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📋 Obrigações por Tipo</span></div>
+          <div style="padding:14px 16px" id="statsObrig"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">🎯 Saúde da Carteira</span></div>
+          <div style="padding:14px 16px" id="statsHealth"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB SISTEMA ── -->
+    <div id="pane-sistema" style="display:none;overflow-y:auto;padding:20px 24px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+        <!-- TEMA E APARÊNCIA -->
+        <div class="card" style="grid-column:1/-1">
+          <div class="card-h"><span class="card-ht">🎨 Aparência & Tema</span></div>
+          <div style="padding:14px 16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div>
+                <div class="sec-title" style="margin-top:0">Brilho / Escurecimento</div>
+                <div class="tema-slider-wrap">
+                  <span style="font-size:16px">🌑</span>
+                  <input type="range" class="tema-slider" id="temaSlider" min="0" max="100" value="50" oninput="aplicarTema(this.value)">
+                  <span style="font-size:16px">☀️</span>
+                  <span style="font-size:11px;color:var(--txt3);min-width:30px" id="temaValor">50%</span>
+                </div>
+                <div class="tema-preset" id="temaPresets">
+                  <button class="tema-btn" onclick="setTema(20,'escuro')">🌑 Muito Escuro</button>
+                  <button class="tema-btn on" onclick="setTema(50,'padrao')">🌙 Padrão</button>
+                  <button class="tema-btn" onclick="setTema(70,'claro')">🌤️ Claro</button>
+                  <button class="tema-btn" onclick="setTema(90,'muito-claro')">☀️ Muito Claro</button>
+                </div>
+              </div>
+              <div>
+                <div class="sec-title" style="margin-top:0">Cor de Destaque</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px" id="corPresets">
+                  <div class="cor-opt on" data-cor="#1a6fc4" onclick="setCorDestaque('#1a6fc4',this)" style="width:28px;height:28px;border-radius:50%;background:#1a6fc4;cursor:pointer;border:3px solid #fff;box-shadow:0 0 0 2px #1a6fc4" title="Azul (padrão)"></div>
+                  <div class="cor-opt" data-cor="#00c9a7" onclick="setCorDestaque('#00c9a7',this)" style="width:28px;height:28px;border-radius:50%;background:#00c9a7;cursor:pointer;border:3px solid transparent" title="Verde Teal"></div>
+                  <div class="cor-opt" data-cor="#8b5cf6" onclick="setCorDestaque('#8b5cf6',this)" style="width:28px;height:28px;border-radius:50%;background:#8b5cf6;cursor:pointer;border:3px solid transparent" title="Roxo"></div>
+                  <div class="cor-opt" data-cor="#f59e0b" onclick="setCorDestaque('#f59e0b',this)" style="width:28px;height:28px;border-radius:50%;background:#f59e0b;cursor:pointer;border:3px solid transparent" title="Âmbar"></div>
+                  <div class="cor-opt" data-cor="#ef4444" onclick="setCorDestaque('#ef4444',this)" style="width:28px;height:28px;border-radius:50%;background:#ef4444;cursor:pointer;border:3px solid transparent" title="Vermelho"></div>
+                  <div class="cor-opt" data-cor="#14b8a6" onclick="setCorDestaque('#14b8a6',this)" style="width:28px;height:28px;border-radius:50%;background:#14b8a6;cursor:pointer;border:3px solid transparent" title="Teal"></div>
+                </div>
+                <div class="sec-title">Densidade Visual</div>
+                <div style="display:flex;gap:8px">
+                  <button class="tema-btn" onclick="setDensidade('compacto')">⬛ Compacto</button>
+                  <button class="tema-btn on" onclick="setDensidade('normal')">▪️ Normal</button>
+                  <button class="tema-btn" onclick="setDensidade('espacoso')">⬜ Espaçoso</button>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:8px">
+              <button class="btn primary sm" onclick="salvarTema()">💾 Salvar Preferências</button>
+              <button class="btn sm" onclick="resetarTema()">↩️ Restaurar Padrão</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info do sistema -->
+        <div class="card">
+          <div class="card-h"><span class="card-ht">ℹ️ Informações do Sistema</span></div>
+          <div style="padding:14px 16px" id="sysInfo"></div>
+        </div>
+
+        <!-- Configurações gerais -->
+        <div class="card">
+          <div class="card-h"><span class="card-ht">🔧 Configurações Gerais</span></div>
+          <div style="padding:14px 16px">
+            <div class="sec-title" style="margin-top:0">Escritório</div>
+            <div class="fg2">
+              <div class="fgp ffu"><label class="fbl">Nome do Escritório</label><input class="fin" id="cfgNome" placeholder="DTP Soluções Contábeis"></div>
+              <div class="fgp"><label class="fbl">CNPJ</label><input class="fin mono" id="cfgCnpj" placeholder="00.000.000/0000-00"></div>
+              <div class="fgp"><label class="fbl">CRC</label><input class="fin mono" id="cfgCrc" placeholder="SC-000000/O-0"></div>
+              <div class="fgp"><label class="fbl">Responsável Técnico</label><input class="fin" id="cfgResp" placeholder="Nome do contador"></div>
+              <div class="fgp"><label class="fbl">Telefone</label><input class="fin" id="cfgTel"></div>
+              <div class="fgp"><label class="fbl">E-mail</label><input class="fin" id="cfgEmail"></div>
+              <div class="fgp ffu"><label class="fbl">Mensagem Portal do Cliente</label>
+                <textarea class="fin" id="cfgMsg" rows="3" style="resize:none" placeholder="Mensagem de boas-vindas no portal..."></textarea>
+              </div>
+              <div class="fgp ffu"><label class="fbl">Logo URL (opcional)</label><input class="fin" id="cfgLogo" placeholder="https://..."></div>
+            </div>
+            <button class="btn primary" style="margin-top:14px;width:100%" onclick="salvarConfigSistema()">💾 Salvar Configurações</button>
+          </div>
+        </div>
+
+        <!-- Notificações -->
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📧 Notificações por E-mail</span></div>
+          <div style="padding:14px 16px">
+            <div class="fg2">
+              <div class="fgp"><label class="fbl">Servidor SMTP</label><input class="fin" id="smtpHost" placeholder="smtp.gmail.com"></div>
+              <div class="fgp"><label class="fbl">Porta</label><input class="fin" type="number" id="smtpPort" placeholder="587"></div>
+              <div class="fgp"><label class="fbl">Usuário / E-mail</label><input class="fin" id="smtpUser"></div>
+              <div class="fgp"><label class="fbl">Senha / App Password</label><input class="fin" type="password" id="smtpPass"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn primary sm" onclick="salvarSMTP()">💾 Salvar SMTP</button>
+              <button class="btn sm" onclick="testarSMTP()">📤 Testar Envio</button>
+              <button class="btn sm" onclick="processarNotif()">🔔 Processar Alertas</button>
+            </div>
+          </div>
+        </div>
+        <!-- Seeds e manutenção -->
+        <div class="card">
+          <div class="card-h"><span class="card-ht">🔄 Manutenção & Seeds</span></div>
+          <div style="padding:14px 16px">
+            <div style="font-size:12px;color:var(--txt3);margin-bottom:14px">Execute estas ações apenas quando necessário</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+              <span style="font-size:18px">📊</span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--txt)">Importar Plano NBC</div><div style="font-size:11px;color:var(--txt3)">Importa 123 contas NBC padrão CFC</div></div>
+              <button class="btn sm" onclick="executarSeed('/api/plano-contas/seed','Importar Plano NBC')">▶ Executar</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+              <span style="font-size:18px">🎯</span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--txt)">Importar Centros de Custo</div><div style="font-size:11px;color:var(--txt3)">Importa 25 centros de custo padrão</div></div>
+              <button class="btn sm" onclick="executarSeed('/api/centros-custo/seed','Importar Centros Custo')">▶ Executar</button>
+            </div>
+            <div style="margin-top:14px;padding:10px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs);font-size:12px;color:var(--amber)">
+              ⚠️ Seeds só inserem dados que ainda não existem — seguro executar
+            </div>
+          </div>
+        </div>
+
+        <!-- Logs / Auditoria do sistema -->
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📋 Acesso Rápido</span></div>
+          <div style="padding:14px 16px">
+            <a href="/empresas.html" class="quick-link">🏢 Gerenciar Empresas <span>→</span></a>
+            <a href="/lancamentos.html" class="quick-link">📒 Lançamentos <span>→</span></a>
+            <a href="/obrigacoes.html" class="quick-link">📋 Obrigações Fiscais <span>→</span></a>
+            <a href="/folha.html" class="quick-link">👥 Folha de Pagamento <span>→</span></a>
+            <a href="/plano-contas.html" class="quick-link">🗂️ Plano de Contas <span>→</span></a>
+            <a href="/escrituracao.html" class="quick-link">📚 Escrituração <span>→</span></a>
+            <a href="/demonstrativos.html" class="quick-link">📊 Demonstrativos <span>→</span></a>
+            <a href="/auditoria.html" class="quick-link">🔍 Auditoria <span>→</span></a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- MODAL USUÁRIO DTP -->
+<div class="ov" id="ovUser">
+<div class="modal">
+  <div class="m-top">
+    <div class="m-ico b">👤</div>
+    <div class="m-hi"><div class="m-tg">Usuários DTP</div><div class="m-tt" id="userTt">Novo Usuário</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovUser')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div class="fg2">
+      <div class="fgp ffu"><label class="fbl">Nome *</label><input class="fin" id="uName" placeholder="Nome completo"></div>
+      <div class="fgp ffu"><label class="fbl">E-mail *</label><input class="fin" type="email" id="uEmail"></div>
+      <div class="fgp"><label class="fbl">Senha *</label><input class="fin" type="password" id="uPass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fgp"><label class="fbl">Confirmar Senha</label><input class="fin" type="password" id="uPass2"></div>
+      <div class="fgp"><label class="fbl">Perfil / Função</label>
+        <select class="fin" id="uRole">
+          <option value="admin">Administrador</option>
+          <option value="contador">Contador</option>
+          <option value="assistente">Assistente Contábil</option>
+          <option value="fiscal">Analista Fiscal</option>
+          <option value="dp">Analista DP</option>
+        </select>
+      </div>
+      <div class="fgp"><label class="fbl">Status</label>
+        <select class="fin" id="uAtivo">
+          <option value="true">Ativo</option>
+          <option value="false">Inativo</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="userBtn" onclick="salvarUser()">💾 Salvar</button>
+    <button class="mfb" onclick="ui.closeModal('ovUser')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL USUÁRIO CLIENTE -->
+<div class="ov" id="ovClienteUser">
+<div class="modal sm">
+  <div class="m-top">
+    <div class="m-ico g">👤</div>
+    <div class="m-hi"><div class="m-tg">Acesso do Cliente</div><div class="m-tt" id="cuTt">Criar Acesso</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovClienteUser')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div style="margin-bottom:12px;padding:10px 12px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs);font-size:12px;color:var(--bl)" id="cuEmpInfo">—</div>
+    <div class="fg2">
+      <div class="fgp ffu"><label class="fbl">Nome do Contato *</label><input class="fin" id="cuName"></div>
+      <div class="fgp ffu"><label class="fbl">E-mail (login) *</label><input class="fin" type="email" id="cuEmail"></div>
+      <div class="fgp"><label class="fbl">Senha *</label><input class="fin" type="password" id="cuPass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fgp"><label class="fbl">Status</label>
+        <select class="fin" id="cuAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select>
+      </div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="cuBtn" onclick="salvarClienteUser()">✅ Criar Acesso</button>
+    <button class="mfb" onclick="ui.closeModal('ovClienteUser')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js">
+// ═══════════════════════════════════════════════════════════
+// PERMISSÕES DO PORTAL DO CLIENTE
+// ═══════════════════════════════════════════════════════════
+let allEmpresasPerm = [];
+let presetsCache = null;
+let editandoUserCliente = null;
+
+const MODULOS_LIST = [
+  {key:'inicio',         lbl:'🏠 Início',          desc:'Tela de boas-vindas'},
+  {key:'obrigacoes',     lbl:'📋 Obrigações',      desc:'Obrigações fiscais'},
+  {key:'honorarios',     lbl:'💰 Honorários',      desc:'Histórico de pagamentos'},
+  {key:'bpo',            lbl:'💳 BPO Financeiro',  desc:'Contas a pagar/receber'},
+  {key:'folha',          lbl:'👥 Folha',           desc:'Folha de pagamento'},
+  {key:'documentos',     lbl:'📄 Documentos',      desc:'Relatórios e documentos'},
+  {key:'demonstrativos', lbl:'📊 Demonstrativos',  desc:'BP, DRE, DFC'},
+  {key:'auditoria',      lbl:'🔍 Auditoria',       desc:'Relatórios de auditoria'},
+  {key:'consultorias',   lbl:'💡 Consultorias',    desc:'Consultorias contratadas'},
+  {key:'escrituracao',   lbl:'📚 Escrituração',    desc:'Livros contábeis'},
+  {key:'fpa',            lbl:'📈 FP&A',            desc:'Cenários e orçamentos'},
+  {key:'controladoria',  lbl:'🎛️ Controladoria',  desc:'Indicadores gerenciais'},
+  {key:'mensagens',      lbl:'💬 Mensagens',       desc:'Chat com escritório'},
+];
+
+const MODULOS_EDITAVEIS = ['bpo','obrigacoes','folha','documentos'];
+
+const PERMISSOES_LIST = [
+  {key:'verValoresFinanceiros', lbl:'💵 Ver valores financeiros'},
+  {key:'baixarRelatorios',      lbl:'⬇️ Baixar relatórios'},
+  {key:'enviarMensagens',       lbl:'✉️ Enviar mensagens ao escritório'},
+  {key:'verHolerites',          lbl:'📑 Ver holerites de funcionários'},
+  {key:'aprovarLancamentos',    lbl:'✅ Aprovar lançamentos'},
+];
+
+async function loadPermissoes(){
+  const r = await API.centralGestao.listarEmpresas();
+  if (!r?.success) {
+    document.getElementById('permLista').innerHTML = '<div class="empty"><div class="empty-t" style="color:var(--red)">Erro ao carregar empresas</div></div>';
+    return;
+  }
+  allEmpresasPerm = r.empresas || [];
+  if (!presetsCache) {
+    const p = await API.centralGestao.presets();
+    presetsCache = p?.presets || {};
+  }
+  renderPermissoes();
+}
+
+function renderPermissoes(){
+  const search = (document.getElementById('permSearch')?.value || '').toLowerCase().trim();
+  const filtro = document.getElementById('permFiltro')?.value || '';
+
+  let lista = allEmpresasPerm.filter(e => {
+    const nome = (e.company.tradeName || e.company.legalName || '').toLowerCase();
+    const cnpj = (e.company.cnpj || '').toLowerCase();
+    if (search && !nome.includes(search) && !cnpj.includes(search)) {
+      const userMatch = (e.usuarios||[]).some(u => (u.name||'').toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search));
+      if (!userMatch) return false;
+    }
+    if (filtro === 'com' && e.totalUsuarios === 0) return false;
+    if (filtro === 'sem' && e.totalUsuarios > 0) return false;
+    return true;
+  });
+
+  // KPIs
+  const totalEmp = allEmpresasPerm.length;
+  const empCom = allEmpresasPerm.filter(e=>e.totalUsuarios>0).length;
+  const totalUsuarios = allEmpresasPerm.reduce((a,e)=>a+e.totalUsuarios,0);
+  const totalAtivos = allEmpresasPerm.reduce((a,e)=>a+e.ativos,0);
+
+  document.getElementById('permKpis').innerHTML = [
+    {l:'EMPRESAS',v:totalEmp,s:`${empCom} com acesso`,c:'var(--blue)'},
+    {l:'USUÁRIOS PORTAL',v:totalUsuarios,s:`${totalAtivos} ativos`,c:'var(--green)'},
+    {l:'SEM ACESSO',v:totalEmp-empCom,s:'oportunidade',c:'var(--amber)'},
+    {l:'COBERTURA',v:totalEmp?Math.round(empCom/totalEmp*100)+'%':'0%',s:'empresas com portal',c:'var(--purple)'},
+  ].map(k => `<div class="card" style="padding:14px 16px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);margin-bottom:4px">${k.l}</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:${k.c}">${k.v}</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">${k.s}</div></div>`).join('');
+
+  // Lista de empresas
+  if (!lista.length){
+    document.getElementById('permLista').innerHTML = '<div class="empty"><div class="empty-ic">🔍</div><div class="empty-t">Nenhuma empresa encontrada</div></div>';
+    return;
+  }
+
+  document.getElementById('permLista').innerHTML = lista.map(e => {
+    const co = e.company;
+    const users = e.usuarios || [];
+    const expandKey = 'exp_'+co._id;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="togglePermEmp('${co._id}')">
+        <div style="width:42px;height:42px;border-radius:10px;background:rgba(26,111,196,.12);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;color:var(--blue);font-size:14px">${(co.tradeName||co.legalName||'?').substring(0,2).toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${co.tradeName || co.legalName}</div>
+          <div style="font-size:11.5px;color:var(--txt3)">${formatCNPJ(co.cnpj)} · ${users.length} usuário(s)${users.length?` · ${e.ativos} ativos`:''}</div>
+        </div>
+        ${users.length === 0 ? '<span class="tb-badge amber">Sem acesso</span>' : `<span class="tb-badge green">${users.length} usuário(s)</span>`}
+        <button class="btn primary sm" onclick="event.stopPropagation();abrirNovoUsuarioCliente('${co._id}')">+ Usuário</button>
+        <span style="font-size:14px;color:var(--txt3);transform:rotate(0deg);transition:transform .2s" id="${expandKey}_arrow">▼</span>
+      </div>
+      <div id="${expandKey}" style="display:none;border-top:1px solid var(--bd);padding:14px 18px;background:rgba(0,0,0,.15)">
+        ${users.length ? users.map(u => renderCardUsuarioCliente(u, co._id)).join('') :
+          `<div style="text-align:center;padding:24px;color:var(--txt3);font-size:12px">
+            <div style="font-size:28px;margin-bottom:8px">👥</div>
+            Nenhum usuário cadastrado para esta empresa.<br>
+            <button class="btn primary sm" style="margin-top:10px" onclick="abrirNovoUsuarioCliente('${co._id}')">+ Cadastrar primeiro usuário</button>
+          </div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePermEmp(cid){
+  const el = document.getElementById('exp_'+cid);
+  const ar = document.getElementById('exp_'+cid+'_arrow');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (ar) ar.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function renderCardUsuarioCliente(u, cid){
+  const cfg = u.clienteConfig || {};
+  const modulosVis = Object.entries(cfg.modulosVisiveis||{}).filter(([_,v])=>v).length;
+  const editaveis = Object.entries(cfg.podeEditar||{}).filter(([_,v])=>v).length;
+  const ini = (u.name||'?').substring(0,2).toUpperCase();
+  const cor = u.active ? 'var(--green)' : 'var(--txt3)';
+  return `<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+    <div style="width:34px;height:34px;border-radius:50%;background:${u.active?'rgba(0,201,167,.15)':'rgba(90,122,150,.15)'};display:flex;align-items:center;justify-content:center;font-weight:700;color:${cor};font-size:12px">${ini}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600;color:var(--txt)">${u.name}</span>
+        ${u.cargo ? `<span class="tb-badge blue" style="font-size:9px">${u.cargo}</span>` : ''}
+        ${!u.active ? '<span class="tb-badge red" style="font-size:9px">INATIVO</span>' : ''}
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:2px">${u.email}</div>
+      <div style="font-size:10.5px;color:var(--txt3);margin-top:3px">📋 ${modulosVis} módulos visíveis · ✏️ ${editaveis} editáveis</div>
+    </div>
+    <button class="btn sm" onclick="editarUsuarioCliente('${u._id}','${cid}')">⚙️ Editar</button>
+    <button class="btn sm" onclick="resetarSenhaUsuario('${u._id}','${u.name.replace(/'/g,"\\'")}')">🔑</button>
+    <button class="btn sm" onclick="removerUsuarioCliente('${u._id}','${u.name.replace(/'/g,"\\'")}')" style="color:var(--red)">🗑️</button>
+  </div>`;
+}
+
+function formatCNPJ(c){
+  if (!c) return '—';
+  const v = c.replace(/\D/g,'');
+  if (v.length !== 14) return c;
+  return `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8,12)}-${v.slice(12)}`;
+}
+
+// ── MODAL: criar/editar usuário cliente ──────────────────────
+function abrirNovoUsuarioCliente(companyId){
+  editandoUserCliente = null;
+  abrirModalUserCliente({ company: companyId, modulosVisiveis:{inicio:true,obrigacoes:true,honorarios:true,documentos:true,mensagens:true}, podeEditar:{}, permissoes:{verValoresFinanceiros:true,baixarRelatorios:true,enviarMensagens:true} });
+}
+
+async function editarUsuarioCliente(uid, cid){
+  // Encontrar usuário no cache
+  let user = null;
+  for (const e of allEmpresasPerm) {
+    user = (e.usuarios||[]).find(u=>u._id===uid);
+    if (user) break;
+  }
+  if (!user) { ui.toast('❌','Usuário não encontrado'); return; }
+  editandoUserCliente = user;
+  abrirModalUserCliente({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    cargo: user.cargo || '',
+    cpf: user.cpf || '',
+    telefone: user.telefone || '',
+    company: cid,
+    active: user.active,
+    modulosVisiveis: user.clienteConfig?.modulosVisiveis || {},
+    podeEditar: user.clienteConfig?.podeEditar || {},
+    permissoes: user.clienteConfig?.permissoes || {},
+    mensagemBemVindo: user.clienteConfig?.mensagemBemVindo || '',
+  });
+}
+
+function abrirModalUserCliente(d){
+  const isEdit = !!d._id;
+  const empresa = allEmpresasPerm.find(e => e.company._id === d.company)?.company;
+
+  const html = `
+  <div class="ov open" id="ovUserCliente" data-company="${d.company||''}" onclick="if(event.target===this)fecharModalUC()">
+    <div class="modal xl" style="max-height:92vh;display:flex;flex-direction:column">
+      <div class="m-top">
+        <div class="m-ico pu">${isEdit?'⚙️':'➕'}</div>
+        <div class="m-hi">
+          <div class="m-tg">${isEdit?'EDITANDO':'CRIANDO'}</div>
+          <div class="m-tt">${isEdit?'Editar Usuário':'Novo Usuário do Portal'}</div>
+          <div class="m-st">${empresa?(empresa.tradeName||empresa.legalName):'Selecione uma empresa'}</div>
+        </div>
+        <button class="m-cl" onclick="fecharModalUC()">×</button>
+      </div>
+      <div class="m-bd" style="overflow-y:auto;flex:1">
+
+        <!-- Dados básicos -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">DADOS DO USUÁRIO</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label class="fbl">Nome completo *</label><input class="fin" id="ucNome" value="${d.name||''}"></div>
+            <div><label class="fbl">Cargo / Função</label><input class="fin" id="ucCargo" placeholder="Ex: Dono, Financeiro, RH" value="${d.cargo||''}"></div>
+            <div><label class="fbl">E-mail *</label><input class="fin" type="email" id="ucEmail" value="${d.email||''}"></div>
+            <div><label class="fbl">${isEdit?'Nova senha (deixe em branco para manter)':'Senha *'}</label><input class="fin" type="password" id="ucSenha" placeholder="${isEdit?'••••••••':'Mínimo 6 caracteres'}"></div>
+            <div><label class="fbl">CPF</label><input class="fin" id="ucCPF" value="${d.cpf||''}"></div>
+            <div><label class="fbl">Telefone</label><input class="fin" id="ucTel" value="${d.telefone||''}"></div>
+          </div>
+          ${isEdit?`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px;background:var(--bg3);border-radius:6px"><input type="checkbox" id="ucAtivo" ${d.active!==false?'checked':''}><label for="ucAtivo" style="font-size:12px;color:var(--txt2)">Usuário ativo (pode fazer login)</label></div>`:''}
+        </div>
+
+        <!-- Presets rápidos -->
+        <div style="background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(26,111,196,.06));border:1px solid rgba(139,92,246,.2);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:8px">⚡ PRESETS RÁPIDOS</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="ucPresets"></div>
+          <div style="font-size:10.5px;color:var(--txt3);margin-top:8px">Clique em um preset para preencher automaticamente as permissões abaixo</div>
+        </div>
+
+        <!-- Módulos visíveis -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600">📋 MÓDULOS VISÍVEIS NO MENU</div>
+            <div style="font-size:11px"><a href="#" onclick="event.preventDefault();ucToggleAll('vis',true)" style="color:var(--blue)">Marcar todos</a> · <a href="#" onclick="event.preventDefault();ucToggleAll('vis',false)" style="color:var(--blue)">Desmarcar</a></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="ucModulosVis"></div>
+        </div>
+
+        <!-- Permissão de edição -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">✏️ MÓDULOS QUE PODE EDITAR</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="ucPodeEditar"></div>
+          <div style="font-size:10.5px;color:var(--txt3);margin-top:8px">⚠️ Sem essas permissões, o usuário só visualiza dados (read-only)</div>
+        </div>
+
+        <!-- Permissões especiais -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">🔐 PERMISSÕES ESPECIAIS</div>
+          <div style="display:grid;grid-template-columns:1fr;gap:6px" id="ucPermissoes"></div>
+        </div>
+
+        <!-- Mensagem de boas-vindas -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:8px">💬 MENSAGEM DE BOAS-VINDAS (OPCIONAL)</div>
+          <textarea class="fin" id="ucMsg" rows="2" placeholder="Ex: Bem-vindo! Qualquer dúvida fale com Maria do financeiro." style="width:100%">${d.mensagemBemVindo||''}</textarea>
+        </div>
+
+      </div>
+      <div class="m-ft">
+        <button class="btn" onclick="fecharModalUC()">Cancelar</button>
+        <div style="flex:1"></div>
+        <button class="btn primary" onclick="salvarUserCliente()" id="btnSalvarUC">${isEdit?'Salvar alterações':'Criar usuário'}</button>
+      </div>
+    </div>
+  </div>`;
+
+  let modal = document.getElementById('ovUserCliente');
+  if (modal) modal.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // Renderizar checkboxes
+  renderCheckboxesUC('ucModulosVis', MODULOS_LIST, d.modulosVisiveis||{}, 'vis');
+  renderCheckboxesUC('ucPodeEditar', MODULOS_LIST.filter(m=>MODULOS_EDITAVEIS.includes(m.key)), d.podeEditar||{}, 'edit');
+  renderCheckboxesUC('ucPermissoes',  PERMISSOES_LIST, d.permissoes||{}, 'perm');
+
+  // Renderizar presets
+  document.getElementById('ucPresets').innerHTML = Object.entries(presetsCache||{}).map(([k,p])=>
+    `<button class="btn sm" style="font-size:11px" onclick="aplicarPresetUC('${k}')" title="${p.descricao}">⚡ ${p.nome}</button>`
+  ).join('');
+}
+
+function renderCheckboxesUC(elId, lista, valores, prefix){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = lista.map(item => {
+    const checked = valores[item.key] ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:12px;color:var(--txt2);transition:all .12s" onmouseover="this.style.borderColor='var(--bd2)'" onmouseout="this.style.borderColor='var(--bd)'">
+      <input type="checkbox" ${checked} data-key="${item.key}" data-prefix="${prefix}" style="width:14px;height:14px;cursor:pointer">
+      <span style="flex:1">${item.lbl}</span>
+      ${item.desc?`<span style="font-size:10px;color:var(--txt3)">${item.desc}</span>`:''}
+    </label>`;
+  }).join('');
+}
+
+function ucToggleAll(prefix, valor){
+  document.querySelectorAll(`input[data-prefix="${prefix}"]`).forEach(c => c.checked = valor);
+}
+
+function aplicarPresetUC(key){
+  const p = presetsCache[key];
+  if (!p) return;
+  document.querySelectorAll('input[data-prefix="vis"]').forEach(c => c.checked = !!p.modulosVisiveis[c.dataset.key]);
+  document.querySelectorAll('input[data-prefix="edit"]').forEach(c => c.checked = !!p.podeEditar[c.dataset.key]);
+  document.querySelectorAll('input[data-prefix="perm"]').forEach(c => c.checked = !!p.permissoes[c.dataset.key]);
+  ui.toast('✅', `Preset "${p.nome}" aplicado`);
+}
+
+function fecharModalUC(){
+  const m = document.getElementById('ovUserCliente');
+  if (m) m.remove();
+  editandoUserCliente = null;
+}
+
+async function salvarUserCliente(){
+  const nome = document.getElementById('ucNome').value.trim();
+  const email = document.getElementById('ucEmail').value.trim();
+  const senha = document.getElementById('ucSenha').value;
+  const cargo = document.getElementById('ucCargo').value.trim();
+  const cpf = document.getElementById('ucCPF').value.trim();
+  const tel = document.getElementById('ucTel').value.trim();
+  const msg = document.getElementById('ucMsg').value.trim();
+  const isEdit = !!editandoUserCliente;
+  const ativo = document.getElementById('ucAtivo')?.checked;
+
+  if (!nome || !email) { ui.toast('⚠️','Nome e e-mail são obrigatórios'); return; }
+  if (!isEdit && (!senha || senha.length < 6)) { ui.toast('⚠️','Senha mínima de 6 caracteres'); return; }
+
+  const collect = (prefix) => {
+    const obj = {};
+    document.querySelectorAll(`input[data-prefix="${prefix}"]`).forEach(c => obj[c.dataset.key] = c.checked);
+    return obj;
+  };
+
+  const data = {
+    name: nome,
+    email: email,
+    cargo, cpf, telefone: tel,
+    clienteConfig: {
+      modulosVisiveis: collect('vis'),
+      podeEditar: collect('edit'),
+      permissoes: collect('perm'),
+      mensagemBemVindo: msg,
+    },
+  };
+  if (senha) data.password = senha;
+
+  if (isEdit) {
+    data._id = editandoUserCliente._id;
+    if (ativo !== undefined) data.active = ativo;
+  } else {
+    // Pegar empresa do data-attribute
+    const modal = document.getElementById('ovUserCliente');
+    const cid = modal?.getAttribute('data-company');
+    if (!cid) { ui.toast('⚠️','Selecione a empresa antes'); return; }
+    data.company = cid;
+  }
+
+  document.getElementById('btnSalvarUC').disabled = true;
+  document.getElementById('btnSalvarUC').textContent = 'Salvando...';
+
+  const r = await API.centralGestao.gerenciarUsuario(data);
+  if (r?.success) {
+    ui.toast('✅', isEdit?'Usuário atualizado':'Usuário criado');
+    fecharModalUC();
+    loadPermissoes();
+  } else {
+    ui.toast('❌', r?.message || 'Erro ao salvar');
+    document.getElementById('btnSalvarUC').disabled = false;
+    document.getElementById('btnSalvarUC').textContent = isEdit?'Salvar alterações':'Criar usuário';
+  }
+}
+
+async function removerUsuarioCliente(uid, nome){
+  if (!confirm(`Remover o usuário "${nome}"?\n\nEle perderá acesso ao portal imediatamente.`)) return;
+  const r = await API.centralGestao.removerUsuario(uid);
+  if (r?.success) { ui.toast('✅','Usuário removido'); loadPermissoes(); }
+  else ui.toast('❌', r?.message || 'Erro');
+}
+
+async function resetarSenhaUsuario(uid, nome){
+  const novaSenha = prompt(`Nova senha para "${nome}":\n(mínimo 6 caracteres)`);
+  if (!novaSenha) return;
+  if (novaSenha.length < 6) { ui.toast('⚠️','Senha muito curta'); return; }
+  const r = await API.centralGestao.resetarSenha(uid, { novaSenha });
+  if (r?.success) ui.toast('✅', `Senha resetada para "${nome}"`);
+  else ui.toast('❌', r?.message || 'Erro');
+}
+
+</script><script src="/js/api.js">
+// ═══════════════════════════════════════════════════════════
+// PERMISSÕES DO PORTAL DO CLIENTE
+// ═══════════════════════════════════════════════════════════
+let allEmpresasPerm = [];
+let presetsCache = null;
+let editandoUserCliente = null;
+
+const MODULOS_LIST = [
+  {key:'inicio',         lbl:'🏠 Início',          desc:'Tela de boas-vindas'},
+  {key:'obrigacoes',     lbl:'📋 Obrigações',      desc:'Obrigações fiscais'},
+  {key:'honorarios',     lbl:'💰 Honorários',      desc:'Histórico de pagamentos'},
+  {key:'bpo',            lbl:'💳 BPO Financeiro',  desc:'Contas a pagar/receber'},
+  {key:'folha',          lbl:'👥 Folha',           desc:'Folha de pagamento'},
+  {key:'documentos',     lbl:'📄 Documentos',      desc:'Relatórios e documentos'},
+  {key:'demonstrativos', lbl:'📊 Demonstrativos',  desc:'BP, DRE, DFC'},
+  {key:'auditoria',      lbl:'🔍 Auditoria',       desc:'Relatórios de auditoria'},
+  {key:'consultorias',   lbl:'💡 Consultorias',    desc:'Consultorias contratadas'},
+  {key:'escrituracao',   lbl:'📚 Escrituração',    desc:'Livros contábeis'},
+  {key:'fpa',            lbl:'📈 FP&A',            desc:'Cenários e orçamentos'},
+  {key:'controladoria',  lbl:'🎛️ Controladoria',  desc:'Indicadores gerenciais'},
+  {key:'mensagens',      lbl:'💬 Mensagens',       desc:'Chat com escritório'},
+];
+
+const MODULOS_EDITAVEIS = ['bpo','obrigacoes','folha','documentos'];
+
+const PERMISSOES_LIST = [
+  {key:'verValoresFinanceiros', lbl:'💵 Ver valores financeiros'},
+  {key:'baixarRelatorios',      lbl:'⬇️ Baixar relatórios'},
+  {key:'enviarMensagens',       lbl:'✉️ Enviar mensagens ao escritório'},
+  {key:'verHolerites',          lbl:'📑 Ver holerites de funcionários'},
+  {key:'aprovarLancamentos',    lbl:'✅ Aprovar lançamentos'},
+];
+
+async function loadPermissoes(){
+  const r = await API.centralGestao.listarEmpresas();
+  if (!r?.success) {
+    document.getElementById('permLista').innerHTML = '<div class="empty"><div class="empty-t" style="color:var(--red)">Erro ao carregar empresas</div></div>';
+    return;
+  }
+  allEmpresasPerm = r.empresas || [];
+  if (!presetsCache) {
+    const p = await API.centralGestao.presets();
+    presetsCache = p?.presets || {};
+  }
+  renderPermissoes();
+}
+
+function renderPermissoes(){
+  const search = (document.getElementById('permSearch')?.value || '').toLowerCase().trim();
+  const filtro = document.getElementById('permFiltro')?.value || '';
+
+  let lista = allEmpresasPerm.filter(e => {
+    const nome = (e.company.tradeName || e.company.legalName || '').toLowerCase();
+    const cnpj = (e.company.cnpj || '').toLowerCase();
+    if (search && !nome.includes(search) && !cnpj.includes(search)) {
+      const userMatch = (e.usuarios||[]).some(u => (u.name||'').toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search));
+      if (!userMatch) return false;
+    }
+    if (filtro === 'com' && e.totalUsuarios === 0) return false;
+    if (filtro === 'sem' && e.totalUsuarios > 0) return false;
+    return true;
+  });
+
+  // KPIs
+  const totalEmp = allEmpresasPerm.length;
+  const empCom = allEmpresasPerm.filter(e=>e.totalUsuarios>0).length;
+  const totalUsuarios = allEmpresasPerm.reduce((a,e)=>a+e.totalUsuarios,0);
+  const totalAtivos = allEmpresasPerm.reduce((a,e)=>a+e.ativos,0);
+
+  document.getElementById('permKpis').innerHTML = [
+    {l:'EMPRESAS',v:totalEmp,s:`${empCom} com acesso`,c:'var(--blue)'},
+    {l:'USUÁRIOS PORTAL',v:totalUsuarios,s:`${totalAtivos} ativos`,c:'var(--green)'},
+    {l:'SEM ACESSO',v:totalEmp-empCom,s:'oportunidade',c:'var(--amber)'},
+    {l:'COBERTURA',v:totalEmp?Math.round(empCom/totalEmp*100)+'%':'0%',s:'empresas com portal',c:'var(--purple)'},
+  ].map(k => `<div class="card" style="padding:14px 16px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);margin-bottom:4px">${k.l}</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:${k.c}">${k.v}</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">${k.s}</div></div>`).join('');
+
+  // Lista de empresas
+  if (!lista.length){
+    document.getElementById('permLista').innerHTML = '<div class="empty"><div class="empty-ic">🔍</div><div class="empty-t">Nenhuma empresa encontrada</div></div>';
+    return;
+  }
+
+  document.getElementById('permLista').innerHTML = lista.map(e => {
+    const co = e.company;
+    const users = e.usuarios || [];
+    const expandKey = 'exp_'+co._id;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="togglePermEmp('${co._id}')">
+        <div style="width:42px;height:42px;border-radius:10px;background:rgba(26,111,196,.12);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;color:var(--blue);font-size:14px">${(co.tradeName||co.legalName||'?').substring(0,2).toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${co.tradeName || co.legalName}</div>
+          <div style="font-size:11.5px;color:var(--txt3)">${formatCNPJ(co.cnpj)} · ${users.length} usuário(s)${users.length?` · ${e.ativos} ativos`:''}</div>
+        </div>
+        ${users.length === 0 ? '<span class="tb-badge amber">Sem acesso</span>' : `<span class="tb-badge green">${users.length} usuário(s)</span>`}
+        <button class="btn primary sm" onclick="event.stopPropagation();abrirNovoUsuarioCliente('${co._id}')">+ Usuário</button>
+        <span style="font-size:14px;color:var(--txt3);transform:rotate(0deg);transition:transform .2s" id="${expandKey}_arrow">▼</span>
+      </div>
+      <div id="${expandKey}" style="display:none;border-top:1px solid var(--bd);padding:14px 18px;background:rgba(0,0,0,.15)">
+        ${users.length ? users.map(u => renderCardUsuarioCliente(u, co._id)).join('') :
+          `<div style="text-align:center;padding:24px;color:var(--txt3);font-size:12px">
+            <div style="font-size:28px;margin-bottom:8px">👥</div>
+            Nenhum usuário cadastrado para esta empresa.<br>
+            <button class="btn primary sm" style="margin-top:10px" onclick="abrirNovoUsuarioCliente('${co._id}')">+ Cadastrar primeiro usuário</button>
+          </div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePermEmp(cid){
+  const el = document.getElementById('exp_'+cid);
+  const ar = document.getElementById('exp_'+cid+'_arrow');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (ar) ar.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function renderCardUsuarioCliente(u, cid){
+  const cfg = u.clienteConfig || {};
+  const modulosVis = Object.entries(cfg.modulosVisiveis||{}).filter(([_,v])=>v).length;
+  const editaveis = Object.entries(cfg.podeEditar||{}).filter(([_,v])=>v).length;
+  const ini = (u.name||'?').substring(0,2).toUpperCase();
+  const cor = u.active ? 'var(--green)' : 'var(--txt3)';
+  return `<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+    <div style="width:34px;height:34px;border-radius:50%;background:${u.active?'rgba(0,201,167,.15)':'rgba(90,122,150,.15)'};display:flex;align-items:center;justify-content:center;font-weight:700;color:${cor};font-size:12px">${ini}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600;color:var(--txt)">${u.name}</span>
+        ${u.cargo ? `<span class="tb-badge blue" style="font-size:9px">${u.cargo}</span>` : ''}
+        ${!u.active ? '<span class="tb-badge red" style="font-size:9px">INATIVO</span>' : ''}
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:2px">${u.email}</div>
+      <div style="font-size:10.5px;color:var(--txt3);margin-top:3px">📋 ${modulosVis} módulos visíveis · ✏️ ${editaveis} editáveis</div>
+    </div>
+    <button class="btn sm" onclick="editarUsuarioCliente('${u._id}','${cid}')">⚙️ Editar</button>
+    <button class="btn sm" onclick="resetarSenhaUsuario('${u._id}','${u.name.replace(/'/g,"\\'")}')">🔑</button>
+    <button class="btn sm" onclick="removerUsuarioCliente('${u._id}','${u.name.replace(/'/g,"\\'")}')" style="color:var(--red)">🗑️</button>
+  </div>`;
+}
+
+function formatCNPJ(c){
+  if (!c) return '—';
+  const v = c.replace(/\D/g,'');
+  if (v.length !== 14) return c;
+  return `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8,12)}-${v.slice(12)}`;
+}
+
+// ── MODAL: criar/editar usuário cliente ──────────────────────
+function abrirNovoUsuarioCliente(companyId){
+  editandoUserCliente = null;
+  abrirModalUserCliente({ company: companyId, modulosVisiveis:{inicio:true,obrigacoes:true,honorarios:true,documentos:true,mensagens:true}, podeEditar:{}, permissoes:{verValoresFinanceiros:true,baixarRelatorios:true,enviarMensagens:true} });
+}
+
+async function editarUsuarioCliente(uid, cid){
+  // Encontrar usuário no cache
+  let user = null;
+  for (const e of allEmpresasPerm) {
+    user = (e.usuarios||[]).find(u=>u._id===uid);
+    if (user) break;
+  }
+  if (!user) { ui.toast('❌','Usuário não encontrado'); return; }
+  editandoUserCliente = user;
+  abrirModalUserCliente({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    cargo: user.cargo || '',
+    cpf: user.cpf || '',
+    telefone: user.telefone || '',
+    company: cid,
+    active: user.active,
+    modulosVisiveis: user.clienteConfig?.modulosVisiveis || {},
+    podeEditar: user.clienteConfig?.podeEditar || {},
+    permissoes: user.clienteConfig?.permissoes || {},
+    mensagemBemVindo: user.clienteConfig?.mensagemBemVindo || '',
+  });
+}
+
+function abrirModalUserCliente(d){
+  const isEdit = !!d._id;
+  const empresa = allEmpresasPerm.find(e => e.company._id === d.company)?.company;
+
+  const html = `
+  <div class="ov open" id="ovUserCliente" data-company="${d.company||''}" onclick="if(event.target===this)fecharModalUC()">
+    <div class="modal xl" style="max-height:92vh;display:flex;flex-direction:column">
+      <div class="m-top">
+        <div class="m-ico pu">${isEdit?'⚙️':'➕'}</div>
+        <div class="m-hi">
+          <div class="m-tg">${isEdit?'EDITANDO':'CRIANDO'}</div>
+          <div class="m-tt">${isEdit?'Editar Usuário':'Novo Usuário do Portal'}</div>
+          <div class="m-st">${empresa?(empresa.tradeName||empresa.legalName):'Selecione uma empresa'}</div>
+        </div>
+        <button class="m-cl" onclick="fecharModalUC()">×</button>
+      </div>
+      <div class="m-bd" style="overflow-y:auto;flex:1">
+
+        <!-- Dados básicos -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">DADOS DO USUÁRIO</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label class="fbl">Nome completo *</label><input class="fin" id="ucNome" value="${d.name||''}"></div>
+            <div><label class="fbl">Cargo / Função</label><input class="fin" id="ucCargo" placeholder="Ex: Dono, Financeiro, RH" value="${d.cargo||''}"></div>
+            <div><label class="fbl">E-mail *</label><input class="fin" type="email" id="ucEmail" value="${d.email||''}"></div>
+            <div><label class="fbl">${isEdit?'Nova senha (deixe em branco para manter)':'Senha *'}</label><input class="fin" type="password" id="ucSenha" placeholder="${isEdit?'••••••••':'Mínimo 6 caracteres'}"></div>
+            <div><label class="fbl">CPF</label><input class="fin" id="ucCPF" value="${d.cpf||''}"></div>
+            <div><label class="fbl">Telefone</label><input class="fin" id="ucTel" value="${d.telefone||''}"></div>
+          </div>
+          ${isEdit?`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px;background:var(--bg3);border-radius:6px"><input type="checkbox" id="ucAtivo" ${d.active!==false?'checked':''}><label for="ucAtivo" style="font-size:12px;color:var(--txt2)">Usuário ativo (pode fazer login)</label></div>`:''}
+        </div>
+
+        <!-- Presets rápidos -->
+        <div style="background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(26,111,196,.06));border:1px solid rgba(139,92,246,.2);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:8px">⚡ PRESETS RÁPIDOS</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="ucPresets"></div>
+          <div style="font-size:10.5px;color:var(--txt3);margin-top:8px">Clique em um preset para preencher automaticamente as permissões abaixo</div>
+        </div>
+
+        <!-- Módulos visíveis -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600">📋 MÓDULOS VISÍVEIS NO MENU</div>
+            <div style="font-size:11px"><a href="#" onclick="event.preventDefault();ucToggleAll('vis',true)" style="color:var(--blue)">Marcar todos</a> · <a href="#" onclick="event.preventDefault();ucToggleAll('vis',false)" style="color:var(--blue)">Desmarcar</a></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="ucModulosVis"></div>
+        </div>
+
+        <!-- Permissão de edição -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">✏️ MÓDULOS QUE PODE EDITAR</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="ucPodeEditar"></div>
+          <div style="font-size:10.5px;color:var(--txt3);margin-top:8px">⚠️ Sem essas permissões, o usuário só visualiza dados (read-only)</div>
+        </div>
+
+        <!-- Permissões especiais -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">🔐 PERMISSÕES ESPECIAIS</div>
+          <div style="display:grid;grid-template-columns:1fr;gap:6px" id="ucPermissoes"></div>
+        </div>
+
+        <!-- Mensagem de boas-vindas -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:8px">💬 MENSAGEM DE BOAS-VINDAS (OPCIONAL)</div>
+          <textarea class="fin" id="ucMsg" rows="2" placeholder="Ex: Bem-vindo! Qualquer dúvida fale com Maria do financeiro." style="width:100%">${d.mensagemBemVindo||''}</textarea>
+        </div>
+
+      </div>
+      <div class="m-ft">
+        <button class="btn" onclick="fecharModalUC()">Cancelar</button>
+        <div style="flex:1"></div>
+        <button class="btn primary" onclick="salvarUserCliente()" id="btnSalvarUC">${isEdit?'Salvar alterações':'Criar usuário'}</button>
+      </div>
+    </div>
+  </div>`;
+
+  let modal = document.getElementById('ovUserCliente');
+  if (modal) modal.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // Renderizar checkboxes
+  renderCheckboxesUC('ucModulosVis', MODULOS_LIST, d.modulosVisiveis||{}, 'vis');
+  renderCheckboxesUC('ucPodeEditar', MODULOS_LIST.filter(m=>MODULOS_EDITAVEIS.includes(m.key)), d.podeEditar||{}, 'edit');
+  renderCheckboxesUC('ucPermissoes',  PERMISSOES_LIST, d.permissoes||{}, 'perm');
+
+  // Renderizar presets
+  document.getElementById('ucPresets').innerHTML = Object.entries(presetsCache||{}).map(([k,p])=>
+    `<button class="btn sm" style="font-size:11px" onclick="aplicarPresetUC('${k}')" title="${p.descricao}">⚡ ${p.nome}</button>`
+  ).join('');
+}
+
+function renderCheckboxesUC(elId, lista, valores, prefix){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = lista.map(item => {
+    const checked = valores[item.key] ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:12px;color:var(--txt2);transition:all .12s" onmouseover="this.style.borderColor='var(--bd2)'" onmouseout="this.style.borderColor='var(--bd)'">
+      <input type="checkbox" ${checked} data-key="${item.key}" data-prefix="${prefix}" style="width:14px;height:14px;cursor:pointer">
+      <span style="flex:1">${item.lbl}</span>
+      ${item.desc?`<span style="font-size:10px;color:var(--txt3)">${item.desc}</span>`:''}
+    </label>`;
+  }).join('');
+}
+
+function ucToggleAll(prefix, valor){
+  document.querySelectorAll(`input[data-prefix="${prefix}"]`).forEach(c => c.checked = valor);
+}
+
+function aplicarPresetUC(key){
+  const p = presetsCache[key];
+  if (!p) return;
+  document.querySelectorAll('input[data-prefix="vis"]').forEach(c => c.checked = !!p.modulosVisiveis[c.dataset.key]);
+  document.querySelectorAll('input[data-prefix="edit"]').forEach(c => c.checked = !!p.podeEditar[c.dataset.key]);
+  document.querySelectorAll('input[data-prefix="perm"]').forEach(c => c.checked = !!p.permissoes[c.dataset.key]);
+  ui.toast('✅', `Preset "${p.nome}" aplicado`);
+}
+
+function fecharModalUC(){
+  const m = document.getElementById('ovUserCliente');
+  if (m) m.remove();
+  editandoUserCliente = null;
+}
+
+async function salvarUserCliente(){
+  const nome = document.getElementById('ucNome').value.trim();
+  const email = document.getElementById('ucEmail').value.trim();
+  const senha = document.getElementById('ucSenha').value;
+  const cargo = document.getElementById('ucCargo').value.trim();
+  const cpf = document.getElementById('ucCPF').value.trim();
+  const tel = document.getElementById('ucTel').value.trim();
+  const msg = document.getElementById('ucMsg').value.trim();
+  const isEdit = !!editandoUserCliente;
+  const ativo = document.getElementById('ucAtivo')?.checked;
+
+  if (!nome || !email) { ui.toast('⚠️','Nome e e-mail são obrigatórios'); return; }
+  if (!isEdit && (!senha || senha.length < 6)) { ui.toast('⚠️','Senha mínima de 6 caracteres'); return; }
+
+  const collect = (prefix) => {
+    const obj = {};
+    document.querySelectorAll(`input[data-prefix="${prefix}"]`).forEach(c => obj[c.dataset.key] = c.checked);
+    return obj;
+  };
+
+  const data = {
+    name: nome,
+    email: email,
+    cargo, cpf, telefone: tel,
+    clienteConfig: {
+      modulosVisiveis: collect('vis'),
+      podeEditar: collect('edit'),
+      permissoes: collect('perm'),
+      mensagemBemVindo: msg,
+    },
+  };
+  if (senha) data.password = senha;
+
+  if (isEdit) {
+    data._id = editandoUserCliente._id;
+    if (ativo !== undefined) data.active = ativo;
+  } else {
+    // Pegar empresa do data-attribute
+    const modal = document.getElementById('ovUserCliente');
+    const cid = modal?.getAttribute('data-company');
+    if (!cid) { ui.toast('⚠️','Selecione a empresa antes'); return; }
+    data.company = cid;
+  }
+
+  document.getElementById('btnSalvarUC').disabled = true;
+  document.getElementById('btnSalvarUC').textContent = 'Salvando...';
+
+  const r = await API.centralGestao.gerenciarUsuario(data);
+  if (r?.success) {
+    ui.toast('✅', isEdit?'Usuário atualizado':'Usuário criado');
+    fecharModalUC();
+    loadPermissoes();
+  } else {
+    ui.toast('❌', r?.message || 'Erro ao salvar');
+    document.getElementById('btnSalvarUC').disabled = false;
+    document.getElementById('btnSalvarUC').textContent = isEdit?'Salvar alterações':'Criar usuário';
+  }
+}
+
+async function removerUsuarioCliente(uid, nome){
+  if (!confirm(`Remover o usuário "${nome}"?\n\nEle perderá acesso ao portal imediatamente.`)) return;
+  const r = await API.centralGestao.removerUsuario(uid);
+  if (r?.success) { ui.toast('✅','Usuário removido'); loadPermissoes(); }
+  else ui.toast('❌', r?.message || 'Erro');
+}
+
+async function resetarSenhaUsuario(uid, nome){
+  const novaSenha = prompt(`Nova senha para "${nome}":\n(mínimo 6 caracteres)`);
+  if (!novaSenha) return;
+  if (novaSenha.length < 6) { ui.toast('⚠️','Senha muito curta'); return; }
+  const r = await API.centralGestao.resetarSenha(uid, { novaSenha });
+  if (r?.success) ui.toast('✅', `Senha resetada para "${nome}"`);
+  else ui.toast('❌', r?.message || 'Erro');
+}
+
+</script><script src="/js/ui.js">
+// ═══════════════════════════════════════════════════════════
+// PERMISSÕES DO PORTAL DO CLIENTE
+// ═══════════════════════════════════════════════════════════
+let allEmpresasPerm = [];
+let presetsCache = null;
+let editandoUserCliente = null;
+
+const MODULOS_LIST = [
+  {key:'inicio',         lbl:'🏠 Início',          desc:'Tela de boas-vindas'},
+  {key:'obrigacoes',     lbl:'📋 Obrigações',      desc:'Obrigações fiscais'},
+  {key:'honorarios',     lbl:'💰 Honorários',      desc:'Histórico de pagamentos'},
+  {key:'bpo',            lbl:'💳 BPO Financeiro',  desc:'Contas a pagar/receber'},
+  {key:'folha',          lbl:'👥 Folha',           desc:'Folha de pagamento'},
+  {key:'documentos',     lbl:'📄 Documentos',      desc:'Relatórios e documentos'},
+  {key:'demonstrativos', lbl:'📊 Demonstrativos',  desc:'BP, DRE, DFC'},
+  {key:'auditoria',      lbl:'🔍 Auditoria',       desc:'Relatórios de auditoria'},
+  {key:'consultorias',   lbl:'💡 Consultorias',    desc:'Consultorias contratadas'},
+  {key:'escrituracao',   lbl:'📚 Escrituração',    desc:'Livros contábeis'},
+  {key:'fpa',            lbl:'📈 FP&A',            desc:'Cenários e orçamentos'},
+  {key:'controladoria',  lbl:'🎛️ Controladoria',  desc:'Indicadores gerenciais'},
+  {key:'mensagens',      lbl:'💬 Mensagens',       desc:'Chat com escritório'},
+];
+
+const MODULOS_EDITAVEIS = ['bpo','obrigacoes','folha','documentos'];
+
+const PERMISSOES_LIST = [
+  {key:'verValoresFinanceiros', lbl:'💵 Ver valores financeiros'},
+  {key:'baixarRelatorios',      lbl:'⬇️ Baixar relatórios'},
+  {key:'enviarMensagens',       lbl:'✉️ Enviar mensagens ao escritório'},
+  {key:'verHolerites',          lbl:'📑 Ver holerites de funcionários'},
+  {key:'aprovarLancamentos',    lbl:'✅ Aprovar lançamentos'},
+];
+
+async function loadPermissoes(){
+  const r = await API.centralGestao.listarEmpresas();
+  if (!r?.success) {
+    document.getElementById('permLista').innerHTML = '<div class="empty"><div class="empty-t" style="color:var(--red)">Erro ao carregar empresas</div></div>';
+    return;
+  }
+  allEmpresasPerm = r.empresas || [];
+  if (!presetsCache) {
+    const p = await API.centralGestao.presets();
+    presetsCache = p?.presets || {};
+  }
+  renderPermissoes();
+}
+
+function renderPermissoes(){
+  const search = (document.getElementById('permSearch')?.value || '').toLowerCase().trim();
+  const filtro = document.getElementById('permFiltro')?.value || '';
+
+  let lista = allEmpresasPerm.filter(e => {
+    const nome = (e.company.tradeName || e.company.legalName || '').toLowerCase();
+    const cnpj = (e.company.cnpj || '').toLowerCase();
+    if (search && !nome.includes(search) && !cnpj.includes(search)) {
+      const userMatch = (e.usuarios||[]).some(u => (u.name||'').toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search));
+      if (!userMatch) return false;
+    }
+    if (filtro === 'com' && e.totalUsuarios === 0) return false;
+    if (filtro === 'sem' && e.totalUsuarios > 0) return false;
+    return true;
+  });
+
+  // KPIs
+  const totalEmp = allEmpresasPerm.length;
+  const empCom = allEmpresasPerm.filter(e=>e.totalUsuarios>0).length;
+  const totalUsuarios = allEmpresasPerm.reduce((a,e)=>a+e.totalUsuarios,0);
+  const totalAtivos = allEmpresasPerm.reduce((a,e)=>a+e.ativos,0);
+
+  document.getElementById('permKpis').innerHTML = [
+    {l:'EMPRESAS',v:totalEmp,s:`${empCom} com acesso`,c:'var(--blue)'},
+    {l:'USUÁRIOS PORTAL',v:totalUsuarios,s:`${totalAtivos} ativos`,c:'var(--green)'},
+    {l:'SEM ACESSO',v:totalEmp-empCom,s:'oportunidade',c:'var(--amber)'},
+    {l:'COBERTURA',v:totalEmp?Math.round(empCom/totalEmp*100)+'%':'0%',s:'empresas com portal',c:'var(--purple)'},
+  ].map(k => `<div class="card" style="padding:14px 16px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);margin-bottom:4px">${k.l}</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:${k.c}">${k.v}</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">${k.s}</div></div>`).join('');
+
+  // Lista de empresas
+  if (!lista.length){
+    document.getElementById('permLista').innerHTML = '<div class="empty"><div class="empty-ic">🔍</div><div class="empty-t">Nenhuma empresa encontrada</div></div>';
+    return;
+  }
+
+  document.getElementById('permLista').innerHTML = lista.map(e => {
+    const co = e.company;
+    const users = e.usuarios || [];
+    const expandKey = 'exp_'+co._id;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="togglePermEmp('${co._id}')">
+        <div style="width:42px;height:42px;border-radius:10px;background:rgba(26,111,196,.12);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;color:var(--blue);font-size:14px">${(co.tradeName||co.legalName||'?').substring(0,2).toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${co.tradeName || co.legalName}</div>
+          <div style="font-size:11.5px;color:var(--txt3)">${formatCNPJ(co.cnpj)} · ${users.length} usuário(s)${users.length?` · ${e.ativos} ativos`:''}</div>
+        </div>
+        ${users.length === 0 ? '<span class="tb-badge amber">Sem acesso</span>' : `<span class="tb-badge green">${users.length} usuário(s)</span>`}
+        <button class="btn primary sm" onclick="event.stopPropagation();abrirNovoUsuarioCliente('${co._id}')">+ Usuário</button>
+        <span style="font-size:14px;color:var(--txt3);transform:rotate(0deg);transition:transform .2s" id="${expandKey}_arrow">▼</span>
+      </div>
+      <div id="${expandKey}" style="display:none;border-top:1px solid var(--bd);padding:14px 18px;background:rgba(0,0,0,.15)">
+        ${users.length ? users.map(u => renderCardUsuarioCliente(u, co._id)).join('') :
+          `<div style="text-align:center;padding:24px;color:var(--txt3);font-size:12px">
+            <div style="font-size:28px;margin-bottom:8px">👥</div>
+            Nenhum usuário cadastrado para esta empresa.<br>
+            <button class="btn primary sm" style="margin-top:10px" onclick="abrirNovoUsuarioCliente('${co._id}')">+ Cadastrar primeiro usuário</button>
+          </div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePermEmp(cid){
+  const el = document.getElementById('exp_'+cid);
+  const ar = document.getElementById('exp_'+cid+'_arrow');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (ar) ar.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function renderCardUsuarioCliente(u, cid){
+  const cfg = u.clienteConfig || {};
+  const modulosVis = Object.entries(cfg.modulosVisiveis||{}).filter(([_,v])=>v).length;
+  const editaveis = Object.entries(cfg.podeEditar||{}).filter(([_,v])=>v).length;
+  const ini = (u.name||'?').substring(0,2).toUpperCase();
+  const cor = u.active ? 'var(--green)' : 'var(--txt3)';
+  return `<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+    <div style="width:34px;height:34px;border-radius:50%;background:${u.active?'rgba(0,201,167,.15)':'rgba(90,122,150,.15)'};display:flex;align-items:center;justify-content:center;font-weight:700;color:${cor};font-size:12px">${ini}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600;color:var(--txt)">${u.name}</span>
+        ${u.cargo ? `<span class="tb-badge blue" style="font-size:9px">${u.cargo}</span>` : ''}
+        ${!u.active ? '<span class="tb-badge red" style="font-size:9px">INATIVO</span>' : ''}
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:2px">${u.email}</div>
+      <div style="font-size:10.5px;color:var(--txt3);margin-top:3px">📋 ${modulosVis} módulos visíveis · ✏️ ${editaveis} editáveis</div>
+    </div>
+    <button class="btn sm" onclick="editarUsuarioCliente('${u._id}','${cid}')">⚙️ Editar</button>
+    <button class="btn sm" onclick="resetarSenhaUsuario('${u._id}','${u.name.replace(/'/g,"\\'")}')">🔑</button>
+    <button class="btn sm" onclick="removerUsuarioCliente('${u._id}','${u.name.replace(/'/g,"\\'")}')" style="color:var(--red)">🗑️</button>
+  </div>`;
+}
+
+function formatCNPJ(c){
+  if (!c) return '—';
+  const v = c.replace(/\D/g,'');
+  if (v.length !== 14) return c;
+  return `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8,12)}-${v.slice(12)}`;
+}
+
+// ── MODAL: criar/editar usuário cliente ──────────────────────
+function abrirNovoUsuarioCliente(companyId){
+  editandoUserCliente = null;
+  abrirModalUserCliente({ company: companyId, modulosVisiveis:{inicio:true,obrigacoes:true,honorarios:true,documentos:true,mensagens:true}, podeEditar:{}, permissoes:{verValoresFinanceiros:true,baixarRelatorios:true,enviarMensagens:true} });
+}
+
+async function editarUsuarioCliente(uid, cid){
+  // Encontrar usuário no cache
+  let user = null;
+  for (const e of allEmpresasPerm) {
+    user = (e.usuarios||[]).find(u=>u._id===uid);
+    if (user) break;
+  }
+  if (!user) { ui.toast('❌','Usuário não encontrado'); return; }
+  editandoUserCliente = user;
+  abrirModalUserCliente({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    cargo: user.cargo || '',
+    cpf: user.cpf || '',
+    telefone: user.telefone || '',
+    company: cid,
+    active: user.active,
+    modulosVisiveis: user.clienteConfig?.modulosVisiveis || {},
+    podeEditar: user.clienteConfig?.podeEditar || {},
+    permissoes: user.clienteConfig?.permissoes || {},
+    mensagemBemVindo: user.clienteConfig?.mensagemBemVindo || '',
+  });
+}
+
+function abrirModalUserCliente(d){
+  const isEdit = !!d._id;
+  const empresa = allEmpresasPerm.find(e => e.company._id === d.company)?.company;
+
+  const html = `
+  <div class="ov open" id="ovUserCliente" data-company="${d.company||''}" onclick="if(event.target===this)fecharModalUC()">
+    <div class="modal xl" style="max-height:92vh;display:flex;flex-direction:column">
+      <div class="m-top">
+        <div class="m-ico pu">${isEdit?'⚙️':'➕'}</div>
+        <div class="m-hi">
+          <div class="m-tg">${isEdit?'EDITANDO':'CRIANDO'}</div>
+          <div class="m-tt">${isEdit?'Editar Usuário':'Novo Usuário do Portal'}</div>
+          <div class="m-st">${empresa?(empresa.tradeName||empresa.legalName):'Selecione uma empresa'}</div>
+        </div>
+        <button class="m-cl" onclick="fecharModalUC()">×</button>
+      </div>
+      <div class="m-bd" style="overflow-y:auto;flex:1">
+
+        <!-- Dados básicos -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">DADOS DO USUÁRIO</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label class="fbl">Nome completo *</label><input class="fin" id="ucNome" value="${d.name||''}"></div>
+            <div><label class="fbl">Cargo / Função</label><input class="fin" id="ucCargo" placeholder="Ex: Dono, Financeiro, RH" value="${d.cargo||''}"></div>
+            <div><label class="fbl">E-mail *</label><input class="fin" type="email" id="ucEmail" value="${d.email||''}"></div>
+            <div><label class="fbl">${isEdit?'Nova senha (deixe em branco para manter)':'Senha *'}</label><input class="fin" type="password" id="ucSenha" placeholder="${isEdit?'••••••••':'Mínimo 6 caracteres'}"></div>
+            <div><label class="fbl">CPF</label><input class="fin" id="ucCPF" value="${d.cpf||''}"></div>
+            <div><label class="fbl">Telefone</label><input class="fin" id="ucTel" value="${d.telefone||''}"></div>
+          </div>
+          ${isEdit?`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px;background:var(--bg3);border-radius:6px"><input type="checkbox" id="ucAtivo" ${d.active!==false?'checked':''}><label for="ucAtivo" style="font-size:12px;color:var(--txt2)">Usuário ativo (pode fazer login)</label></div>`:''}
+        </div>
+
+        <!-- Presets rápidos -->
+        <div style="background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(26,111,196,.06));border:1px solid rgba(139,92,246,.2);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:8px">⚡ PRESETS RÁPIDOS</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="ucPresets"></div>
+          <div style="font-size:10.5px;color:var(--txt3);margin-top:8px">Clique em um preset para preencher automaticamente as permissões abaixo</div>
+        </div>
+
+        <!-- Módulos visíveis -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600">📋 MÓDULOS VISÍVEIS NO MENU</div>
+            <div style="font-size:11px"><a href="#" onclick="event.preventDefault();ucToggleAll('vis',true)" style="color:var(--blue)">Marcar todos</a> · <a href="#" onclick="event.preventDefault();ucToggleAll('vis',false)" style="color:var(--blue)">Desmarcar</a></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="ucModulosVis"></div>
+        </div>
+
+        <!-- Permissão de edição -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">✏️ MÓDULOS QUE PODE EDITAR</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="ucPodeEditar"></div>
+          <div style="font-size:10.5px;color:var(--txt3);margin-top:8px">⚠️ Sem essas permissões, o usuário só visualiza dados (read-only)</div>
+        </div>
+
+        <!-- Permissões especiais -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">🔐 PERMISSÕES ESPECIAIS</div>
+          <div style="display:grid;grid-template-columns:1fr;gap:6px" id="ucPermissoes"></div>
+        </div>
+
+        <!-- Mensagem de boas-vindas -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:8px">💬 MENSAGEM DE BOAS-VINDAS (OPCIONAL)</div>
+          <textarea class="fin" id="ucMsg" rows="2" placeholder="Ex: Bem-vindo! Qualquer dúvida fale com Maria do financeiro." style="width:100%">${d.mensagemBemVindo||''}</textarea>
+        </div>
+
+      </div>
+      <div class="m-ft">
+        <button class="btn" onclick="fecharModalUC()">Cancelar</button>
+        <div style="flex:1"></div>
+        <button class="btn primary" onclick="salvarUserCliente()" id="btnSalvarUC">${isEdit?'Salvar alterações':'Criar usuário'}</button>
+      </div>
+    </div>
+  </div>`;
+
+  let modal = document.getElementById('ovUserCliente');
+  if (modal) modal.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // Renderizar checkboxes
+  renderCheckboxesUC('ucModulosVis', MODULOS_LIST, d.modulosVisiveis||{}, 'vis');
+  renderCheckboxesUC('ucPodeEditar', MODULOS_LIST.filter(m=>MODULOS_EDITAVEIS.includes(m.key)), d.podeEditar||{}, 'edit');
+  renderCheckboxesUC('ucPermissoes',  PERMISSOES_LIST, d.permissoes||{}, 'perm');
+
+  // Renderizar presets
+  document.getElementById('ucPresets').innerHTML = Object.entries(presetsCache||{}).map(([k,p])=>
+    `<button class="btn sm" style="font-size:11px" onclick="aplicarPresetUC('${k}')" title="${p.descricao}">⚡ ${p.nome}</button>`
+  ).join('');
+}
+
+function renderCheckboxesUC(elId, lista, valores, prefix){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = lista.map(item => {
+    const checked = valores[item.key] ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:12px;color:var(--txt2);transition:all .12s" onmouseover="this.style.borderColor='var(--bd2)'" onmouseout="this.style.borderColor='var(--bd)'">
+      <input type="checkbox" ${checked} data-key="${item.key}" data-prefix="${prefix}" style="width:14px;height:14px;cursor:pointer">
+      <span style="flex:1">${item.lbl}</span>
+      ${item.desc?`<span style="font-size:10px;color:var(--txt3)">${item.desc}</span>`:''}
+    </label>`;
+  }).join('');
+}
+
+function ucToggleAll(prefix, valor){
+  document.querySelectorAll(`input[data-prefix="${prefix}"]`).forEach(c => c.checked = valor);
+}
+
+function aplicarPresetUC(key){
+  const p = presetsCache[key];
+  if (!p) return;
+  document.querySelectorAll('input[data-prefix="vis"]').forEach(c => c.checked = !!p.modulosVisiveis[c.dataset.key]);
+  document.querySelectorAll('input[data-prefix="edit"]').forEach(c => c.checked = !!p.podeEditar[c.dataset.key]);
+  document.querySelectorAll('input[data-prefix="perm"]').forEach(c => c.checked = !!p.permissoes[c.dataset.key]);
+  ui.toast('✅', `Preset "${p.nome}" aplicado`);
+}
+
+function fecharModalUC(){
+  const m = document.getElementById('ovUserCliente');
+  if (m) m.remove();
+  editandoUserCliente = null;
+}
+
+async function salvarUserCliente(){
+  const nome = document.getElementById('ucNome').value.trim();
+  const email = document.getElementById('ucEmail').value.trim();
+  const senha = document.getElementById('ucSenha').value;
+  const cargo = document.getElementById('ucCargo').value.trim();
+  const cpf = document.getElementById('ucCPF').value.trim();
+  const tel = document.getElementById('ucTel').value.trim();
+  const msg = document.getElementById('ucMsg').value.trim();
+  const isEdit = !!editandoUserCliente;
+  const ativo = document.getElementById('ucAtivo')?.checked;
+
+  if (!nome || !email) { ui.toast('⚠️','Nome e e-mail são obrigatórios'); return; }
+  if (!isEdit && (!senha || senha.length < 6)) { ui.toast('⚠️','Senha mínima de 6 caracteres'); return; }
+
+  const collect = (prefix) => {
+    const obj = {};
+    document.querySelectorAll(`input[data-prefix="${prefix}"]`).forEach(c => obj[c.dataset.key] = c.checked);
+    return obj;
+  };
+
+  const data = {
+    name: nome,
+    email: email,
+    cargo, cpf, telefone: tel,
+    clienteConfig: {
+      modulosVisiveis: collect('vis'),
+      podeEditar: collect('edit'),
+      permissoes: collect('perm'),
+      mensagemBemVindo: msg,
+    },
+  };
+  if (senha) data.password = senha;
+
+  if (isEdit) {
+    data._id = editandoUserCliente._id;
+    if (ativo !== undefined) data.active = ativo;
+  } else {
+    // Pegar empresa do data-attribute
+    const modal = document.getElementById('ovUserCliente');
+    const cid = modal?.getAttribute('data-company');
+    if (!cid) { ui.toast('⚠️','Selecione a empresa antes'); return; }
+    data.company = cid;
+  }
+
+  document.getElementById('btnSalvarUC').disabled = true;
+  document.getElementById('btnSalvarUC').textContent = 'Salvando...';
+
+  const r = await API.centralGestao.gerenciarUsuario(data);
+  if (r?.success) {
+    ui.toast('✅', isEdit?'Usuário atualizado':'Usuário criado');
+    fecharModalUC();
+    loadPermissoes();
+  } else {
+    ui.toast('❌', r?.message || 'Erro ao salvar');
+    document.getElementById('btnSalvarUC').disabled = false;
+    document.getElementById('btnSalvarUC').textContent = isEdit?'Salvar alterações':'Criar usuário';
+  }
+}
+
+async function removerUsuarioCliente(uid, nome){
+  if (!confirm(`Remover o usuário "${nome}"?\n\nEle perderá acesso ao portal imediatamente.`)) return;
+  const r = await API.centralGestao.removerUsuario(uid);
+  if (r?.success) { ui.toast('✅','Usuário removido'); loadPermissoes(); }
+  else ui.toast('❌', r?.message || 'Erro');
+}
+
+async function resetarSenhaUsuario(uid, nome){
+  const novaSenha = prompt(`Nova senha para "${nome}":\n(mínimo 6 caracteres)`);
+  if (!novaSenha) return;
+  if (novaSenha.length < 6) { ui.toast('⚠️','Senha muito curta'); return; }
+  const r = await API.centralGestao.resetarSenha(uid, { novaSenha });
+  if (r?.success) ui.toast('✅', `Senha resetada para "${nome}"`);
+  else ui.toast('❌', r?.message || 'Erro');
+}
+
+</script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let allEmpresas=[], curEmpId=null, curEmpData=null, permissoes={}, editUserId=null, curClienteCompanyId=null;
+const g   = id => document.getElementById(id)?.value?.trim()||'';
+const sv  = (id,v) => { const e=document.getElementById(id); if(e) e.value=v||''; };
+const tok = () => auth.getToken();
+const hdr = () => ({'Content-Type':'application/json','Authorization':'Bearer '+tok()});
+
+const MODULOS = [
+  {key:'obrigacoes',   label:'Obrigações Fiscais', icon:'📋'},
+  {key:'folha',        label:'Folha de Pagamento', icon:'👥'},
+  {key:'honorarios',   label:'Honorários',         icon:'💰'},
+  {key:'bpo',          label:'BPO Financeiro',     icon:'💳'},
+  {key:'auditoria',    label:'Auditoria',           icon:'🔍'},
+  {key:'escrituracao', label:'Escrituração',        icon:'📚'},
+  {key:'planoContas',  label:'Plano de Contas',     icon:'🗂️'},
+  {key:'fpa',          label:'FP&A',                icon:'📈'},
+  {key:'consultorias', label:'Consultorias',         icon:'💡'},
+];
+
+// ── INIT ──────────────────────────────────────────────────────
+async function init(){
+  await loadEmpresas();
+  renderSysInfo();
+  carregarConfigSistema();
+}
+
+// ── TABS ─────────────────────────────────────────────────────
+function setTab(tab){
+  ['portal','permissoes','usuarios','stats','sistema'].forEach(t=>{
+    document.getElementById('tab-'+t)?.classList.toggle('on',t===tab);
+    const pane=document.getElementById('pane-'+t);
+    if(pane){
+      if(t==='portal') pane.style.display=t===tab?'flex':'none';
+      else             pane.style.display=t===tab?'block':'none';
+    }
+  });
+  if(tab==='usuarios') loadUsers();
+  if(tab==='permissoes') loadPermissoes();
+  if(tab==='stats')    loadStats();
+}
+
+async function loadStats(){
+  const [statsR,dutiesR,billingR]=await Promise.all([
+    fetch('/api/companies/stats',{headers:{Authorization:'Bearer '+tok()}}).then(r=>r.json()).catch(()=>null),
+    fetch('/api/duties?limit=200',{headers:{Authorization:'Bearer '+tok()}}).then(r=>r.json()).catch(()=>null),
+    fetch('/api/billing/summary',{headers:{Authorization:'Bearer '+tok()}}).then(r=>r.json()).catch(()=>null),
+  ]);
+
+  const s = statsR?.stats||{total:0,active:0,monthlyFee:0,byRegime:[],byStatus:{}};
+  const duties = dutiesR?.duties||[];
+  const bst = billingR?.summary?.byStatus||{};
+
+  // KPIs
+  const ltv=Math.round((s.monthlyFee||0)*12);
+  const txAdim=s.total>0?Math.round(((s.byStatus?.atrasado||0)/s.total)*100):0;
+  const compliance=duties.length>0?Math.round(duties.filter(d=>['entregue','pago','dispensado'].includes(d.status)).length/duties.length*100):100;
+
+  document.getElementById('statsKpis').innerHTML=[
+    {l:'Total Empresas',v:s.total||0,s:'na carteira',c:'bl'},
+    {l:'Honorários/Mês',v:'R$ '+(((s.monthlyFee||0)/1000).toFixed(1))+'k',s:'recorrente',c:'gn'},
+    {l:'LTV Anual',v:'R$ '+((ltv/1000).toFixed(1))+'k',s:'12 meses',c:'pu'},
+    {l:'Inadimplência',v:txAdim+'%',s:((s.byStatus?.atrasado||0))+' clientes',c:txAdim>20?'rd':'am'},
+    {l:'Compliance',v:compliance+'%',s:'obrigações',c:compliance>=80?'gn':'am'},
+    {l:'Usuários Ativos',v:'—',s:'do escritório',c:'tl'},
+    {l:'Portal Ativo',v:s.total||0,s:'empresas',c:'bl'},
+    {l:'Módulos',v:'15',s:'disponíveis',c:'pu'},
+  ].map(k=>`<div class="kpi-mini"><div class="kpi-mini-l">${k.l}</div><div class="kpi-mini-v" style="color:var(--${k.c==='bl'?'blue':k.c==='gn'?'green':k.c==='pu'?'purple':k.c==='rd'?'red':k.c==='am'?'amber':'teal'})">${k.v}</div></div>`).join('');
+
+  // Regime
+  const regNomes={simples:'Simples Nacional',presumido:'Lucro Presumido',real:'Lucro Real',mei:'MEI',imune:'Imune'};
+  const regCores={simples:'var(--blue)',presumido:'var(--amber)',real:'var(--purple)',mei:'var(--green)',imune:'var(--teal)'};
+  const regs=s.byRegime||[];
+  const maxReg=regs.length?regs[0].count:1;
+  document.getElementById('statsRegime').innerHTML=regs.length?regs.map(r=>`
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:${regCores[r._id]||'var(--txt2)'}">● ${regNomes[r._id]||r._id}</span>
+        <strong style="color:var(--txt)">${r.count} emp. (${Math.round(r.count/Math.max(s.total,1)*100)}%)</strong>
+      </div>
+      <div style="background:var(--bg4);border-radius:20px;height:6px;overflow:hidden">
+        <div style="height:100%;border-radius:20px;background:${regCores[r._id]||'var(--blue)'};width:${r.count/maxReg*100}%;transition:width .8s"></div>
+      </div>
+    </div>`).join(''):
+    '<div style="font-size:12px;color:var(--txt3)">Nenhuma empresa cadastrada</div>';
+
+  // Honorários por status
+  const honItems=[
+    {l:'✅ Em Dia',v:bst.pago||0,c:'var(--green)'},
+    {l:'⏳ Pendentes',v:bst.pendente||0,c:'var(--amber)'},
+    {l:'❌ Em Atraso',v:bst.atrasado||0,c:'var(--red)'},
+    {l:'⏸️ Inativos',v:bst.inativo||0,c:'var(--txt3)'},
+  ];
+  const honTotal=honItems.reduce((a,i)=>a+i.v,0)||1;
+  document.getElementById('statsHon').innerHTML=honItems.map(i=>{
+    const pct=Math.round(i.v/honTotal*100);
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span>${i.l}</span><strong style="color:${i.c}">${i.v} (${pct}%)</strong>
+      </div>
+      <div style="background:var(--bg4);border-radius:20px;height:5px;overflow:hidden">
+        <div style="height:100%;border-radius:20px;background:${i.c};width:${pct}%;transition:width .8s"></div>
+      </div>
+    </div>`;}).join('');
+
+  // Obrigações por tipo
+  const dutyMap={};
+  duties.forEach(d=>{ dutyMap[d.type]=(dutyMap[d.type]||{total:0,pend:0,atrs:0}); dutyMap[d.type].total++; if(d.status==='atrasado') dutyMap[d.type].atrs++; else if(['pendente','em_andamento'].includes(d.status)) dutyMap[d.type].pend++; });
+  const dutyArr=Object.entries(dutyMap).sort((a,b)=>b[1].total-a[1].total).slice(0,8);
+  document.getElementById('statsObrig').innerHTML=dutyArr.length?dutyArr.map(([tipo,v])=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px">
+      <span class="badge b" style="flex-shrink:0">${tipo}</span>
+      <div style="flex:1"><div style="background:var(--bg4);border-radius:10px;height:4px;overflow:hidden"><div style="height:100%;background:var(--blue);width:100%"></div></div></div>
+      <span style="color:var(--txt3)">${v.total} total</span>
+      ${v.atrs?`<span style="color:var(--red);font-weight:600">${v.atrs} atrs.</span>`:''}
+    </div>`).join(''):'<div style="font-size:12px;color:var(--txt3)">Nenhuma obrigação</div>';
+
+  // Saúde da carteira
+  const atrs=duties.filter(d=>d.status==='atrasado').length;
+  const pend=duties.filter(d=>['pendente','em_andamento'].includes(d.status)).length;
+  const ok=duties.filter(d=>['entregue','pago','dispensado'].includes(d.status)).length;
+  document.getElementById('statsHealth').innerHTML=[
+    {l:'Obrigações em Dia',v:ok+' de '+duties.length,ok:true},
+    {l:'Pendentes',v:pend+' obrigações',ok:pend===0},
+    {l:'Em Atraso',v:atrs+' obrigações',ok:atrs===0},
+    {l:'Inadimplência',v:txAdim+'%',ok:txAdim<10},
+    {l:'Compliance Geral',v:compliance+'%',ok:compliance>=80},
+    {l:'Empresas com Portal',v:(s.active||0)+' empresas',ok:true},
+  ].map(({l,v,ok:isOk})=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${isOk?'var(--green)':'var(--red)'}${!isOk?';animation:blink 1.4s infinite':''}"></div>
+        <span style="color:var(--txt2)">${l}</span>
+      </div>
+      <span style="font-weight:600;color:${isOk?'var(--green)':'var(--red)'}">${v}</span>
+    </div>`).join('');
+}
+
+// ── EMPRESAS / PORTAL ─────────────────────────────────────────
+async function loadEmpresas(){
+  const r = await fetch('/api/central-gestao/empresas',{headers:{Authorization:'Bearer '+tok()}}).then(r=>r.json()).catch(()=>null);
+  if(!r?.success) return;
+  allEmpresas = r.empresas||[];
+
+  const total = allEmpresas.length;
+  const comAcesso = allEmpresas.filter(e=>e.clienteUser?.active).length;
+  const semAcesso = allEmpresas.filter(e=>!e.clienteUser).length;
+
+  document.getElementById('tbTotal').textContent = total+' empresas';
+  document.getElementById('tbAtivos').textContent = comAcesso+' com portal ativo';
+  document.getElementById('tbSem').textContent = semAcesso+' sem acesso';
+
+  renderListaEmpresas(allEmpresas);
+}
+
+function filtrarEmpresas(){
+  const q = (document.getElementById('srchEmp')?.value||'').toLowerCase();
+  const filtradas = allEmpresas.filter(e=>
+    e.company.legalName?.toLowerCase().includes(q)||
+    e.company.tradeName?.toLowerCase().includes(q)||
+    e.company.cnpj?.includes(q)
+  );
+  renderListaEmpresas(filtradas);
+}
+
+function renderListaEmpresas(lista){
+  const el = document.getElementById('empList');
+  if(!lista.length){
+    el.innerHTML='<div class="empty"><div class="empty-s">Nenhuma empresa encontrada</div></div>';
+    return;
+  }
+  el.innerHTML = lista.map((e,i)=>{
+    const temAcesso = !!e.clienteUser;
+    const ativo = e.clienteUser?.active;
+    const dotCls = temAcesso&&ativo?'ok':temAcesso?'pend':'none';
+    const isSel = curEmpId===e.company._id?'sel':'';
+    return `<div class="emp-card ${isSel}" onclick="selEmpresa('${e.company._id}')">
+      <div class="emp-av" style="background:${CORES[i%CORES.length]}">${ui.ini(e.company.legalName)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="emp-name">${e.company.tradeName||e.company.legalName}</div>
+        <div class="emp-cnpj">${ui.cnpj(e.company.cnpj)}</div>
+      </div>
+      <div class="emp-dot ${dotCls}" title="${temAcesso&&ativo?'Portal ativo':temAcesso?'Acesso inativo':'Sem acesso'}"></div>
+    </div>`;
+  }).join('');
+}
+
+async function selEmpresa(id){
+  curEmpId = id;
+  // Atualiza seleção visual
+  document.querySelectorAll('.emp-card').forEach(c=>c.classList.remove('sel'));
+  const cards = document.querySelectorAll('.emp-card');
+  cards.forEach(c=>{ if(c.getAttribute('onclick')?.includes(id)) c.classList.add('sel'); });
+
+  // Busca dados completos
+  const r = await fetch(`/api/central-gestao/empresas/${id}`,{headers:{Authorization:'Bearer '+tok()}}).then(r=>r.json()).catch(()=>null);
+  if(!r?.success) return;
+  curEmpData = r;
+  permissoes = r.clienteUser?.permissions||{};
+  renderDetalhe(r);
+}
+
+function renderDetalhe(data){
+  const co  = data.company;
+  const cu  = data.clienteUser;
+  const el  = document.getElementById('empDetalhe');
+
+  el.innerHTML = `
+    <!-- Header empresa -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:48px;height:48px;border-radius:12px;background:${CORES[0]};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff">${ui.ini(co.legalName)}</div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--txt)">${co.legalName}</div>
+        <div style="font-size:12px;color:var(--txt3)">${ui.cnpj(co.cnpj)} · ${co.taxRegime||'—'}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn sm" onclick="abrirPortal('${co._id}')">👁️ Ver Portal</button>
+        <button class="btn primary sm" onclick="salvarPermissoes('${co._id}')">💾 Salvar</button>
+      </div>
+    </div>
+
+    <!-- Acesso do cliente -->
+    <div class="sec-title" style="margin-top:0">Acesso do Cliente — Portal DTP</div>
+    ${cu ? `
+      <div class="user-card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:#fff">${ui.ini(cu.name)}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--txt)">${cu.name}</div>
+            <div style="font-size:11px;color:var(--txt3)">${cu.email}</div>
+          </div>
+          <span class="user-online ${cu.active?'sim':'nao'}">${cu.active?'✅ Ativo':'🚫 Inativo'}</span>
+          <button class="btn sm" onclick="editarClienteUser('${co._id}','${cu.name}','${cu.email}',${cu.active})">✏️ Editar</button>
+        </div>
+        <div style="display:flex;gap:8px;font-size:12px;color:var(--txt3)">
+          <span>ID: ${cu._id}</span>
+          <span>·</span>
+          <span>Módulos: ${Object.values(permissoes).filter(Boolean).length} liberados</span>
+        </div>
+      </div>` : `
+      <div style="padding:16px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--r);display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:4px">⚠️ Nenhum acesso criado</div>
+          <div style="font-size:12px;color:var(--txt3)">Esta empresa não tem usuário para o portal do cliente</div>
+        </div>
+        <button class="btn primary sm" onclick="criarAcessoCliente('${co._id}','${co.legalName}')">+ Criar Acesso</button>
+      </div>`}
+
+    <!-- Módulos liberados -->
+    <div class="sec-title">Módulos Liberados no Portal</div>
+    <div class="mod-grid" id="modGrid">
+      ${MODULOS.map(m=>{
+        const on = permissoes[m.key]===true;
+        return `<div class="mod-card ${on?'on':'off'}" onclick="toggleModulo('${m.key}',this)">
+          <span class="mod-ico">${m.icon}</span>
+          <span class="mod-label">${m.label}</span>
+          <div class="mod-toggle ${on?'on':''}" id="tog-${m.key}"></div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Permissões extras -->
+    <div class="sec-title">Permissões Avançadas</div>
+    <div class="card" style="padding:0 16px">
+      ${[
+        {key:'podeEditar',    label:'Pode editar dados',     desc:'Permite ao cliente editar suas informações'},
+        {key:'verFinanceiro', label:'Ver dados financeiros', desc:'Exibe relatórios financeiros completos'},
+        {key:'verFolha',      label:'Ver holerites',         desc:'Acessa holerites e dados de funcionários'},
+        {key:'baixarDocs',    label:'Baixar documentos',     desc:'Pode fazer download de relatórios em PDF'},
+        {key:'notificacoes',  label:'Receber notificações',  desc:'Alerta por e-mail sobre vencimentos'},
+      ].map(p=>`
+        <div class="perm-row">
+          <div>
+            <div style="font-size:13px;color:var(--txt);font-weight:500">${p.label}</div>
+            <div style="font-size:11px;color:var(--txt3)">${p.desc}</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="perm-${p.key}" ${permissoes[p.key]?'checked':''} onchange="permissoes['${p.key}']=this.checked">
+            <span class="slider"></span>
+          </label>
+        </div>`).join('')}
+    </div>
+
+    <!-- Config visual portal -->
+    <div class="sec-title">Configuração Visual do Portal</div>
+    <div class="card" style="padding:14px 16px">
+      <div class="fg2">
+        <div class="fgp ffu"><label class="fbl">Mensagem de Boas-Vindas</label>
+          <textarea class="fin" id="cfgMsgPortal" rows="3" style="resize:none" placeholder="Mensagem personalizada para este cliente...">${cu?.clienteConfig?.mensagem||''}</textarea>
+        </div>
+        <div class="fgp"><label class="fbl">Cor do Portal</label>
+          <select class="fin" id="cfgCor">
+            <option value="blue" ${cu?.clienteConfig?.cor==='blue'?'selected':''}>Azul (padrão)</option>
+            <option value="green" ${cu?.clienteConfig?.cor==='green'?'selected':''}>Verde</option>
+            <option value="purple" ${cu?.clienteConfig?.cor==='purple'?'selected':''}>Roxo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleModulo(key, card){
+  permissoes[key] = !permissoes[key];
+  const tog = document.getElementById('tog-'+key);
+  if(card) card.classList.toggle('on', !!permissoes[key]);
+  if(card) card.classList.toggle('off', !permissoes[key]);
+  if(tog)  tog.classList.toggle('on', !!permissoes[key]);
+}
+
+async function salvarPermissoes(companyId){
+  const msg = document.getElementById('cfgMsgPortal')?.value||'';
+  const cor = document.getElementById('cfgCor')?.value||'blue';
+  const payload = {
+    companyId,
+    permissions: {...permissoes},
+    clienteConfig: { mensagem:msg, cor },
+  };
+  const r = await fetch('/api/central-gestao/config',{method:'PUT',headers:hdr(),body:JSON.stringify(payload)}).then(r=>r.json()).catch(()=>null);
+  if(r?.success) ui.toast('✅','Configurações salvas!');
+  else ui.toast('❌',r?.message||'Erro ao salvar');
+}
+
+function criarAcessoCliente(companyId, nomeEmpresa){
+  curClienteCompanyId = companyId;
+  document.getElementById('cuTt').textContent = 'Criar Acesso — '+nomeEmpresa;
+  document.getElementById('cuBtn').textContent = '✅ Criar Acesso';
+  document.getElementById('cuEmpInfo').textContent = '🏢 '+nomeEmpresa;
+  ['cuName','cuEmail','cuPass'].forEach(id=>sv(id,''));
+  document.getElementById('cuAtivo').value='true';
+  ui.openModal('ovClienteUser');
+}
+
+function editarClienteUser(companyId, nome, email, ativo){
+  curClienteCompanyId = companyId;
+  document.getElementById('cuTt').textContent = 'Editar Acesso — '+nome;
+  document.getElementById('cuBtn').textContent = '💾 Salvar Alterações';
+  document.getElementById('cuEmpInfo').textContent = '✏️ Editando usuário: '+email;
+  sv('cuName',nome); sv('cuEmail',email);
+  document.getElementById('cuAtivo').value = ativo?'true':'false';
+  sv('cuPass','');
+  ui.openModal('ovClienteUser');
+}
+
+async function salvarClienteUser(){
+  const nome=g('cuName'), email=g('cuEmail'), senha=g('cuPass');
+  if(!nome||!email){ ui.toast('⚠️','Preencha nome e e-mail'); return; }
+  const btn=document.getElementById('cuBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  const payload={companyId:curClienteCompanyId, name:nome, email, active:document.getElementById('cuAtivo').value!=='false'};
+  if(senha) payload.password=senha;
+  const r=await fetch('/api/central-gestao/usuarios',{method:'POST',headers:hdr(),body:JSON.stringify(payload)}).then(r=>r.json()).catch(()=>null);
+  btn.disabled=false; btn.innerHTML='✅ Criar Acesso';
+  if(r?.success){ ui.toast('✅',r.message); ui.closeModal('ovClienteUser'); await loadEmpresas(); selEmpresa(curClienteCompanyId); }
+  else ui.toast('❌',r?.message||'Erro');
+}
+
+function abrirPortal(companyId){
+  window.open('/cliente/dashboard.html?company='+companyId,'_blank');
+}
+
+// ── USUÁRIOS DTP ──────────────────────────────────────────────
+async function loadUsers(){
+  const r = await fetch('/api/users',{headers:{Authorization:'Bearer '+tok()}}).then(r=>r.json()).catch(()=>null);
+  if(!r?.success) return;
+  const users = r.users||[];
+
+  // KPIs
+  document.getElementById('userKpis').innerHTML=[
+    {l:'Total',v:users.length,c:'bl'},
+    {l:'Ativos',v:users.filter(u=>u.active!==false).length,c:'gn'},
+    {l:'Admins',v:users.filter(u=>u.role==='admin').length,c:'pu'},
+    {l:'Clientes',v:users.filter(u=>u.role==='cliente').length,c:'am'},
+  ].map(k=>`<div class="kpi-mini"><div class="kpi-mini-l">${k.l}</div><div class="kpi-mini-v" style="color:var(--${k.c==='bl'?'blue':k.c==='gn'?'green':k.c==='pu'?'purple':'amber'})">${k.v}</div></div>`).join('');
+
+  if(!users.length){
+    document.getElementById('usersList').innerHTML='<div class="empty"><div class="empty-s">Nenhum usuário</div></div>';
+    return;
+  }
+
+  document.getElementById('usersList').innerHTML=`
+    <div style="overflow-x:auto"><table class="tbl">
+      <thead><tr><th>Usuário</th><th>E-mail</th><th>Perfil</th><th>Empresa</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>${users.map((u,i)=>`
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:28px;height:28px;border-radius:50%;background:${CORES[i%CORES.length]};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:10px;color:#fff">${ui.ini(u.name)}</div>
+              <span style="font-size:13px;font-weight:500;color:var(--txt)">${u.name}</span>
+            </div>
+          </td>
+          <td style="font-size:12px;color:var(--txt3)">${u.email}</td>
+          <td><span class="badge b">${u.role||'user'}</span></td>
+          <td style="font-size:12px;color:var(--txt3)">${u.company?.legalName||u.company?.tradeName||'DTP (Interno)'}</td>
+          <td><span style="font-size:11px;font-weight:600;color:${u.active!==false?'var(--green)':'var(--txt3)'}">${u.active!==false?'✅ Ativo':'🚫 Inativo'}</span></td>
+          <td><div style="display:flex;gap:4px;justify-content:flex-end">
+            <div style="width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4)" onclick="editarUser('${u._id}','${u.name}','${u.email}','${u.role||'contador'}',${u.active!==false})" title="Editar">✏️</div>
+            <div style="width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4)" onclick="toggleUserAtivo('${u._id}',${u.active!==false})" title="${u.active!==false?'Inativar':'Ativar'}">${u.active!==false?'🚫':'✅'}</div>
+          </div></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+function openNovoUser(){
+  editUserId=null;
+  document.getElementById('userTt').textContent='Novo Usuário DTP';
+  document.getElementById('userBtn').textContent='💾 Criar Usuário';
+  ['uName','uEmail','uPass','uPass2'].forEach(id=>sv(id,''));
+  document.getElementById('uRole').value='contador';
+  document.getElementById('uAtivo').value='true';
+  ui.openModal('ovUser');
+}
+
+function editarUser(id,nome,email,role,ativo){
+  editUserId=id;
+  document.getElementById('userTt').textContent='Editar — '+nome;
+  document.getElementById('userBtn').textContent='💾 Salvar Alterações';
+  sv('uName',nome); sv('uEmail',email);
+  sv('uPass',''); sv('uPass2','');
+  document.getElementById('uRole').value=role||'contador';
+  document.getElementById('uAtivo').value=ativo?'true':'false';
+  ui.openModal('ovUser');
+}
+
+async function salvarUser(){
+  const nome=g('uName'),email=g('uEmail'),senha=g('uPass'),senha2=g('uPass2');
+  if(!nome||!email){ ui.toast('⚠️','Preencha nome e e-mail'); return; }
+  if(senha&&senha!==senha2){ ui.toast('⚠️','Senhas não conferem'); return; }
+  if(!editUserId&&!senha){ ui.toast('⚠️','Informe uma senha'); return; }
+  const payload={name:nome,email,role:g('uRole'),active:document.getElementById('uAtivo').value!=='false'};
+  if(senha) payload.password=senha;
+  const btn=document.getElementById('userBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+  const method=editUserId?'PUT':'POST';
+  const url=editUserId?`/api/users/${editUserId}`:'/api/users';
+  const r=await fetch(url,{method,headers:hdr(),body:JSON.stringify(payload)}).then(r=>r.json()).catch(()=>null);
+  btn.disabled=false; btn.innerHTML=editUserId?'💾 Salvar Alterações':'💾 Criar Usuário';
+  if(r?.success){ ui.toast('✅',r.message); ui.closeModal('ovUser'); loadUsers(); }
+  else ui.toast('❌',r?.message||'Erro');
+}
+
+async function toggleUserAtivo(id,ativo){
+  const r=await fetch(`/api/users/${id}`,{method:'PUT',headers:hdr(),body:JSON.stringify({active:!ativo})}).then(r=>r.json()).catch(()=>null);
+  if(r?.success){ ui.toast(ativo?'🚫':'✅',ativo?'Usuário inativado':'Usuário ativado'); loadUsers(); }
+  else ui.toast('❌',r?.message||'Erro');
+}
+
+// ── SISTEMA ───────────────────────────────────────────────────
+function renderSysInfo(){
+  document.getElementById('sysInfo').innerHTML=[
+    ['Versão ERP',      'DTP Contábil v4.0'],
+    ['Stack',           'Node.js + Express + MongoDB'],
+    ['Módulos Ativos',  '15 módulos'],
+    ['Portal Cliente',  'Disponível'],
+    ['SPED ECD',        'Geração básica disponível'],
+    ['Último acesso',   new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})],
+  ].map(([l,v])=>`
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px">
+      <span style="color:var(--txt3)">${l}</span>
+      <span style="color:var(--txt);font-weight:500">${v}</span>
+    </div>`).join('');
+}
+
+function carregarConfigSistema(){
+  // Carrega do localStorage se existir
+  try{
+    const cfg=JSON.parse(localStorage.getItem('dtp_config')||'{}');
+    if(cfg.nome)  sv('cfgNome',cfg.nome);
+    if(cfg.cnpj)  sv('cfgCnpj',cfg.cnpj);
+    if(cfg.crc)   sv('cfgCrc',cfg.crc);
+    if(cfg.resp)  sv('cfgResp',cfg.resp);
+    if(cfg.tel)   sv('cfgTel',cfg.tel);
+    if(cfg.email) sv('cfgEmail',cfg.email);
+    if(cfg.msg)   sv('cfgMsg',cfg.msg);
+    if(cfg.logo)  sv('cfgLogo',cfg.logo);
+  }catch(e){}
+}
+
+function salvarConfigSistema(){
+  const cfg={nome:g('cfgNome'),cnpj:g('cfgCnpj'),crc:g('cfgCrc'),resp:g('cfgResp'),tel:g('cfgTel'),email:g('cfgEmail'),msg:g('cfgMsg'),logo:g('cfgLogo')};
+  localStorage.setItem('dtp_config',JSON.stringify(cfg));
+  ui.toast('✅','Configurações salvas!');
+}
+
+async function executarSeed(url,label){
+  const r=await fetch(url,{method:'POST',headers:hdr()}).then(r=>r.json()).catch(()=>null);
+  if(r?.success) ui.toast('✅',label+' executado! '+((r.total||r.count)||'')+' registros.');
+  else ui.toast('❌',r?.message||'Erro ao executar');
+}
+
+// ── SMTP / NOTIFICAÇÕES ──────────────────────────────────────
+async function salvarSMTP(){
+  const payload={host:g('smtpHost'),porta:g('smtpPort'),usuario:g('smtpUser'),senha:g('smtpPass')};
+  if(!payload.host||!payload.usuario){ ui.toast('⚠️','Preencha host e usuário'); return; }
+  const r=await fetch('/api/notificacoes/config',{method:'POST',headers:hdr(),body:JSON.stringify(payload)}).then(r=>r.json()).catch(()=>null);
+  if(r?.success) ui.toast('✅','SMTP configurado!'); else ui.toast('❌',r?.message||'Erro');
+}
+async function testarSMTP(){
+  const r=await fetch('/api/notificacoes/config',{method:'POST',headers:hdr(),body:JSON.stringify({host:g('smtpHost'),porta:g('smtpPort'),usuario:g('smtpUser'),senha:g('smtpPass'),testar:true})}).then(r=>r.json()).catch(()=>null);
+  if(r?.success) ui.toast('✅',r.message); else ui.toast('❌',r?.message||'Erro ao enviar');
+}
+async function processarNotif(){
+  const r=await fetch('/api/notificacoes/processar',{method:'POST',headers:hdr()}).then(r=>r.json()).catch(()=>null);
+  if(r?.success) ui.toast('✅','Processado! '+r.geradas+' notificações geradas.'); else ui.toast('❌',r?.message||'Erro');
+}
+
+// ── TEMA & APARÊNCIA ─────────────────────────────────────────
+function aplicarTema(val){
+  val = parseInt(val);
+  document.getElementById('temaValor').textContent = val + '%';
+  // Ajusta a opacidade do fundo global via CSS var
+  var brightness = val / 100;
+  var bg, bg2, bg3;
+  if(val <= 30){
+    bg  = 'hsl(214,'+Math.round(val*1.5)+'%,'+Math.round(2+val*0.1)+'%)';
+    bg2 = 'hsl(214,'+Math.round(val*1.5)+'%,'+Math.round(3+val*0.12)+'%)';
+    bg3 = 'hsl(214,'+Math.round(val*1.5)+'%,'+Math.round(5+val*0.15)+'%)';
+  } else if(val <= 60){
+    bg  = 'hsl(214,35%,'+Math.round(6+(val-30)*0.3)+'%)';
+    bg2 = 'hsl(214,35%,'+Math.round(8+(val-30)*0.35)+'%)';
+    bg3 = 'hsl(214,35%,'+Math.round(10+(val-30)*0.4)+'%)';
+  } else {
+    bg  = 'hsl(214,25%,'+Math.round(15+(val-60)*0.7)+'%)';
+    bg2 = 'hsl(214,20%,'+Math.round(20+(val-60)*0.7)+'%)';
+    bg3 = 'hsl(214,18%,'+Math.round(24+(val-60)*0.6)+'%)';
+  }
+  document.documentElement.style.setProperty('--bg', bg);
+  document.documentElement.style.setProperty('--bg2', bg2);
+  document.documentElement.style.setProperty('--bg3', bg3);
+  // Ajusta cor do texto para claridade alta
+  if(val > 75){
+    document.documentElement.style.setProperty('--txt',  '#1a1a2e');
+    document.documentElement.style.setProperty('--txt2', '#2d3748');
+    document.documentElement.style.setProperty('--txt3', '#4a5568');
+    document.documentElement.style.setProperty('--bd',   'rgba(0,0,0,.12)');
+  } else {
+    document.documentElement.style.setProperty('--txt',  '#e8f0fc');
+    document.documentElement.style.setProperty('--txt2', '#a0b4c8');
+    document.documentElement.style.setProperty('--txt3', '#5a7a96');
+    document.documentElement.style.setProperty('--bd',   'rgba(255,255,255,.07)');
+  }
+  localStorage.setItem('dtp_tema_brilho', val);
+}
+
+function setTema(val, id){
+  document.getElementById('temaSlider').value = val;
+  aplicarTema(val);
+  document.querySelectorAll('.tema-btn').forEach(function(b){ b.classList.remove('on'); });
+  event.target.classList.add('on');
+}
+
+function setCorDestaque(cor, el){
+  document.documentElement.style.setProperty('--blue', cor);
+  document.querySelectorAll('.cor-opt').forEach(function(o){ o.style.border='3px solid transparent'; });
+  el.style.border = '3px solid #fff';
+  el.style.boxShadow = '0 0 0 2px '+cor;
+  localStorage.setItem('dtp_tema_cor', cor);
+}
+
+function setDensidade(tipo){
+  var pad = tipo==='compacto'?'10px 16px':tipo==='espacoso'?'20px 28px':'16px 24px';
+  document.documentElement.style.setProperty('--pad', pad);
+  document.querySelectorAll('.tema-btn').forEach(function(b){
+    if(['Compacto','Normal','Espaçoso'].some(function(l){ return b.textContent.includes(l); }))
+      b.classList.remove('on');
+  });
+  if(event && event.target) event.target.classList.add('on');
+  localStorage.setItem('dtp_tema_densidade', tipo);
+}
+
+function salvarTema(){
+  var v = document.getElementById('temaSlider').value;
+  aplicarTema(v);
+  ui.toast('✅','Preferências de tema salvas!');
+}
+
+function resetarTema(){
+  document.documentElement.style.setProperty('--bg',   '#0a121e');
+  document.documentElement.style.setProperty('--bg2',  '#0f1c2e');
+  document.documentElement.style.setProperty('--bg3',  '#152135');
+  document.documentElement.style.setProperty('--txt',  '#e8f0fc');
+  document.documentElement.style.setProperty('--txt2', '#a0b4c8');
+  document.documentElement.style.setProperty('--txt3', '#5a7a96');
+  document.documentElement.style.setProperty('--bd',   'rgba(255,255,255,.07)');
+  document.documentElement.style.setProperty('--blue', '#1a6fc4');
+  document.getElementById('temaSlider').value = 50;
+  document.getElementById('temaValor').textContent = '50%';
+  ['dtp_tema_brilho','dtp_tema_cor','dtp_tema_densidade'].forEach(function(k){ localStorage.removeItem(k); });
+  ui.toast('↩️','Tema restaurado ao padrão!');
+}
+
+function carregarTema(){
+  var brilho = localStorage.getItem('dtp_tema_brilho');
+  var cor    = localStorage.getItem('dtp_tema_cor');
+  if(brilho){ document.getElementById('temaSlider').value=brilho; aplicarTema(brilho); }
+  if(cor){
+    document.documentElement.style.setProperty('--blue', cor);
+    document.querySelectorAll('.cor-opt').forEach(function(o){
+      if(o.dataset.cor===cor){ o.style.border='3px solid #fff'; o.style.boxShadow='0 0 0 2px '+cor; }
+      else{ o.style.border='3px solid transparent'; o.style.boxShadow=''; }
+    });
+  }
+}
+
+// INICIA
+init();
+carregarTema();
+
+// ═══════════════════════════════════════════════════════════
+// PERMISSÕES DO PORTAL DO CLIENTE
+// ═══════════════════════════════════════════════════════════
+let allEmpresasPerm = [];
+let presetsCache = null;
+let editandoUserCliente = null;
+
+const MODULOS_LIST = [
+  {key:'inicio',         lbl:'🏠 Início',          desc:'Tela de boas-vindas'},
+  {key:'obrigacoes',     lbl:'📋 Obrigações',      desc:'Obrigações fiscais'},
+  {key:'honorarios',     lbl:'💰 Honorários',      desc:'Histórico de pagamentos'},
+  {key:'bpo',            lbl:'💳 BPO Financeiro',  desc:'Contas a pagar/receber'},
+  {key:'folha',          lbl:'👥 Folha',           desc:'Folha de pagamento'},
+  {key:'documentos',     lbl:'📄 Documentos',      desc:'Relatórios e documentos'},
+  {key:'demonstrativos', lbl:'📊 Demonstrativos',  desc:'BP, DRE, DFC'},
+  {key:'auditoria',      lbl:'🔍 Auditoria',       desc:'Relatórios de auditoria'},
+  {key:'consultorias',   lbl:'💡 Consultorias',    desc:'Consultorias contratadas'},
+  {key:'escrituracao',   lbl:'📚 Escrituração',    desc:'Livros contábeis'},
+  {key:'fpa',            lbl:'📈 FP&A',            desc:'Cenários e orçamentos'},
+  {key:'controladoria',  lbl:'🎛️ Controladoria',  desc:'Indicadores gerenciais'},
+  {key:'mensagens',      lbl:'💬 Mensagens',       desc:'Chat com escritório'},
+];
+
+const MODULOS_EDITAVEIS = ['bpo','obrigacoes','folha','documentos'];
+
+const PERMISSOES_LIST = [
+  {key:'verValoresFinanceiros', lbl:'💵 Ver valores financeiros'},
+  {key:'baixarRelatorios',      lbl:'⬇️ Baixar relatórios'},
+  {key:'enviarMensagens',       lbl:'✉️ Enviar mensagens ao escritório'},
+  {key:'verHolerites',          lbl:'📑 Ver holerites de funcionários'},
+  {key:'aprovarLancamentos',    lbl:'✅ Aprovar lançamentos'},
+];
+
+async function loadPermissoes(){
+  const r = await API.centralGestao.listarEmpresas();
+  if (!r?.success) {
+    document.getElementById('permLista').innerHTML = '<div class="empty"><div class="empty-t" style="color:var(--red)">Erro ao carregar empresas</div></div>';
+    return;
+  }
+  allEmpresasPerm = r.empresas || [];
+  if (!presetsCache) {
+    const p = await API.centralGestao.presets();
+    presetsCache = p?.presets || {};
+  }
+  renderPermissoes();
+}
+
+function renderPermissoes(){
+  const search = (document.getElementById('permSearch')?.value || '').toLowerCase().trim();
+  const filtro = document.getElementById('permFiltro')?.value || '';
+
+  let lista = allEmpresasPerm.filter(e => {
+    const nome = (e.company.tradeName || e.company.legalName || '').toLowerCase();
+    const cnpj = (e.company.cnpj || '').toLowerCase();
+    if (search && !nome.includes(search) && !cnpj.includes(search)) {
+      const userMatch = (e.usuarios||[]).some(u => (u.name||'').toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search));
+      if (!userMatch) return false;
+    }
+    if (filtro === 'com' && e.totalUsuarios === 0) return false;
+    if (filtro === 'sem' && e.totalUsuarios > 0) return false;
+    return true;
+  });
+
+  // KPIs
+  const totalEmp = allEmpresasPerm.length;
+  const empCom = allEmpresasPerm.filter(e=>e.totalUsuarios>0).length;
+  const totalUsuarios = allEmpresasPerm.reduce((a,e)=>a+e.totalUsuarios,0);
+  const totalAtivos = allEmpresasPerm.reduce((a,e)=>a+e.ativos,0);
+
+  document.getElementById('permKpis').innerHTML = [
+    {l:'EMPRESAS',v:totalEmp,s:`${empCom} com acesso`,c:'var(--blue)'},
+    {l:'USUÁRIOS PORTAL',v:totalUsuarios,s:`${totalAtivos} ativos`,c:'var(--green)'},
+    {l:'SEM ACESSO',v:totalEmp-empCom,s:'oportunidade',c:'var(--amber)'},
+    {l:'COBERTURA',v:totalEmp?Math.round(empCom/totalEmp*100)+'%':'0%',s:'empresas com portal',c:'var(--purple)'},
+  ].map(k => `<div class="card" style="padding:14px 16px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);margin-bottom:4px">${k.l}</div><div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:${k.c}">${k.v}</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">${k.s}</div></div>`).join('');
+
+  // Lista de empresas
+  if (!lista.length){
+    document.getElementById('permLista').innerHTML = '<div class="empty"><div class="empty-ic">🔍</div><div class="empty-t">Nenhuma empresa encontrada</div></div>';
+    return;
+  }
+
+  document.getElementById('permLista').innerHTML = lista.map(e => {
+    const co = e.company;
+    const users = e.usuarios || [];
+    const expandKey = 'exp_'+co._id;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="togglePermEmp('${co._id}')">
+        <div style="width:42px;height:42px;border-radius:10px;background:rgba(26,111,196,.12);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;color:var(--blue);font-size:14px">${(co.tradeName||co.legalName||'?').substring(0,2).toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${co.tradeName || co.legalName}</div>
+          <div style="font-size:11.5px;color:var(--txt3)">${formatCNPJ(co.cnpj)} · ${users.length} usuário(s)${users.length?` · ${e.ativos} ativos`:''}</div>
+        </div>
+        ${users.length === 0 ? '<span class="tb-badge amber">Sem acesso</span>' : `<span class="tb-badge green">${users.length} usuário(s)</span>`}
+        <button class="btn primary sm" onclick="event.stopPropagation();abrirNovoUsuarioCliente('${co._id}')">+ Usuário</button>
+        <span style="font-size:14px;color:var(--txt3);transform:rotate(0deg);transition:transform .2s" id="${expandKey}_arrow">▼</span>
+      </div>
+      <div id="${expandKey}" style="display:none;border-top:1px solid var(--bd);padding:14px 18px;background:rgba(0,0,0,.15)">
+        ${users.length ? users.map(u => renderCardUsuarioCliente(u, co._id)).join('') :
+          `<div style="text-align:center;padding:24px;color:var(--txt3);font-size:12px">
+            <div style="font-size:28px;margin-bottom:8px">👥</div>
+            Nenhum usuário cadastrado para esta empresa.<br>
+            <button class="btn primary sm" style="margin-top:10px" onclick="abrirNovoUsuarioCliente('${co._id}')">+ Cadastrar primeiro usuário</button>
+          </div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePermEmp(cid){
+  const el = document.getElementById('exp_'+cid);
+  const ar = document.getElementById('exp_'+cid+'_arrow');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (ar) ar.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function renderCardUsuarioCliente(u, cid){
+  const cfg = u.clienteConfig || {};
+  const modulosVis = Object.entries(cfg.modulosVisiveis||{}).filter(([_,v])=>v).length;
+  const editaveis = Object.entries(cfg.podeEditar||{}).filter(([_,v])=>v).length;
+  const ini = (u.name||'?').substring(0,2).toUpperCase();
+  const cor = u.active ? 'var(--green)' : 'var(--txt3)';
+  return `<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+    <div style="width:34px;height:34px;border-radius:50%;background:${u.active?'rgba(0,201,167,.15)':'rgba(90,122,150,.15)'};display:flex;align-items:center;justify-content:center;font-weight:700;color:${cor};font-size:12px">${ini}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600;color:var(--txt)">${u.name}</span>
+        ${u.cargo ? `<span class="tb-badge blue" style="font-size:9px">${u.cargo}</span>` : ''}
+        ${!u.active ? '<span class="tb-badge red" style="font-size:9px">INATIVO</span>' : ''}
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:2px">${u.email}</div>
+      <div style="font-size:10.5px;color:var(--txt3);margin-top:3px">📋 ${modulosVis} módulos visíveis · ✏️ ${editaveis} editáveis</div>
+    </div>
+    <button class="btn sm" onclick="editarUsuarioCliente('${u._id}','${cid}')">⚙️ Editar</button>
+    <button class="btn sm" onclick="resetarSenhaUsuario('${u._id}','${u.name.replace(/'/g,"\\'")}')">🔑</button>
+    <button class="btn sm" onclick="removerUsuarioCliente('${u._id}','${u.name.replace(/'/g,"\\'")}')" style="color:var(--red)">🗑️</button>
+  </div>`;
+}
+
+function formatCNPJ(c){
+  if (!c) return '—';
+  const v = c.replace(/\D/g,'');
+  if (v.length !== 14) return c;
+  return `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8,12)}-${v.slice(12)}`;
+}
+
+// ── MODAL: criar/editar usuário cliente ──────────────────────
+function abrirNovoUsuarioCliente(companyId){
+  editandoUserCliente = null;
+  abrirModalUserCliente({ company: companyId, modulosVisiveis:{inicio:true,obrigacoes:true,honorarios:true,documentos:true,mensagens:true}, podeEditar:{}, permissoes:{verValoresFinanceiros:true,baixarRelatorios:true,enviarMensagens:true} });
+}
+
+async function editarUsuarioCliente(uid, cid){
+  // Encontrar usuário no cache
+  let user = null;
+  for (const e of allEmpresasPerm) {
+    user = (e.usuarios||[]).find(u=>u._id===uid);
+    if (user) break;
+  }
+  if (!user) { ui.toast('❌','Usuário não encontrado'); return; }
+  editandoUserCliente = user;
+  abrirModalUserCliente({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    cargo: user.cargo || '',
+    cpf: user.cpf || '',
+    telefone: user.telefone || '',
+    company: cid,
+    active: user.active,
+    modulosVisiveis: user.clienteConfig?.modulosVisiveis || {},
+    podeEditar: user.clienteConfig?.podeEditar || {},
+    permissoes: user.clienteConfig?.permissoes || {},
+    mensagemBemVindo: user.clienteConfig?.mensagemBemVindo || '',
+  });
+}
+
+function abrirModalUserCliente(d){
+  const isEdit = !!d._id;
+  const empresa = allEmpresasPerm.find(e => e.company._id === d.company)?.company;
+
+  const html = `
+  <div class="ov open" id="ovUserCliente" data-company="${d.company||''}" onclick="if(event.target===this)fecharModalUC()">
+    <div class="modal xl" style="max-height:92vh;display:flex;flex-direction:column">
+      <div class="m-top">
+        <div class="m-ico pu">${isEdit?'⚙️':'➕'}</div>
+        <div class="m-hi">
+          <div class="m-tg">${isEdit?'EDITANDO':'CRIANDO'}</div>
+          <div class="m-tt">${isEdit?'Editar Usuário':'Novo Usuário do Portal'}</div>
+          <div class="m-st">${empresa?(empresa.tradeName||empresa.legalName):'Selecione uma empresa'}</div>
+        </div>
+        <button class="m-cl" onclick="fecharModalUC()">×</button>
+      </div>
+      <div class="m-bd" style="overflow-y:auto;flex:1">
+
+        <!-- Dados básicos -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">DADOS DO USUÁRIO</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label class="fbl">Nome completo *</label><input class="fin" id="ucNome" value="${d.name||''}"></div>
+            <div><label class="fbl">Cargo / Função</label><input class="fin" id="ucCargo" placeholder="Ex: Dono, Financeiro, RH" value="${d.cargo||''}"></div>
+            <div><label class="fbl">E-mail *</label><input class="fin" type="email" id="ucEmail" value="${d.email||''}"></div>
+            <div><label class="fbl">${isEdit?'Nova senha (deixe em branco para manter)':'Senha *'}</label><input class="fin" type="password" id="ucSenha" placeholder="${isEdit?'••••••••':'Mínimo 6 caracteres'}"></div>
+            <div><label class="fbl">CPF</label><input class="fin" id="ucCPF" value="${d.cpf||''}"></div>
+            <div><label class="fbl">Telefone</label><input class="fin" id="ucTel" value="${d.telefone||''}"></div>
+          </div>
+          ${isEdit?`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px;background:var(--bg3);border-radius:6px"><input type="checkbox" id="ucAtivo" ${d.active!==false?'checked':''}><label for="ucAtivo" style="font-size:12px;color:var(--txt2)">Usuário ativo (pode fazer login)</label></div>`:''}
+        </div>
+
+        <!-- Presets rápidos -->
+        <div style="background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(26,111,196,.06));border:1px solid rgba(139,92,246,.2);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:8px">⚡ PRESETS RÁPIDOS</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="ucPresets"></div>
+          <div style="font-size:10.5px;color:var(--txt3);margin-top:8px">Clique em um preset para preencher automaticamente as permissões abaixo</div>
+        </div>
+
+        <!-- Módulos visíveis -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600">📋 MÓDULOS VISÍVEIS NO MENU</div>
+            <div style="font-size:11px"><a href="#" onclick="event.preventDefault();ucToggleAll('vis',true)" style="color:var(--blue)">Marcar todos</a> · <a href="#" onclick="event.preventDefault();ucToggleAll('vis',false)" style="color:var(--blue)">Desmarcar</a></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="ucModulosVis"></div>
+        </div>
+
+        <!-- Permissão de edição -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">✏️ MÓDULOS QUE PODE EDITAR</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="ucPodeEditar"></div>
+          <div style="font-size:10.5px;color:var(--txt3);margin-top:8px">⚠️ Sem essas permissões, o usuário só visualiza dados (read-only)</div>
+        </div>
+
+        <!-- Permissões especiais -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:10px">🔐 PERMISSÕES ESPECIAIS</div>
+          <div style="display:grid;grid-template-columns:1fr;gap:6px" id="ucPermissoes"></div>
+        </div>
+
+        <!-- Mensagem de boas-vindas -->
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:8px">💬 MENSAGEM DE BOAS-VINDAS (OPCIONAL)</div>
+          <textarea class="fin" id="ucMsg" rows="2" placeholder="Ex: Bem-vindo! Qualquer dúvida fale com Maria do financeiro." style="width:100%">${d.mensagemBemVindo||''}</textarea>
+        </div>
+
+      </div>
+      <div class="m-ft">
+        <button class="btn" onclick="fecharModalUC()">Cancelar</button>
+        <div style="flex:1"></div>
+        <button class="btn primary" onclick="salvarUserCliente()" id="btnSalvarUC">${isEdit?'Salvar alterações':'Criar usuário'}</button>
+      </div>
+    </div>
+  </div>`;
+
+  let modal = document.getElementById('ovUserCliente');
+  if (modal) modal.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // Renderizar checkboxes
+  renderCheckboxesUC('ucModulosVis', MODULOS_LIST, d.modulosVisiveis||{}, 'vis');
+  renderCheckboxesUC('ucPodeEditar', MODULOS_LIST.filter(m=>MODULOS_EDITAVEIS.includes(m.key)), d.podeEditar||{}, 'edit');
+  renderCheckboxesUC('ucPermissoes',  PERMISSOES_LIST, d.permissoes||{}, 'perm');
+
+  // Renderizar presets
+  document.getElementById('ucPresets').innerHTML = Object.entries(presetsCache||{}).map(([k,p])=>
+    `<button class="btn sm" style="font-size:11px" onclick="aplicarPresetUC('${k}')" title="${p.descricao}">⚡ ${p.nome}</button>`
+  ).join('');
+}
+
+function renderCheckboxesUC(elId, lista, valores, prefix){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = lista.map(item => {
+    const checked = valores[item.key] ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:12px;color:var(--txt2);transition:all .12s" onmouseover="this.style.borderColor='var(--bd2)'" onmouseout="this.style.borderColor='var(--bd)'">
+      <input type="checkbox" ${checked} data-key="${item.key}" data-prefix="${prefix}" style="width:14px;height:14px;cursor:pointer">
+      <span style="flex:1">${item.lbl}</span>
+      ${item.desc?`<span style="font-size:10px;color:var(--txt3)">${item.desc}</span>`:''}
+    </label>`;
+  }).join('');
+}
+
+function ucToggleAll(prefix, valor){
+  document.querySelectorAll(`input[data-prefix="${prefix}"]`).forEach(c => c.checked = valor);
+}
+
+function aplicarPresetUC(key){
+  const p = presetsCache[key];
+  if (!p) return;
+  document.querySelectorAll('input[data-prefix="vis"]').forEach(c => c.checked = !!p.modulosVisiveis[c.dataset.key]);
+  document.querySelectorAll('input[data-prefix="edit"]').forEach(c => c.checked = !!p.podeEditar[c.dataset.key]);
+  document.querySelectorAll('input[data-prefix="perm"]').forEach(c => c.checked = !!p.permissoes[c.dataset.key]);
+  ui.toast('✅', `Preset "${p.nome}" aplicado`);
+}
+
+function fecharModalUC(){
+  const m = document.getElementById('ovUserCliente');
+  if (m) m.remove();
+  editandoUserCliente = null;
+}
+
+async function salvarUserCliente(){
+  const nome = document.getElementById('ucNome').value.trim();
+  const email = document.getElementById('ucEmail').value.trim();
+  const senha = document.getElementById('ucSenha').value;
+  const cargo = document.getElementById('ucCargo').value.trim();
+  const cpf = document.getElementById('ucCPF').value.trim();
+  const tel = document.getElementById('ucTel').value.trim();
+  const msg = document.getElementById('ucMsg').value.trim();
+  const isEdit = !!editandoUserCliente;
+  const ativo = document.getElementById('ucAtivo')?.checked;
+
+  if (!nome || !email) { ui.toast('⚠️','Nome e e-mail são obrigatórios'); return; }
+  if (!isEdit && (!senha || senha.length < 6)) { ui.toast('⚠️','Senha mínima de 6 caracteres'); return; }
+
+  const collect = (prefix) => {
+    const obj = {};
+    document.querySelectorAll(`input[data-prefix="${prefix}"]`).forEach(c => obj[c.dataset.key] = c.checked);
+    return obj;
+  };
+
+  const data = {
+    name: nome,
+    email: email,
+    cargo, cpf, telefone: tel,
+    clienteConfig: {
+      modulosVisiveis: collect('vis'),
+      podeEditar: collect('edit'),
+      permissoes: collect('perm'),
+      mensagemBemVindo: msg,
+    },
+  };
+  if (senha) data.password = senha;
+
+  if (isEdit) {
+    data._id = editandoUserCliente._id;
+    if (ativo !== undefined) data.active = ativo;
+  } else {
+    // Pegar empresa do data-attribute
+    const modal = document.getElementById('ovUserCliente');
+    const cid = modal?.getAttribute('data-company');
+    if (!cid) { ui.toast('⚠️','Selecione a empresa antes'); return; }
+    data.company = cid;
+  }
+
+  document.getElementById('btnSalvarUC').disabled = true;
+  document.getElementById('btnSalvarUC').textContent = 'Salvando...';
+
+  const r = await API.centralGestao.gerenciarUsuario(data);
+  if (r?.success) {
+    ui.toast('✅', isEdit?'Usuário atualizado':'Usuário criado');
+    fecharModalUC();
+    loadPermissoes();
+  } else {
+    ui.toast('❌', r?.message || 'Erro ao salvar');
+    document.getElementById('btnSalvarUC').disabled = false;
+    document.getElementById('btnSalvarUC').textContent = isEdit?'Salvar alterações':'Criar usuário';
+  }
+}
+
+async function removerUsuarioCliente(uid, nome){
+  if (!confirm(`Remover o usuário "${nome}"?\n\nEle perderá acesso ao portal imediatamente.`)) return;
+  const r = await API.centralGestao.removerUsuario(uid);
+  if (r?.success) { ui.toast('✅','Usuário removido'); loadPermissoes(); }
+  else ui.toast('❌', r?.message || 'Erro');
+}
+
+async function resetarSenhaUsuario(uid, nome){
+  const novaSenha = prompt(`Nova senha para "${nome}":\n(mínimo 6 caracteres)`);
+  if (!novaSenha) return;
+  if (novaSenha.length < 6) { ui.toast('⚠️','Senha muito curta'); return; }
+  const r = await API.centralGestao.resetarSenha(uid, { novaSenha });
+  if (r?.success) ui.toast('✅', `Senha resetada para "${nome}"`);
+  else ui.toast('❌', r?.message || 'Erro');
+}
+
+</script>
+</body>
+</html>

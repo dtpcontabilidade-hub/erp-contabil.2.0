@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Escrituração Contábil & Fiscal</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .15s}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.bl::before{background:var(--blue)}.kpi.gn::before{background:var(--green)}
+.kpi.rd::before{background:var(--red)}.kpi.am::before{background:var(--amber)}.kpi.pu::before{background:var(--purple)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10px;color:var(--txt3);margin-top:4px}
+.tab-strip{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:4px}
+.tab-btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt2);transition:all .14s;white-space:nowrap}
+.tab-btn.on{background:var(--blue);color:#fff}
+.tab-btn:hover:not(.on){background:rgba(255,255,255,.06);color:var(--txt)}
+.money{font-family:'JetBrains Mono',monospace;font-size:12px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}.money.a{color:var(--amber)}
+.ra{display:flex;gap:4px;justify-content:flex-end}
+.rb{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.rb:hover{border-color:var(--bd2)}
+/* LIVROS */
+.livro-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px}
+.livro-row:last-child{border-bottom:none}
+.livro-hd{display:flex;justify-content:space-between;font-weight:700;padding:8px 0;border-bottom:2px solid var(--bd2);margin-bottom:6px;font-size:12px;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em}
+/* BALANCETE */
+.bal-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;align-items:center}
+.bal-row:hover{background:rgba(26,111,196,.04)}
+.bal-hd{background:rgba(26,111,196,.1);font-weight:600;color:var(--bl);border-radius:var(--rs);margin-bottom:4px;padding:8px 10px}
+.bal-total{background:rgba(0,0,0,.2);font-weight:700;border-top:2px solid var(--bd2);padding:10px;font-size:13px}
+/* APURAÇÃO */
+.imp-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;transition:all .15s}
+.imp-card:hover{border-color:var(--bd2)}
+.imp-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--txt);margin-bottom:10px}
+.imp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.imp-item{text-align:center;padding:8px}
+.imp-lbl{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.imp-val{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+.aliq-badge{background:rgba(26,111,196,.12);color:var(--bl);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+/* NFS / INTEGRAÇÕES */
+.integ-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:16px;display:flex;align-items:flex-start;gap:14px;transition:all .15s;cursor:pointer}
+.integ-card:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.integ-ico{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.integ-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
+.integ-dot{width:7px;height:7px;border-radius:50%}
+.integ-dot.ok{background:var(--green);animation:pulse 2s infinite}
+.integ-dot.pend{background:var(--amber)}
+.integ-dot.off{background:var(--txt3)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* NOTA FISCAL */
+.nf-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.nf-row:last-child{border-bottom:none}
+.nf-tipo{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap}
+.nf-tipo.ent{background:rgba(0,201,167,.12);color:var(--green)}
+.nf-tipo.sai{background:rgba(239,68,68,.12);color:var(--red)}
+/* ALIQUOTAS */
+.aliq-table{width:100%;border-collapse:collapse;font-size:11px}
+.aliq-table th{background:rgba(26,111,196,.12);color:var(--bl);padding:8px 10px;text-align:left;border:1px solid var(--bd);font-weight:600}
+.aliq-table td{padding:7px 10px;border:1px solid var(--bd);color:var(--txt2)}
+.aliq-table tr:hover td{background:rgba(26,111,196,.04)}
+/* SIDE PANEL */
+.side-panel{position:fixed;top:0;right:-460px;width:460px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd2);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.3)}
+.side-panel.open{right:0}
+.sp-top{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sp-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sp-tt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--txt)}
+.sp-st{font-size:11px;color:var(--txt3);margin-top:2px}
+.sp-close{margin-left:auto;background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer}
+.sp-body{flex:1;overflow-y:auto;padding:16px 20px}
+.sp-foot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;flex-wrap:wrap}
+.sec-t{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--txt3);font-weight:600;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--bd)}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+
+  <header class="topbar">
+    <span class="topbar-title">📚 Escrituração Contábil & Fiscal</span>
+    <span class="tb-badge blue" id="tbEmp">—</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="selEmp" style="height:32px;font-size:11px;width:220px" onchange="trocarEmpresa()">
+      <option value="">Selecione a empresa...</option>
+    </select>
+    <select class="fin" id="selComp" style="height:32px;font-size:11px;width:145px" onchange="load()"></select>
+    <button class="btn sm primary" onclick="load()">↻ Atualizar</button>
+    <button class="btn sm" onclick="exportarRelatorio()">⬇ Exportar</button>
+  </header>
+
+  <div class="filter-bar" style="gap:8px">
+    <div class="tab-strip">
+      <button class="tab-btn on" id="tab-contabil"  onclick="setTab('contabil')">📒 Contábil</button>
+      <button class="tab-btn"    id="tab-fiscal"    onclick="setTab('fiscal')">🧾 Fiscal</button>
+      <button class="tab-btn"    id="tab-apuracao"  onclick="setTab('apuracao')">🧮 Apuração</button>
+      <button class="tab-btn"    id="tab-nfs"       onclick="setTab('nfs')">📄 NFS-e</button>
+      <button class="tab-btn"    id="tab-integr"    onclick="setTab('integr')">🔗 Integrações</button>
+      <button class="tab-btn"    id="tab-aliquotas" onclick="setTab('aliquotas')">📊 Alíquotas</button>
+    </div>
+  </div>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+
+    <!-- KPIs -->
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi bl"><div class="kpi-l">Total Entradas</div><div class="kpi-v" id="kEnt">—</div><div class="kpi-s">notas de entrada</div></div>
+      <div class="kpi rd"><div class="kpi-l">Total Saídas</div><div class="kpi-v" id="kSai">—</div><div class="kpi-s">notas de saída</div></div>
+      <div class="kpi am"><div class="kpi-l">Total Impostos</div><div class="kpi-v" id="kImp">—</div><div class="kpi-s">apurados</div></div>
+      <div class="kpi pu"><div class="kpi-l">Lançamentos</div><div class="kpi-v" id="kLanc">—</div><div class="kpi-s">contábeis</div></div>
+      <div class="kpi gn"><div class="kpi-l">Status</div><div class="kpi-v" id="kSt" style="font-size:13px">—</div><div class="kpi-s">escrituração</div></div>
+    </div>
+
+    <!-- ─── CONTÁBIL ─────────────────────────────────────── -->
+    <div id="pane-contabil">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <button class="btn" onclick="loadLivroDiario()" id="btnDiario" style="justify-content:flex-start;gap:8px">📒 <span>Livro Diário</span></button>
+        <button class="btn" onclick="loadLivroRazao()"  id="btnRazao"  style="justify-content:flex-start;gap:8px">📘 <span>Livro Razão</span></button>
+        <button class="btn primary" onclick="loadBalancete()" id="btnBalancete" style="justify-content:flex-start;gap:8px">⚖️ <span>Balancete</span></button>
+        <button class="btn" onclick="loadDRE()" id="btnDRE" style="justify-content:flex-start;gap:8px">📊 <span>DRE — Resultado</span></button>
+      </div>
+
+      <div class="card" id="livroPanel">
+        <div class="card-h">
+          <span class="card-ht" id="livroTitle">Selecione um livro acima</span>
+          <div style="display:flex;gap:6px" id="livroAcoes"></div>
+        </div>
+        <div id="livroBody">
+          <div class="empty">
+            <div class="empty-ic">📒</div>
+            <div class="empty-t">Selecione um livro contábil</div>
+            <div class="empty-s">Livro Diário, Razão, Balancete ou DRE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── FISCAL ───────────────────────────────────────── -->
+    <div id="pane-fiscal" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+        <select class="fin" id="fTipoNF" style="height:28px;font-size:11px;width:150px" onchange="loadFiscal()">
+          <option value="">Entradas e Saídas</option>
+          <option value="entrada">Entradas (Compras)</option>
+          <option value="saida">Saídas (Vendas)</option>
+        </select>
+        <select class="fin" id="fCfop" style="height:28px;font-size:11px;width:160px" onchange="loadFiscal()">
+          <option value="">Todos os CFOPs</option>
+          <option value="1">1.000 — Compras no Estado</option>
+          <option value="2">2.000 — Compras Interestad.</option>
+          <option value="3">3.000 — Compras Exterior</option>
+          <option value="5">5.000 — Vendas no Estado</option>
+          <option value="6">6.000 — Vendas Interestad.</option>
+          <option value="7">7.000 — Exportação</option>
+        </select>
+        <div class="topbar-spacer"></div>
+        <button class="btn primary" onclick="openNovaNotaFiscal()">+ Lançar Nota Fiscal</button>
+        <button class="btn sm" onclick="exportarFiscalCSV()">⬇ CSV</button>
+      </div>
+      <div class="card" id="fiscalPanel">
+        <div class="card-h"><span class="card-ht">🧾 Escrituração Fiscal — Notas</span><span style="font-size:11px;color:var(--txt3)" id="fiscalCount"></span></div>
+        <div id="fiscalBody"><div class="empty"><div class="empty-ic">⏳</div></div></div>
+      </div>
+    </div>
+
+    <!-- ─── APURAÇÃO ─────────────────────────────────────── -->
+    <div id="pane-apuracao" style="display:none">
+      <div style="margin-bottom:14px;display:flex;gap:8px">
+        <button class="btn primary" onclick="calcularApuracao()">🧮 Calcular Apuração</button>
+        <button class="btn sm" onclick="exportarApuracaoCSV()">⬇ CSV</button>
+      </div>
+      <div id="apuracaoBody">
+        <div class="empty"><div class="empty-ic">🧮</div><div class="empty-t">Clique em "Calcular Apuração"</div><div class="empty-s">para apurar impostos do período</div></div>
+      </div>
+    </div>
+
+    <!-- ─── NFS-e ─────────────────────────────────────────── -->
+    <div id="pane-nfs" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="nfsKpis"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <!-- Prefeituras vinculadas -->
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">🏛️ Prefeituras Vinculadas</span>
+            <button class="btn sm primary" onclick="vincularPrefeitura()">+ Vincular</button>
+          </div>
+          <div id="prefeiturasBody" style="padding:14px 16px"></div>
+        </div>
+        <!-- Últimas NFS emitidas -->
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">📄 Últimas NFS-e Emitidas</span>
+            <button class="btn sm primary" onclick="openEmitirNFS()">+ Emitir NFS</button>
+          </div>
+          <div id="nfsBody" style="padding:0 16px 14px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── INTEGRAÇÕES ──────────────────────────────────── -->
+    <div id="pane-integr" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="integBody"></div>
+    </div>
+
+    <!-- ─── ALÍQUOTAS ────────────────────────────────────── -->
+    <div id="pane-aliquotas" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <!-- ISS por município -->
+        <div class="card">
+          <div class="card-h">
+            <span class="card-ht">🏙️ ISS por Município</span>
+            <select class="fin" id="selEstado" style="height:26px;font-size:11px;width:140px" onchange="renderAliqISS()">
+              <option value="SC">Santa Catarina</option>
+              <option value="SP">São Paulo</option>
+              <option value="PR">Paraná</option>
+              <option value="RS">Rio Grande do Sul</option>
+              <option value="RJ">Rio de Janeiro</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto;padding:14px 16px" id="aliqISSBody"></div>
+        </div>
+        <!-- ICMS por estado -->
+        <div class="card">
+          <div class="card-h"><span class="card-ht">🗺️ ICMS por Estado</span></div>
+          <div style="overflow-x:auto;padding:14px 16px" id="aliqICMSBody"></div>
+        </div>
+      </div>
+      <!-- Simples Nacional — Anexos -->
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">📋 Simples Nacional — Alíquotas por Anexo</span>
+          <span style="font-size:10px;color:var(--txt3)">LC 123/2006 · Tabelas 2025</span>
+        </div>
+        <div style="overflow-x:auto;padding:14px 16px" id="aliqSimplesBody"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- PAINEL DETALHE NF -->
+<div class="side-panel" id="sidePanel">
+  <div class="sp-top">
+    <div class="sp-ico" id="spIco" style="background:rgba(26,111,196,.15)">🧾</div>
+    <div><div class="sp-tt" id="spTt">—</div><div class="sp-st" id="spSt">—</div></div>
+    <button class="sp-close" onclick="fecharPanel()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+<div id="overlay" onclick="fecharPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199"></div>
+
+<!-- MODAL NOTA FISCAL -->
+<div class="ov" id="ovNF">
+<div class="modal xl">
+  <div class="m-top">
+    <div class="m-ico b">🧾</div>
+    <div class="m-hi"><div class="m-tg">Escrituração Fiscal</div><div class="m-tt" id="nfTt">Lançar Nota Fiscal</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovNF')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'nf0')">📋 Identificação</div>
+    <div class="m-tab" onclick="ui.tab(this,'nf1')">💰 Impostos</div>
+    <div class="m-tab" onclick="ui.tab(this,'nf2')">📒 Contabilizar</div>
+  </div>
+  <div class="m-bd">
+    <div class="tp on" id="nf0">
+      <div class="fg3">
+        <div class="fgp"><label class="fbl">Tipo *</label>
+          <select class="fin" id="nfTipo">
+            <option value="entrada">📥 Entrada (Compra)</option>
+            <option value="saida">📤 Saída (Venda)</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Nº Nota *</label><input class="fin mono" id="nfNumero" placeholder="000001"></div>
+        <div class="fgp"><label class="fbl">Série</label><input class="fin mono" id="nfSerie" placeholder="A" value="A"></div>
+        <div class="fgp"><label class="fbl">Data Emissão *</label><input class="fin" type="date" id="nfDataEmissao"></div>
+        <div class="fgp"><label class="fbl">Data Entrada/Saída</label><input class="fin" type="date" id="nfDataEntrada"></div>
+        <div class="fgp"><label class="fbl">CFOP *</label>
+          <select class="fin" id="nfCfop">
+            <option value="1.102">1.102 — Compra para industrialização</option>
+            <option value="1.202">1.202 — Devolução de venda</option>
+            <option value="1.556">1.556 — Compra material escritório</option>
+            <option value="2.102">2.102 — Compra interestadual</option>
+            <option value="5.101">5.101 — Venda produção própria</option>
+            <option value="5.102">5.102 — Venda mercadorias</option>
+            <option value="5.403">5.403 — Venda Simples Nacional</option>
+            <option value="5.933">5.933 — Prestação serviços</option>
+            <option value="6.101">6.101 — Venda interestadual</option>
+            <option value="6.102">6.102 — Venda mercadorias interestad.</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Emitente / Destinatário *</label><input class="fin" id="nfFornec" placeholder="Razão Social"></div>
+        <div class="fgp"><label class="fbl">CNPJ/CPF</label><input class="fin mono" id="nfCnpjFornec" placeholder="00.000.000/0000-00"></div>
+        <div class="fgp"><label class="fbl">UF Emitente</label>
+          <select class="fin" id="nfUF">
+            <option value="SC">SC</option><option value="SP">SP</option><option value="PR">PR</option>
+            <option value="RS">RS</option><option value="RJ">RJ</option><option value="MG">MG</option>
+            <option value="ES">ES</option><option value="MS">MS</option><option value="MT">MT</option><option value="GO">GO</option>
+            <option value="BA">BA</option><option value="PE">PE</option><option value="CE">CE</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Descrição</label><input class="fin" id="nfDesc" placeholder="Produto/serviço..."></div>
+        <div class="fgp"><label class="fbl">Valor Total (R$) *</label><input class="fin" type="number" id="nfValorTotal" min="0" step="0.01" oninput="calcImpostosNF()"></div>
+        <div class="fgp"><label class="fbl">Base de Cálculo (R$)</label><input class="fin" type="number" id="nfBase" min="0" step="0.01" oninput="calcImpostosNF()"></div>
+      </div>
+    </div>
+    <div class="tp" id="nf1">
+      <div class="fg3">
+        <div class="fgp"><label class="fbl">Alíquota ICMS (%)</label><input class="fin" type="number" id="nfAliqICMS" min="0" max="30" step="0.01" value="12" oninput="calcImpostosNF()"></div>
+        <div class="fgp"><label class="fbl">Valor ICMS (R$)</label><input class="fin money" type="number" id="nfICMS" min="0" step="0.01" readonly></div>
+        <div class="fgp"><label class="fbl">CST/CSOSN</label><input class="fin mono" id="nfCst" placeholder="000"></div>
+        <div class="fgp"><label class="fbl">Alíquota PIS (%)</label><input class="fin" type="number" id="nfAliqPIS" value="0.65" min="0" step="0.01" oninput="calcImpostosNF()"></div>
+        <div class="fgp"><label class="fbl">Valor PIS (R$)</label><input class="fin money" type="number" id="nfPIS" min="0" step="0.01" readonly></div>
+        <div class="fgp"><label class="fbl">Alíquota COFINS (%)</label><input class="fin" type="number" id="nfAliqCOFINS" value="3" min="0" step="0.01" oninput="calcImpostosNF()"></div>
+        <div class="fgp"><label class="fbl">Valor COFINS (R$)</label><input class="fin money" type="number" id="nfCOFINS" min="0" step="0.01" readonly></div>
+        <div class="fgp"><label class="fbl">Alíquota IPI (%)</label><input class="fin" type="number" id="nfAliqIPI" value="0" min="0" step="0.01" oninput="calcImpostosNF()"></div>
+        <div class="fgp"><label class="fbl">Valor IPI (R$)</label><input class="fin money" type="number" id="nfIPI" min="0" step="0.01" readonly></div>
+        <div class="fgp"><label class="fbl">Alíquota ISS (%)</label><input class="fin" type="number" id="nfAliqISS" value="0" min="0" step="0.01" oninput="calcImpostosNF()"></div>
+        <div class="fgp"><label class="fbl">Valor ISS (R$)</label><input class="fin money" type="number" id="nfISS" min="0" step="0.01" readonly></div>
+      </div>
+      <div style="margin-top:14px;padding:12px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs);font-size:12px;color:var(--amber)" id="nfImpostosPreview">
+        Preencha o valor total e base de cálculo para ver o preview dos impostos.
+      </div>
+    </div>
+    <div class="tp" id="nf2">
+      <div style="padding:10px 0;margin-bottom:14px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs);padding:12px 14px">
+        <div style="font-size:11px;color:var(--bl);font-weight:600;margin-bottom:8px">Vincular ao Plano de Contas</div>
+        <div class="fg2">
+          <div class="fgp"><label class="fbl">Conta Contábil (Débito)</label><select class="fin" id="nfContaDB"><option value="">— selecionar —</option></select></div>
+          <div class="fgp"><label class="fbl">Conta Contábil (Crédito)</label><select class="fin" id="nfContaCR"><option value="">— selecionar —</option></select></div>
+          <div class="fgp"><label class="fbl">Centro de Custo</label><select class="fin" id="nfCC"><option value="">— nenhum —</option></select></div>
+          <div class="fgp"><label class="fbl">Gerar Lançamento Automático</label>
+            <select class="fin" id="nfAutoLanc">
+              <option value="sim">✅ Sim — gerar lançamento contábil</option>
+              <option value="nao">Não — somente registro fiscal</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--txt3);padding:10px;border:1px dashed var(--bd);border-radius:var(--rs)">
+        💡 Se optar por gerar lançamento automático, o sistema criará o lançamento contábil correspondente com base nas contas selecionadas e nos valores calculados.
+      </div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="nfBtn" onclick="salvarNF()">💾 Salvar Nota</button>
+    <button class="mfb" onclick="ui.closeModal('ovNF')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL NFS-e -->
+<div class="ov" id="ovNFS">
+<div class="modal">
+  <div class="m-top">
+    <div class="m-ico gn">📄</div>
+    <div class="m-hi"><div class="m-tg">NFS-e</div><div class="m-tt">Emitir Nota Fiscal de Serviço</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovNFS')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div class="fg2">
+      <div class="fgp ffu"><label class="fbl">Tomador do Serviço *</label><select class="fin" id="nfsEmp"><option value="">Selecione...</option></select></div>
+      <div class="fgp"><label class="fbl">Data da NFS *</label><input class="fin" type="date" id="nfsData"></div>
+      <div class="fgp"><label class="fbl">Competência</label><input class="fin" type="month" id="nfsComp"></div>
+      <div class="fgp ffu"><label class="fbl">Descrição do Serviço *</label><textarea class="fin" id="nfsDesc" rows="2" style="resize:none" placeholder="Descreva o serviço prestado..."></textarea></div>
+      <div class="fgp"><label class="fbl">Valor do Serviço (R$) *</label><input class="fin" type="number" id="nfsValor" min="0" step="0.01" oninput="calcNFS()"></div>
+      <div class="fgp"><label class="fbl">Código do Serviço (LC 116)</label><input class="fin mono" id="nfsCodSvc" placeholder="Ex: 17.01"></div>
+      <div class="fgp"><label class="fbl">Alíquota ISS (%)</label><input class="fin" type="number" id="nfsAliqISS" value="2" min="0" max="5" step="0.01" oninput="calcNFS()"></div>
+      <div class="fgp"><label class="fbl">Valor ISS (R$)</label><input class="fin money" id="nfsISS" readonly></div>
+      <div class="fgp"><label class="fbl">Dedução (R$)</label><input class="fin" type="number" id="nfsDeduc" min="0" step="0.01" value="0" oninput="calcNFS()"></div>
+      <div class="fgp"><label class="fbl">Base Cálculo ISS (R$)</label><input class="fin money" id="nfsBase" readonly></div>
+      <div class="fgp"><label class="fbl">Ret. IRRF (%)</label><input class="fin" type="number" id="nfsIRRF" value="0" min="0" step="0.01"></div>
+      <div class="fgp"><label class="fbl">Ret. PIS/COFINS (%)</label><input class="fin" type="number" id="nfsPCOF" value="0" min="0" step="0.01"></div>
+      <div class="fgp"><label class="fbl">Prefeitura / Portal</label>
+        <select class="fin" id="nfsPortal">
+          <option value="">Selecione o portal...</option>
+          <option value="florianopolis">Florianópolis — nfse.pmf.sc.gov.br</option>
+          <option value="joinville">Joinville — nfse.joinville.sc.gov.br</option>
+          <option value="blumenau">Blumenau — issqn.blumenau.sc.gov.br</option>
+          <option value="chapeco">Chapecó — issqn.chapeco.sc.gov.br</option>
+          <option value="criciuma">Criciúma — nfse.criciuma.sc.gov.br</option>
+          <option value="itajai">Itajaí — nfse.itajai.sc.gov.br</option>
+          <option value="nacional">Portal Nacional NFS-e</option>
+          <option value="outro">Outro município</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="nfsBtn" onclick="salvarNFS()">📄 Gerar NFS-e</button>
+    <button class="mfb" onclick="ui.closeModal('ovNFS')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let curTab='contabil', curEmpId='', curEmpData=null, nfsDados=[], contasCache=[], centrosCache=[];
+const g  = id => document.getElementById(id)?.value?.trim()||'';
+const sv = (id,v) => { const e=document.getElementById(id); if(e) e.value=v||''; };
+const gn = id => parseFloat(document.getElementById(id)?.value)||0;
+const cur = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const r2  = v => Math.round(v*100)/100;
+
+// INIT
+(()=>{
+  const now=new Date();
+  let o=''; for(let i=-1;i<24;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const v=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    o+=`<option value="${v}"${i===0?' selected':''}>${ui.competence(v)}</option>`;
+  }
+  document.getElementById('selComp').innerHTML=o;
+  document.getElementById('nfDataEmissao').value=now.toISOString().substring(0,10);
+  document.getElementById('nfDataEntrada').value=now.toISOString().substring(0,10);
+  document.getElementById('nfsData').value=now.toISOString().substring(0,10);
+  document.getElementById('nfsComp').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+})();
+
+// Carrega empresas
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  const o=r.companies.map(c=>`<option value="${c._id}" data-regime="${c.taxRegime}" data-sector="${c.sector||''}" data-city="${c.address?.city||''}" data-uf="${c.address?.state||''}">${c.tradeName||c.legalName}</option>`).join('');
+  ['selEmp','nfsEmp'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=(id==='selEmp'?'<option value="">Selecione a empresa...</option>':'<option value="">Selecione...</option>')+o; });
+});
+
+function trocarEmpresa(){
+  curEmpId=g('selEmp');
+  const opt=document.querySelector(`#selEmp option[value="${curEmpId}"]`);
+  if(opt) document.getElementById('tbEmp').textContent=opt.textContent.trim();
+  else document.getElementById('tbEmp').textContent='—';
+  load();
+  carregarContasECentros();
+}
+
+async function carregarContasECentros(){
+  if(!curEmpId)return;
+  const token=auth.getToken(), headers={'Content-Type':'application/json',Authorization:'Bearer '+token};
+  const [pcR,ccR]=await Promise.all([
+    fetch(`/api/plano-contas?limit=500&company=${curEmpId}`,{headers}).then(r=>r.json()).catch(()=>null),
+    fetch(`/api/centros-custo?limit=200&company=${curEmpId}`,{headers}).then(r=>r.json()).catch(()=>null),
+  ]);
+  contasCache=pcR?.items||[];
+  centrosCache=ccR?.items||[];
+  const optsC='<option value="">— selecionar —</option>'+contasCache.map(c=>`<option value="${c.codigo}">${c.codigo} — ${c.descricao}</option>`).join('');
+  const optsCC='<option value="">— nenhum —</option>'+centrosCache.map(c=>`<option value="${c._id}">${c.codigo} — ${c.descricao}</option>`).join('');
+  ['nfContaDB','nfContaCR'].forEach(id=>sv(id,''));
+  document.getElementById('nfContaDB').innerHTML=optsC;
+  document.getElementById('nfContaCR').innerHTML=optsC;
+  document.getElementById('nfCC').innerHTML=optsCC;
+}
+
+// TABS
+function setTab(tab){
+  curTab=tab;
+  ['contabil','fiscal','apuracao','nfs','integr','aliquotas'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('on',t===tab);
+    document.getElementById('pane-'+t).style.display=t===tab?'block':'none';
+  });
+  if(tab==='fiscal') loadFiscal();
+  if(tab==='nfs') renderNFS();
+  if(tab==='integr') renderIntegracoes();
+  if(tab==='aliquotas'){ renderAliqISS(); renderAliqICMS(); renderAliqSimples(); }
+}
+
+async function load(){
+  if(!curEmpId) return;
+  const comp=g('selComp');
+  // Carrega stats
+  const r=await API.escrituracao.list({company:curEmpId,competence:comp});
+  if(r?.success){
+    const items=r.items||[];
+    const fiscal=items.find(i=>i.tipo==='fiscal');
+    const totE=fiscal?.totalEntradas||0, totS=fiscal?.totalSaidas||0, totI=fiscal?.totalImpostos||0;
+    document.getElementById('kEnt').textContent=cur(totE);
+    document.getElementById('kSai').textContent=cur(totS);
+    document.getElementById('kImp').textContent=cur(totI);
+    document.getElementById('kSt').textContent=fiscal?.status?.toUpperCase()||'—';
+  }
+  // Lançamentos contábeis
+  const lR=await API.transactions.list({company:curEmpId,competence:comp,limit:500});
+  document.getElementById('kLanc').textContent=lR?.pagination?.total||0;
+  setTab(curTab);
+}
+
+// ── LIVRO DIÁRIO ──────────────────────────────────────────────
+async function loadLivroDiario(){
+  if(!curEmpId){ui.toast('⚠️','Selecione uma empresa');return;}
+  document.getElementById('livroTitle').textContent='📒 Livro Diário — '+ui.competence(g('selComp'));
+  document.getElementById('livroBody').innerHTML='<div class="empty"><div class="empty-ic">⏳</div></div>';
+  document.getElementById('livroAcoes').innerHTML=`<button class="btn sm" onclick="imprimirLivro('diario')">🖨️ Imprimir</button><button class="btn sm" onclick="exportarLivroCSV('diario')">⬇ CSV</button>`;
+  const r=await fetch(`/api/escrituracao/livro-diario?company=${curEmpId}&competence=${g('selComp')}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(x=>x.json()).catch(()=>null);
+  if(!r?.success||!r.livro?.lancamentos?.length){
+    document.getElementById('livroBody').innerHTML='<div class="empty"><div class="empty-ic">📒</div><div class="empty-t">Nenhum lançamento</div><div class="empty-s">Cadastre lançamentos contábeis primeiro</div></div>';
+    return;
+  }
+  const l=r.livro;
+  document.getElementById('livroBody').innerHTML=`
+    <div style="padding:14px 16px">
+      <div class="livro-hd"><span>Data</span><span>Histórico</span><span>Conta Déb.</span><span>Conta Créd.</span><span style="text-align:right">Valor</span></div>
+      ${l.lancamentos.map(tx=>`
+        <div class="livro-row">
+          <span style="font-size:11px;color:var(--txt3);white-space:nowrap;flex-shrink:0">${ui.date(tx.date)}</span>
+          <span style="flex:1;font-size:12.5px;font-weight:500;color:var(--txt);padding:0 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tx.description}</span>
+          <span class="money" style="font-size:11px;color:var(--bl);flex-shrink:0">${tx.debitAccount||'—'}</span>
+          <span class="money" style="font-size:11px;color:var(--purple);flex-shrink:0;padding:0 10px">${tx.creditAccount||'—'}</span>
+          <span class="money g" style="flex-shrink:0;text-align:right">${cur(tx.amount)}</span>
+        </div>`).join('')}
+      <div style="display:flex;justify-content:flex-end;padding:12px 0;border-top:2px solid var(--bd2);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--green)">Total: ${cur(l.total)}</div>
+    </div>`;
+}
+
+// ── LIVRO RAZÃO ───────────────────────────────────────────────
+async function loadLivroRazao(){
+  if(!curEmpId){ui.toast('⚠️','Selecione uma empresa');return;}
+  document.getElementById('livroTitle').textContent='📘 Livro Razão — '+ui.competence(g('selComp'));
+  document.getElementById('livroAcoes').innerHTML=`<button class="btn sm" onclick="imprimirLivro('razao')">🖨️ Imprimir</button><button class="btn sm" onclick="exportarLivroCSV('razao')">⬇ CSV</button>`;
+  document.getElementById('livroBody').innerHTML='<div class="empty"><div class="empty-ic">⏳</div></div>';
+  const r=await fetch(`/api/escrituracao/livro-razao?company=${curEmpId}&competence=${g('selComp')}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(x=>x.json()).catch(()=>null);
+  if(!r?.success||!r.razao?.length){
+    document.getElementById('livroBody').innerHTML='<div class="empty"><div class="empty-t">Nenhum lançamento</div></div>';
+    return;
+  }
+  document.getElementById('livroBody').innerHTML=`<div style="padding:14px 16px">
+    ${r.razao.map(c=>`
+      <div style="margin-bottom:16px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--bl);padding:8px 10px;background:rgba(26,111,196,.1);border-radius:var(--rs);margin-bottom:6px">
+          ${c.conta} <span style="font-weight:400;font-size:11px;color:var(--txt3)">· Déb: ${cur(c.debitos)} · Créd: ${cur(c.creditos)} · Saldo: <span style="color:${c.saldo>=0?'var(--green)':'var(--red)'}">${cur(c.saldo)}</span></span>
+        </div>
+        ${c.lancamentos.slice(0,10).map(tx=>`
+          <div class="livro-row">
+            <span style="width:7px;height:7px;border-radius:50%;background:${tx.lado==='D'?'var(--red)':'var(--green)'};flex-shrink:0"></span>
+            <span style="font-size:11px;color:var(--txt3);white-space:nowrap;flex-shrink:0">${ui.date(tx.date)}</span>
+            <span style="flex:1;font-size:12px;padding:0 10px">${tx.description}</span>
+            <span style="font-size:10px;font-weight:700;color:${tx.lado==='D'?'var(--red)':'var(--green)'};flex-shrink:0">${tx.lado}</span>
+            <span class="money" style="flex-shrink:0;padding-left:10px;color:${tx.lado==='D'?'var(--red)':'var(--green)'}">${cur(tx.amount)}</span>
+          </div>`).join('')}
+      </div>`).join('')}
+  </div>`;
+}
+
+// ── BALANCETE ─────────────────────────────────────────────────
+async function loadBalancete(){
+  if(!curEmpId){ui.toast('⚠️','Selecione uma empresa');return;}
+  document.getElementById('livroTitle').textContent='⚖️ Balancete de Verificação — '+ui.competence(g('selComp'));
+  document.getElementById('livroAcoes').innerHTML=`<button class="btn sm primary" onclick="imprimirLivro('balancete')">🖨️ Imprimir</button><button class="btn sm" onclick="exportarLivroCSV('balancete')">⬇ CSV</button>`;
+  document.getElementById('livroBody').innerHTML='<div class="empty"><div class="empty-ic">⏳</div></div>';
+  const r=await fetch(`/api/escrituracao/balancete?company=${curEmpId}&competence=${g('selComp')}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(x=>x.json()).catch(()=>null);
+  if(!r?.success||!r.balancete?.length){
+    document.getElementById('livroBody').innerHTML='<div class="empty"><div class="empty-t">Sem dados para o período</div></div>';
+    return;
+  }
+  document.getElementById('livroBody').innerHTML=`<div style="padding:14px 16px">
+    <div class="bal-row bal-hd"><span>Conta Contábil</span><span style="text-align:right">Débitos</span><span style="text-align:right">Créditos</span><span style="text-align:right">Saldo</span></div>
+    ${r.balancete.map(c=>`
+      <div class="bal-row">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--txt)">${c.conta}</span>
+        <span class="money r" style="text-align:right">${cur(c.debitos)}</span>
+        <span class="money g" style="text-align:right">${cur(c.creditos)}</span>
+        <span class="money ${c.saldo>=0?'g':'r'}" style="text-align:right;font-weight:700">${cur(c.saldo)}</span>
+      </div>`).join('')}
+    <div class="bal-row bal-total">
+      <span>TOTAIS</span>
+      <span class="money r" style="text-align:right">${cur(r.totais?.debitos||0)}</span>
+      <span class="money g" style="text-align:right">${cur(r.totais?.creditos||0)}</span>
+      <span class="money ${(r.totais?.debitos-r.totais?.creditos)>=0?'g':'r'}" style="text-align:right">${cur((r.totais?.debitos||0)-(r.totais?.creditos||0))}</span>
+    </div>
+  </div>`;
+}
+
+// ── DRE ───────────────────────────────────────────────────────
+async function loadDRE(){
+  if(!curEmpId){ui.toast('⚠️','Selecione uma empresa');return;}
+  document.getElementById('livroTitle').textContent='📊 DRE — Demonstração do Resultado do Exercício';
+  document.getElementById('livroAcoes').innerHTML=`<button class="btn sm primary" onclick="imprimirLivro('dre')">🖨️ Imprimir</button><button class="btn sm" onclick="exportarDRE()">⬇ CSV</button>`;
+  document.getElementById('livroBody').innerHTML='<div class="empty"><div class="empty-ic">⏳</div></div>';
+  const lR=await API.transactions.list({company:curEmpId,competence:g('selComp'),limit:500});
+  const txs=lR?.transactions||[];
+  // Agrupa por categoria/conta
+  const grpRec={}, grpCusto={}, grpDesp={};
+  txs.forEach(t=>{
+    const conta=contasCache.find(cc=>t.debitAccount?.startsWith(cc.codigo)||t.creditAccount?.startsWith(cc.codigo));
+    const tipo=conta?.tipo||(t.creditAccount?.startsWith('4')?'receita':t.debitAccount?.startsWith('5')?'custo':t.debitAccount?.startsWith('6')?'despesa':null);
+    const cat=t.category||conta?.descricao||t.description||'Outros';
+    if(tipo==='receita')        grpRec[cat]=(grpRec[cat]||0)+t.amount;
+    else if(tipo==='custo')     grpCusto[cat]=(grpCusto[cat]||0)+t.amount;
+    else if(tipo==='despesa')   grpDesp[cat]=(grpDesp[cat]||0)+t.amount;
+  });
+  const totRec   = Object.values(grpRec).reduce((a,v)=>a+v,0);
+  const totCusto = Object.values(grpCusto).reduce((a,v)=>a+v,0);
+  const totDesp  = Object.values(grpDesp).reduce((a,v)=>a+v,0);
+  const lucroBruto = totRec-totCusto;
+  const ebitda     = lucroBruto-totDesp;
+  const impEstim   = ebitda>0?ebitda*0.06:0; // estimativa simples
+  const liqEstim   = ebitda-impEstim;
+  const margBruta  = totRec>0?Math.round(lucroBruto/totRec*100):0;
+  const margLiq    = totRec>0?Math.round(liqEstim/totRec*100):0;
+
+  // Se não tem dados, usa estrutura zerada para mostrar o layout
+  const recLinhas  = Object.keys(grpRec).length?Object.entries(grpRec).sort((a,b)=>b[1]-a[1]):[['Receita Operacional',0],['Serviços Prestados',0]];
+  const custoLinhas= Object.keys(grpCusto).length?Object.entries(grpCusto).sort((a,b)=>b[1]-a[1]):[['CPV — Custo dos Serviços',0]];
+  const despLinhas = Object.keys(grpDesp).length?Object.entries(grpDesp).sort((a,b)=>b[1]-a[1]):[['Despesas Administrativas',0],['Despesas com Pessoal',0],['Despesas Financeiras',0]];
+
+  const secao=(titulo,linhas,total,cor,sinal)=>`
+    <div style="margin-bottom:4px">
+      <div style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${cor};background:rgba(255,255,255,.02);border-bottom:1px solid ${cor}30">${titulo}</div>
+      ${linhas.map(([cat,val])=>`
+        <div style="display:flex;justify-content:space-between;padding:8px 16px 8px 28px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12.5px">
+          <span style="color:var(--txt2)">${cat}</span>
+          <span style="font-family:'JetBrains Mono',monospace;color:${val>0?cor:'var(--txt3)'}">${sinal}${cur(val)}</span>
+        </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding:9px 16px;background:rgba(255,255,255,.03);font-size:12px;font-weight:700;border-bottom:2px solid ${cor}40">
+        <span style="color:${cor}">TOTAL ${titulo.split(' ')[0]}</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:${cor}">${sinal}${cur(total)}</span>
+      </div>
+    </div>`;
+
+  const subtotal=(titulo,val,cor,destaque)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:${destaque?'14px':'10px'} 16px;background:${destaque?'rgba('+( val>=0?'0,201,167':'239,68,68' )+',.06)':'rgba(255,255,255,.02)'};border-bottom:1px solid ${cor}20;${destaque?'border-top:2px solid '+cor+'30':''};font-size:${destaque?'14px':'13px'};font-weight:700">
+      <span style="color:${destaque?cor:'var(--txt)'}">${titulo}</span>
+      <div style="text-align:right">
+        <div style="font-family:'JetBrains Mono',monospace;color:${cor};font-size:${destaque?'16px':'13px'}">${cur(val)}</div>
+        ${destaque?`<div style="font-size:10px;color:var(--txt3);margin-top:2px">Margem: ${totRec>0?Math.round(val/totRec*100):0}%</div>`:''}
+      </div>
+    </div>`;
+
+  document.getElementById('livroBody').innerHTML=`
+    <!-- KPIs resumo -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:14px 16px;border-bottom:1px solid var(--bd)">
+      ${[
+        ['Receita Bruta',cur(totRec),'var(--green)'],
+        ['CPV/Custo',cur(totCusto),'var(--red)'],
+        ['Lucro Bruto',cur(lucroBruto),lucroBruto>=0?'var(--green)':'var(--red)'],
+        ['Margem Bruta',margBruta+'%',margBruta>=40?'var(--green)':margBruta>=20?'var(--amber)':'var(--red)'],
+        ['Margem Líquida',margLiq+'%',margLiq>=15?'var(--green)':margLiq>=5?'var(--amber)':'var(--red)'],
+      ].map(([l,v,cor])=>`<div style="text-align:center">
+        <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${l}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:${cor}">${v}</div>
+      </div>`).join('')}
+    </div>
+    <!-- DRE Formal -->
+    <div style="max-width:680px;padding:8px 0">
+      ${secao('RECEITAS OPERACIONAIS', recLinhas, totRec, 'var(--green)','')}
+      ${subtotal('(=) RECEITA LÍQUIDA',totRec,'var(--green)',false)}
+      ${secao('(-) CUSTO DOS SERVIÇOS / CPV', custoLinhas, totCusto,'var(--red)','(-) ')}
+      ${subtotal('(=) LUCRO BRUTO',lucroBruto,lucroBruto>=0?'var(--green)':'var(--red)',true)}
+      ${secao('(-) DESPESAS OPERACIONAIS', despLinhas, totDesp,'var(--red)','(-) ')}
+      ${subtotal('(=) EBITDA',ebitda,ebitda>=0?'var(--green)':'var(--red)',false)}
+      ${subtotal('(-) Impostos Estimados',impEstim,'var(--amber)',false)}
+      ${subtotal('(=) RESULTADO LÍQUIDO',liqEstim,liqEstim>=0?'var(--green)':'var(--red)',true)}
+    </div>
+    ${!txs.length?'<div style="padding:14px;margin:12px 16px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs);font-size:12px;color:var(--bl)">💡 Adicione lançamentos contábeis para preencher a DRE com dados reais. A estrutura acima mostra o layout padrão.</div>':''}`;
+}
+
+function exportarDRE(){
+  ui.toast('Exportando DRE...');
+  var rows=[['Linha DRE','Valor']];
+  var elems=document.querySelectorAll('#livroBody > div > div');
+  elems.forEach(function(el){
+    var spans=el.querySelectorAll('span');
+    if(spans.length>=2){
+      var a=spans[0].textContent.trim();
+      var b=spans[spans.length-1].textContent.trim();
+      if(a) rows.push([a,b]);
+    }
+  });
+  var nl=String.fromCharCode(13,10);
+  var csv=rows.map(function(r){
+    return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(';');
+  }).join(nl);
+  var a2=document.createElement('a');
+  a2.href='data:text/csv;charset=utf-8,%EF%BB%BF'+encodeURIComponent(csv);
+  a2.download='DRE_'+(g('selComp')||'resultado')+'.csv';
+  document.body.appendChild(a2);
+  a2.click();
+  document.body.removeChild(a2);
+}
+
+// ── FISCAL ───────────────────────────────────────────────────
+async function loadFiscal(){
+  if(!curEmpId) return;
+  const r=await API.escrituracao.list({company:curEmpId,competence:g('selComp'),tipo:'fiscal'});
+  if(!r?.success){ document.getElementById('fiscalBody').innerHTML='<div class="empty"><div class="empty-s">Erro ao carregar</div></div>'; return; }
+  const itens=r.items.flatMap(i=>i.itens||[]);
+  const tipo=g('fTipoNF'), cfopFiltro=g('fCfop');
+  const filtrados=itens.filter(i=>(!tipo||i.tipo===tipo)&&(!cfopFiltro||i.cfop?.startsWith(cfopFiltro)));
+  document.getElementById('fiscalCount').textContent=filtrados.length+' nota(s)';
+  nfsDados=filtrados;
+  // Atualiza KPIs
+  const totE=itens.filter(i=>i.tipo==='entrada').reduce((a,i)=>a+i.valorTotal,0);
+  const totS=itens.filter(i=>i.tipo==='saida').reduce((a,i)=>a+i.valorTotal,0);
+  const totI=itens.reduce((a,i)=>a+(i.icms||0)+(i.pis||0)+(i.cofins||0)+(i.iss||0)+(i.ipi||0),0);
+  document.getElementById('kEnt').textContent=cur(totE);
+  document.getElementById('kSai').textContent=cur(totS);
+  document.getElementById('kImp').textContent=cur(totI);
+  if(!filtrados.length){
+    document.getElementById('fiscalBody').innerHTML='<div class="empty"><div class="empty-ic">🧾</div><div class="empty-t">Nenhuma nota lançada</div><div class="empty-s"><span onclick="openNovaNotaFiscal()" style="color:var(--bl);cursor:pointer">+ Lançar primeira nota</span></div></div>';
+    return;
+  }
+  document.getElementById('fiscalBody').innerHTML=`<div style="padding:0 16px 14px">
+    <div class="livro-hd" style="grid-template-columns:80px 80px 1fr 120px 80px 80px 80px 80px;display:grid;gap:8px;padding:8px 10px">
+      <span>Tipo</span><span>NF</span><span>Emitente</span><span>CFOP</span>
+      <span style="text-align:right">Valor</span><span style="text-align:right">ICMS</span><span style="text-align:right">PIS/COF</span><span style="text-align:right">ISS</span>
+    </div>
+    ${filtrados.map((nf,i)=>`
+      <div style="display:grid;grid-template-columns:80px 80px 1fr 120px 80px 80px 80px 80px;gap:8px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);align-items:center;font-size:12px;cursor:pointer;transition:background .12s" onclick="verDetalheNF(${i})" onmouseover="this.style.background='rgba(26,111,196,.04)'" onmouseout="this.style.background=''">
+        <span class="nf-tipo ${nf.tipo==='entrada'?'ent':'sai'}">${nf.tipo==='entrada'?'Entrada':'Saída'}</span>
+        <span class="money" style="font-size:11px;color:var(--txt3)">${nf.numero||'—'}</span>
+        <span style="color:var(--txt);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nf.fornecedor||'—'}</span>
+        <span class="money" style="font-size:11px;color:var(--bl)">${nf.cfop||'—'}</span>
+        <span class="money g" style="text-align:right">${cur(nf.valorTotal||0)}</span>
+        <span class="money a" style="text-align:right">${cur(nf.icms||0)}</span>
+        <span class="money r" style="text-align:right">${cur((nf.pis||0)+(nf.cofins||0))}</span>
+        <span class="money r" style="text-align:right">${cur(nf.iss||0)}</span>
+      </div>`).join('')}
+  </div>`;
+}
+
+function verDetalheNF(i){
+  const nf=nfsDados[i]; if(!nf)return;
+  document.getElementById('spIco').textContent=nf.tipo==='entrada'?'📥':'📤';
+  document.getElementById('spTt').textContent=nf.fornecedor||'—';
+  document.getElementById('spSt').textContent=`NF ${nf.numero} · CFOP ${nf.cfop} · ${ui.date(nf.dataEmissao)}`;
+  document.getElementById('spBody').innerHTML=[
+    ['Tipo',          nf.tipo==='entrada'?'📥 Entrada':'📤 Saída'],
+    ['Número/Série',  `${nf.numero||'—'}/${nf.serie||'—'}`],
+    ['Data Emissão',  ui.date(nf.dataEmissao)],
+    ['CFOP',          nf.cfop||'—'],
+    ['CST/CSOSN',     nf.cst||'—'],
+    ['Emitente/Dest.',nf.fornecedor||'—'],
+    ['CNPJ',          nf.cnpjFornec||'—'],
+    ['Valor Total',   `<strong style="color:var(--green)">${cur(nf.valorTotal||0)}</strong>`],
+    ['Base Cálculo',  cur(nf.baseCalculo||0)],
+    ['ICMS',          cur(nf.icms||0)],
+    ['PIS',           cur(nf.pis||0)],
+    ['COFINS',        cur(nf.cofins||0)],
+    ['IPI',           cur(nf.ipi||0)],
+    ['ISS',           cur(nf.iss||0)],
+    ['Total Impostos',cur((nf.icms||0)+(nf.pis||0)+(nf.cofins||0)+(nf.ipi||0)+(nf.iss||0))],
+    ['Descrição',     nf.descricao||'—'],
+  ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt3)">${l}</span><span style="color:var(--txt);font-weight:500;text-align:right;max-width:60%">${v}</span></div>`).join('');
+  document.getElementById('spFoot').innerHTML='<button class="btn sm" onclick="fecharPanel()">✕ Fechar</button>';
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+}
+function fecharPanel(){ document.getElementById('sidePanel').classList.remove('open'); document.getElementById('overlay').style.display='none'; }
+
+// ── APURAÇÃO ─────────────────────────────────────────────────
+async function calcularApuracao(){
+  if(!curEmpId){ui.toast('⚠️','Selecione uma empresa');return;}
+  document.getElementById('apuracaoBody').innerHTML='<div class="empty"><div class="empty-ic">⏳</div></div>';
+  const r=await fetch(`/api/escrituracao/apuracao?company=${curEmpId}&competence=${g('selComp')}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(x=>x.json()).catch(()=>null);
+
+  // Busca também os lançamentos para apuração com base no regime
+  const opt=document.querySelector(`#selEmp option[value="${curEmpId}"]`);
+  const regime=opt?.getAttribute('data-regime')||'simples';
+
+  const itens=r?.itens||[];
+  const totEnt=itens.filter(i=>i.tipo==='entrada').reduce((a,i)=>a+i.valorTotal,0);
+  const totSai=itens.filter(i=>i.tipo==='saida').reduce((a,i)=>a+i.valorTotal,0);
+
+  // Calcula impostos baseado no regime
+  const impostos=calcularImpostosPorRegime(regime,totSai,totEnt);
+
+  document.getElementById('apuracaoBody').innerHTML=`
+    <div style="background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--bl)">
+      📊 Apuração baseada no regime <strong>${{simples:'Simples Nacional',presumido:'Lucro Presumido',real:'Lucro Real',mei:'MEI'}[regime]||regime}</strong> · Competência: ${ui.competence(g('selComp'))}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="card" style="padding:14px 16px">
+        <div style="font-size:11px;color:var(--txt3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Movimentação do Período</div>
+        ${[['Total Entradas (Compras)',cur(totEnt),'var(--green)'],['Total Saídas (Vendas)',cur(totSai),'var(--txt)'],['Resultado Bruto',cur(totSai-totEnt),(totSai-totEnt)>=0?'var(--green)':'var(--red)']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:600">${v}</span></div>`).join('')}
+      </div>
+      <div class="card" style="padding:14px 16px">
+        <div style="font-size:11px;color:var(--txt3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Resumo dos Impostos</div>
+        ${[['Total a Recolher',cur(impostos.total),'var(--red)'],['Carga Tributária Ef.',impostos.cargaEf+'%','var(--amber)']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:600">${v}</span></div>`).join('')}
+      </div>
+    </div>
+    ${impostos.detalhes.map(imp=>`
+      <div class="imp-card">
+        <div class="imp-name">${imp.nome} <span class="aliq-badge">${imp.aliquota}%</span></div>
+        <div class="imp-grid">
+          <div class="imp-item"><div class="imp-lbl">Base de Cálculo</div><div class="imp-val money">${cur(imp.base)}</div></div>
+          <div class="imp-item"><div class="imp-lbl">Alíquota</div><div class="imp-val" style="color:var(--bl)">${imp.aliquota}%</div></div>
+          <div class="imp-item"><div class="imp-lbl">Valor Apurado</div><div class="imp-val money r">${cur(imp.valor)}</div></div>
+          <div class="imp-item"><div class="imp-lbl">Vencimento</div><div class="imp-val" style="font-size:13px;color:var(--amber)">${imp.venc}</div></div>
+        </div>
+      </div>`).join('')}`;
+}
+
+function calcularImpostosPorRegime(regime, faturamento, entradas){
+  const mes=g('selComp');
+  const [ano,m]=mes.split('-');
+  const venc=`${String(parseInt(m)+1).padStart(2,'0')}/${String(parseInt(m)>=12?parseInt(ano)+1:ano).slice(-4)}`;
+
+  if(regime==='simples'||regime==='mei'){
+    const aliqDAS=regime==='mei'?0:6.0; // simplificado
+    const das=r2(faturamento*aliqDAS/100);
+    return {total:das,cargaEf:faturamento>0?r2(das/faturamento*100):0,detalhes:[
+      {nome:'DAS — Simples Nacional',aliquota:aliqDAS,base:faturamento,valor:das,venc:'20/'+venc},
+    ]};
+  }
+
+  if(regime==='presumido'){
+    const baseIRPJ=r2(faturamento*0.32),baseCSLL=r2(faturamento*0.32);
+    const irpj=r2(baseIRPJ*0.15),csll=r2(baseCSLL*0.09);
+    const pis=r2(faturamento*0.0065),cofins=r2(faturamento*0.03);
+    const total=irpj+csll+pis+cofins;
+    return {total,cargaEf:faturamento>0?r2(total/faturamento*100):0,detalhes:[
+      {nome:'IRPJ — Imposto de Renda PJ',aliquota:15,base:baseIRPJ,valor:irpj,venc:'30/'+venc},
+      {nome:'CSLL — Contribuição Social',aliquota:9,base:baseCSLL,valor:csll,venc:'30/'+venc},
+      {nome:'PIS',aliquota:0.65,base:faturamento,valor:pis,venc:'25/'+venc},
+      {nome:'COFINS',aliquota:3,base:faturamento,valor:cofins,venc:'25/'+venc},
+    ]};
+  }
+
+  if(regime==='real'){
+    const liqEstim=r2(faturamento-entradas);
+    const irpj=r2(Math.max(0,liqEstim)*0.15);
+    const csll=r2(Math.max(0,liqEstim)*0.09);
+    const pis=r2(faturamento*0.0165),cofins=r2(faturamento*0.076);
+    const total=irpj+csll+pis+cofins;
+    return {total,cargaEf:faturamento>0?r2(total/faturamento*100):0,detalhes:[
+      {nome:'IRPJ — Lucro Real',aliquota:15,base:Math.max(0,liqEstim),valor:irpj,venc:'30/'+venc},
+      {nome:'CSLL',aliquota:9,base:Math.max(0,liqEstim),valor:csll,venc:'30/'+venc},
+      {nome:'PIS (não-cumulativo)',aliquota:1.65,base:faturamento,valor:pis,venc:'25/'+venc},
+      {nome:'COFINS (não-cumulativa)',aliquota:7.6,base:faturamento,valor:cofins,venc:'25/'+venc},
+    ]};
+  }
+  return {total:0,cargaEf:0,detalhes:[]};
+}
+
+// ── MODAL NOTA FISCAL ─────────────────────────────────────────
+function openNovaNotaFiscal(){
+  if(!curEmpId){ui.toast('⚠️','Selecione uma empresa');return;}
+  document.getElementById('nfTt').textContent='Lançar Nota Fiscal';
+  ui.tab(document.querySelector('#ovNF .m-tab'),'nf0');
+  ui.openModal('ovNF');
+}
+
+function calcImpostosNF(){
+  const base=gn('nfBase')||gn('nfValorTotal');
+  if(!base)return;
+  const icms=r2(base*gn('nfAliqICMS')/100);
+  const pis=r2(base*gn('nfAliqPIS')/100);
+  const cofins=r2(base*gn('nfAliqCOFINS')/100);
+  const ipi=r2(base*gn('nfAliqIPI')/100);
+  const iss=r2(base*gn('nfAliqISS')/100);
+  ['nfICMS','nfPIS','nfCOFINS','nfIPI','nfISS'].forEach((id,i)=>{
+    document.getElementById(id).value=[icms,pis,cofins,ipi,iss][i].toFixed(2);
+  });
+  document.getElementById('nfImpostosPreview').innerHTML=`
+    <strong style="color:var(--amber)">Resumo dos Impostos</strong><br>
+    ICMS: ${cur(icms)} · PIS: ${cur(pis)} · COFINS: ${cur(cofins)} · IPI: ${cur(ipi)} · ISS: ${cur(iss)}<br>
+    <strong>Total Impostos: ${cur(icms+pis+cofins+ipi+iss)}</strong> · Carga: ${base>0?r2((icms+pis+cofins+ipi+iss)/gn('nfValorTotal')*100):0}%`;
+}
+
+async function salvarNF(){
+  if(!curEmpId){ui.toast('⚠️','Selecione empresa');return;}
+  const payload={
+    tipo:g('nfTipo'), numero:g('nfNumero'), serie:g('nfSerie'),
+    dataEmissao:g('nfDataEmissao'), dataEntrada:g('nfDataEntrada'),
+    cfop:g('nfCfop'), fornecedor:g('nfFornec'), cnpjFornec:g('nfCnpjFornec'),
+    cst:g('nfCst'), descricao:g('nfDesc'),
+    valorTotal:gn('nfValorTotal'), baseCalculo:gn('nfBase')||gn('nfValorTotal'),
+    icms:gn('nfICMS'), pis:gn('nfPIS'), cofins:gn('nfCOFINS'),
+    ipi:gn('nfIPI'), iss:gn('nfISS'),
+    aliquota:gn('nfAliqICMS'),
+    valorImposto:r2(gn('nfICMS')+gn('nfPIS')+gn('nfCOFINS')+gn('nfIPI')+gn('nfISS')),
+  };
+  if(!payload.numero||!payload.valorTotal){ui.toast('⚠️','Preencha nº e valor');return;}
+  const btn=document.getElementById('nfBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+
+  // Busca ou cria escrituração fiscal da competência
+  const comp=g('selComp');
+  const exR=await API.escrituracao.list({company:curEmpId,competence:comp,tipo:'fiscal'});
+  let escrId=exR?.items?.[0]?._id;
+  if(!escrId){
+    const cr=await API.escrituracao.create({company:curEmpId,competence:comp,tipo:'fiscal',status:'aberta',itens:[]});
+    escrId=cr?.item?._id;
+  }
+  if(escrId){
+    const detR=await API.escrituracao.get(escrId);
+    const itens=[...(detR?.item?.itens||[]),payload];
+    const totE=itens.filter(i=>i.tipo==='entrada').reduce((a,i)=>a+i.valorTotal,0);
+    const totS=itens.filter(i=>i.tipo==='saida').reduce((a,i)=>a+i.valorTotal,0);
+    const totI=itens.reduce((a,i)=>a+(i.valorImposto||0),0);
+    const res=await API.escrituracao.update(escrId,{itens,totalEntradas:totE,totalSaidas:totS,totalImpostos:totI});
+    btn.disabled=false; btn.innerHTML='💾 Salvar Nota';
+    if(res?.success){
+      ui.toast('✅','Nota lançada!');
+      // Gerar lançamento contábil automático
+      if(g('nfAutoLanc')==='sim'&&g('nfContaDB')&&g('nfContaCR')){
+        await API.transactions.create({company:curEmpId,competence:comp,date:payload.dataEmissao,type:payload.tipo==='entrada'?'debit':'credit',description:`NF ${payload.numero} — ${payload.fornecedor}`,amount:payload.valorTotal,debitAccount:g('nfContaDB'),creditAccount:g('nfContaCR'),centroCusto:g('nfCC')||undefined,category:payload.tipo==='entrada'?'Custo de Mercadoria':'Receita Operacional',status:'confirmado'});
+        ui.toast('📒','Lançamento contábil gerado!');
+      }
+      ui.closeModal('ovNF'); loadFiscal();
+    } else ui.toast('❌',res?.message||'Erro');
+  } else { btn.disabled=false; btn.innerHTML='💾 Salvar Nota'; ui.toast('❌','Erro ao criar escrituração'); }
+}
+
+// ── NFS-e ─────────────────────────────────────────────────────
+function renderNFS(){
+  document.getElementById('nfsKpis').innerHTML=[
+    {l:'NFS emitidas',v:'—',c:'bl'},{l:'ISS Retido',v:'—',c:'am'},{l:'Total Serviços',v:'—',c:'gn'},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="kpi-l">${k.l}</div><div class="kpi-v" style="font-size:16px">${k.v}</div></div>`).join('');
+
+  // Prefeituras SC principais
+  document.getElementById('prefeiturasBody').innerHTML=[
+    {nome:'Florianópolis',url:'https://nfse.pmf.sc.gov.br',uf:'SC',status:'pend'},
+    {nome:'Joinville',url:'https://nfse.joinville.sc.gov.br',uf:'SC',status:'off'},
+    {nome:'Blumenau',url:'https://issqn.blumenau.sc.gov.br',uf:'SC',status:'off'},
+    {nome:'Portal Nacional NFS-e',url:'https://www.nfse.gov.br',uf:'BR',status:'pend'},
+  ].map(p=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="font-size:20px">🏛️</span>
+      <div style="flex:1"><div style="font-size:12.5px;font-weight:500;color:var(--txt)">${p.nome}</div><div style="font-size:10px;color:var(--txt3)">${p.uf} · ${p.url}</div></div>
+      <div class="integ-status"><div class="integ-dot ${p.status}"></div><span style="color:${p.status==='ok'?'var(--green)':p.status==='pend'?'var(--amber)':'var(--txt3)'}">${p.status==='ok'?'Conectado':p.status==='pend'?'Config.':'Não conf.'}</span></div>
+      <a href="${p.url}" target="_blank" class="btn sm">🔗 Acessar</a>
+    </div>`).join('');
+  document.getElementById('nfsBody').innerHTML='<div class="empty" style="padding:14px"><div class="empty-s">Nenhuma NFS emitida ainda</div></div>';
+}
+
+function openEmitirNFS(){ if(!curEmpId){ui.toast('⚠️','Selecione uma empresa');return;} sv('nfsEmp',curEmpId); document.getElementById('nfsData').value=new Date().toISOString().substring(0,10); ui.openModal('ovNFS'); }
+function vincularPrefeitura(){ ui.toast('ℹ️','Configure as credenciais da prefeitura nas configurações do sistema'); }
+
+function calcNFS(){
+  const val=gn('nfsValor'), deduc=gn('nfsDeduc'), aliq=gn('nfsAliqISS');
+  const base=r2(Math.max(0,val-deduc));
+  const iss=r2(base*aliq/100);
+  document.getElementById('nfsBase').value=base.toFixed(2);
+  document.getElementById('nfsISS').value=iss.toFixed(2);
+}
+
+async function salvarNFS(){
+  const val=gn('nfsValor'); if(!val){ui.toast('⚠️','Informe o valor');return;}
+  const portal=g('nfsPortal');
+  const btn=document.getElementById('nfsBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  setTimeout(()=>{
+    btn.disabled=false; btn.innerHTML='📄 Gerar NFS-e';
+    ui.toast('📄','NFS-e registrada! Acesse o portal da prefeitura para transmissão.');
+    ui.closeModal('ovNFS');
+    if(portal){
+      const portais={florianopolis:'https://nfse.pmf.sc.gov.br',joinville:'https://nfse.joinville.sc.gov.br',nacional:'https://www.nfse.gov.br'};
+      if(portais[portal]) window.open(portais[portal],'_blank');
+    }
+  },800);
+}
+
+// ── INTEGRAÇÕES ───────────────────────────────────────────────
+function renderIntegracoes(){
+  document.getElementById('integBody').innerHTML=[
+    {ico:'🏛️',nome:'Receita Federal / eCac',desc:'DCTF, PGDAS, ECF, IRPF, CNPJ',url:'https://cav.receita.fazenda.gov.br',cor:'rgba(0,70,127,.2)',status:'pend'},
+    {ico:'📱',nome:'e-Social',desc:'Folha, Admissão, Demissão, SST',url:'https://esocial.gov.br',cor:'rgba(0,100,60,.2)',status:'pend'},
+    {ico:'📒',nome:'SPED Contábil / Fiscal',desc:'EFD, ECD, ECF, NF-e, NFS-e',url:'https://sped.rfb.gov.br',cor:'rgba(150,50,0,.2)',status:'pend'},
+    {ico:'📄',nome:'NF-e / NFC-e',desc:'Nota Fiscal Eletrônica SEFAZ',url:'https://www.nfe.fazenda.gov.br',cor:'rgba(50,100,0,.2)',status:'pend'},
+    {ico:'🏙️',nome:'Portal Nacional NFS-e',desc:'Nota Fiscal de Serviços Municipal',url:'https://www.nfse.gov.br',cor:'rgba(80,0,120,.2)',status:'pend'},
+    {ico:'👥',nome:'FGTS Digital / CAIXA',desc:'Guias FGTS, GPS, eSocial Trab.',url:'https://fgts.caixa.gov.br',cor:'rgba(0,100,100,.2)',status:'off'},
+    {ico:'📊',nome:'RAIS / CAGED',desc:'Relação Anual / Adm. Emprego',url:'https://rais.gov.br',cor:'rgba(100,80,0,.2)',status:'off'},
+    {ico:'🏦',nome:'Simples Nacional (PGDAS-D)',desc:'DAS, DEFIS, Sublimite',url:'https://www8.receita.fazenda.gov.br',cor:'rgba(0,80,150,.2)',status:'pend'},
+    {ico:'⚖️',nome:'Certidões Negativas',desc:'CND Federal, Estadual, Municipal',url:'https://cav.receita.fazenda.gov.br',cor:'rgba(50,50,50,.4)',status:'off'},
+  ].map(i=>`
+    <div class="integ-card" onclick="window.open('${i.url}','_blank')" style="background:${i.cor}">
+      <div class="integ-ico" style="background:rgba(255,255,255,.08);font-size:22px">${i.ico}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:3px">${i.nome}</div>
+        <div style="font-size:11px;color:var(--txt3);margin-bottom:8px">${i.desc}</div>
+        <div class="integ-status">
+          <div class="integ-dot ${i.status}"></div>
+          <span style="color:${i.status==='ok'?'var(--green)':i.status==='pend'?'var(--amber)':'var(--txt3)'};font-size:11px">${i.status==='ok'?'Conectado':i.status==='pend'?'Configurar':'Não configurado'}</span>
+        </div>
+      </div>
+      <span style="font-size:18px;color:var(--txt3)">→</span>
+    </div>`).join('');
+}
+
+// ── ALÍQUOTAS ─────────────────────────────────────────────────
+const ISS_MUNICIPIOS={
+  SC:[{m:'Florianópolis',min:2,max:5,obs:'LC 7.565/2007'},{m:'Joinville',min:2,max:5,obs:'LC 261/2003'},{m:'Blumenau',min:2,max:5,obs:'LC 615/2007'},{m:'Criciúma',min:2,max:5,obs:''},{m:'Chapecó',min:2,max:5,obs:''},{m:'Itajaí',min:2,max:5,obs:''},{m:'Lages',min:2,max:5,obs:''},{m:'Jaraguá do Sul',min:2,max:5,obs:''},{m:'Palhoça',min:2,max:5,obs:''},{m:'São José',min:2,max:5,obs:''}],
+  SP:[{m:'São Paulo',min:2,max:5,obs:'Lei 13.701/2003'},{m:'Campinas',min:2,max:5,obs:''},{m:'Santos',min:2,max:5,obs:''},{m:'Ribeirão Preto',min:2,max:5,obs:''}],
+  PR:[{m:'Curitiba',min:2.5,max:5,obs:''},{m:'Londrina',min:2,max:5,obs:''},{m:'Maringá',min:2,max:5,obs:''}],
+  RS:[{m:'Porto Alegre',min:2,max:5,obs:''},{m:'Caxias do Sul',min:2,max:5,obs:''},{m:'Pelotas',min:2,max:5,obs:''}],
+  RJ:[{m:'Rio de Janeiro',min:2,max:5,obs:''},{m:'Niterói',min:2.5,max:5,obs:''},{m:'Nova Iguaçu',min:2,max:5,obs:''}],
+};
+
+function renderAliqISS(){
+  const uf=g('selEstado')||'SC';
+  const muns=ISS_MUNICIPIOS[uf]||[];
+  document.getElementById('aliqISSBody').innerHTML=`
+    <table class="aliq-table">
+      <thead><tr><th>Município</th><th>ISS Mínimo</th><th>ISS Máximo</th><th>Observação</th></tr></thead>
+      <tbody>${muns.map(m=>`<tr><td style="font-weight:500;color:var(--txt)">${m.m}</td><td style="font-family:'JetBrains Mono',monospace;color:var(--amber)">${m.min}%</td><td style="font-family:'JetBrains Mono',monospace;color:var(--red)">${m.max}%</td><td style="font-size:10px;color:var(--txt3)">${m.obs||'LC 116/2003'}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="font-size:10px;color:var(--txt3);margin-top:8px">⚠️ Alíquotas conforme LC 116/2003. Consulte a legislação municipal atualizada.</div>`;
+}
+
+const ICMS_ESTADOS=[
+  {uf:'AC',aliq:19,partilha:12},{uf:'AL',aliq:19,partilha:12},{uf:'AM',aliq:20,partilha:12},
+  {uf:'AP',aliq:18,partilha:12},{uf:'BA',aliq:19,partilha:12},{uf:'CE',aliq:20,partilha:12},
+  {uf:'DF',aliq:20,partilha:12},{uf:'ES',aliq:17,partilha:12},{uf:'GO',aliq:17,partilha:12},
+  {uf:'MA',aliq:22,partilha:12},{uf:'MG',aliq:18,partilha:12},{uf:'MS',aliq:17,partilha:12},
+  {uf:'MT',aliq:17,partilha:12},{uf:'PA',aliq:19,partilha:12},{uf:'PB',aliq:20,partilha:12},
+  {uf:'PE',aliq:20.5,partilha:12},{uf:'PI',aliq:21,partilha:12},{uf:'PR',aliq:19,partilha:12},
+  {uf:'RJ',aliq:20,partilha:12},{uf:'RN',aliq:20,partilha:12},{uf:'RO',aliq:19.5,partilha:12},
+  {uf:'RR',aliq:17,partilha:12},{uf:'RS',aliq:17,partilha:12},{uf:'SC',aliq:17,partilha:12},
+  {uf:'SE',aliq:19,partilha:12},{uf:'SP',aliq:18,partilha:12},{uf:'TO',aliq:20,partilha:12},
+];
+
+function renderAliqICMS(){
+  document.getElementById('aliqICMSBody').innerHTML=`
+    <table class="aliq-table">
+      <thead><tr><th>UF</th><th>ICMS Interno</th><th>ICMS Interestadual</th></tr></thead>
+      <tbody>${ICMS_ESTADOS.map(e=>`<tr><td style="font-weight:700;color:var(--txt)">${e.uf}</td><td style="font-family:'JetBrains Mono',monospace;color:var(--amber)">${e.aliq}%</td><td style="font-family:'JetBrains Mono',monospace;color:var(--bl)">${e.partilha}%</td></tr>`).join('')}</tbody>
+    </table>
+    <div style="font-size:10px;color:var(--txt3);margin-top:8px">Fonte: CONFAZ 2025. ICMS interestadual padrão: 12% (Sul/Sudeste) e 7% (demais).</div>`;
+}
+
+const SIMPLES_ANEXOS=[
+  {anexo:'I — Comércio',faixas:[{ate:180000,aliq:4,deducao:0},{ate:360000,aliq:7.3,deducao:5940},{ate:720000,aliq:9.5,deducao:13860},{ate:1800000,aliq:10.7,deducao:22500},{ate:3600000,aliq:14.3,deducao:87300},{ate:4800000,aliq:19,deducao:378000}]},
+  {anexo:'II — Indústria',faixas:[{ate:180000,aliq:4.5,deducao:0},{ate:360000,aliq:7.8,deducao:5940},{ate:720000,aliq:10,deducao:13860},{ate:1800000,aliq:11.2,deducao:22500},{ate:3600000,aliq:14.7,deducao:85500},{ate:4800000,aliq:30,deducao:720000}]},
+  {anexo:'III — Serviços (escritório)',faixas:[{ate:180000,aliq:6,deducao:0},{ate:360000,aliq:11.2,deducao:9360},{ate:720000,aliq:13.5,deducao:17640},{ate:1800000,aliq:16,deducao:35640},{ate:3600000,aliq:21,deducao:125640},{ate:4800000,aliq:33,deducao:648000}]},
+];
+
+function renderAliqSimples(){
+  document.getElementById('aliqSimplesBody').innerHTML=SIMPLES_ANEXOS.map(a=>`
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:var(--bl);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding:6px 10px;background:rgba(26,111,196,.08);border-radius:var(--rs)">${a.anexo}</div>
+      <table class="aliq-table">
+        <thead><tr><th>Faixa (RBT12)</th><th>Alíquota</th><th>Valor a Deduzir</th><th>Obs.</th></tr></thead>
+        <tbody>${a.faixas.map((f,i)=>`<tr>
+          <td style="color:var(--txt)">${i===0?'Até':'De '+new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(a.faixas[i-1]?.ate||0)+' até'} ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(f.ate)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;color:var(--amber);font-weight:600">${f.aliq}%</td>
+          <td style="font-family:'JetBrains Mono',monospace;color:var(--txt3)">${f.deducao>0?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(f.deducao):'—'}</td>
+          <td style="font-size:10px;color:var(--txt3)">${i===5?'Acima sublimite':'Alíquota efetiva'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`).join('');
+}
+
+// ── EXPORTS ───────────────────────────────────────────────────
+function imprimirLivro(tipo){
+  const empresa = document.querySelector('#selEmp option:checked')?.textContent?.trim()||'—';
+  const comp    = document.getElementById('selComp')?.value||'';
+  const titulo  = document.getElementById('livroTitle')?.textContent||'Livro Contábil';
+  const corpo   = document.getElementById('livroBody')?.innerHTML||'';
+  const nomes   = {diario:'Livro Diário',razao:'Livro Razão',balancete:'Balancete de Verificação',dre:'DRE'};
+  abrirJanelaImpressao(
+    nomes[tipo]||titulo, empresa,
+    'Competência: ' + (comp ? new Date(comp+'-01T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}) : '—'),
+    '<h2>' + (nomes[tipo]||titulo) + '</h2>' + corpo
+  );
+}
+// ── IMPRESSÃO ISOLADA — abre janela limpa só com o relatório ──
+function abrirJanelaImpressao(titulo, empresa, subtitulo, htmlConteudo) {
+  const dataGer = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const estilos = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;background:#fff;padding:20px 28px}
+    .rpt-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:20px}
+    .rpt-logo{font-size:20px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}
+    .rpt-logo span{font-size:11px;display:block;font-weight:400;color:#666;margin-top:2px}
+    .rpt-meta{text-align:right;font-size:11px;color:#666;line-height:1.8}
+    .rpt-meta strong{color:#1a1a2e;font-size:14px;display:block;margin-bottom:4px}
+    .rpt-footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ec;font-size:10px;color:#999;display:flex;justify-content:space-between}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11.5px}
+    th{background:#eff6ff;color:#1d4ed8;padding:8px 10px;text-align:left;border:1px solid #dde3ec;font-weight:600}
+    td{padding:7px 10px;border:1px solid #eef0f5;color:#333;vertical-align:top}
+    tr:nth-child(even) td{background:#f8fafc}
+    .tbl thead th{background:#1a6fc4;color:#fff}
+    h2{font-size:14px;font-weight:700;color:#1a1a2e;margin:16px 0 8px;padding-bottom:6px;border-bottom:2px solid #1a6fc4}
+    h3{font-size:12px;font-weight:600;color:#1d4ed8;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+    .dem-row{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #f0f0f0;font-size:12px}
+    .dem-row.sub{padding-left:26px;color:#555;font-size:11.5px}
+    .dem-row.total{font-weight:700;background:#f0f4f8;border-top:2px solid #dde3ec;padding:10px 12px;font-size:13px}
+    .dem-row.resultado{background:#1a6fc4;color:#fff;font-weight:800;font-size:14px;padding:12px}
+    .dem-hd{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:7px 12px;margin-bottom:0}
+    .dem-hd.ativo,.dem-hd.rec{background:#e8faf6;color:#0e7a5e}
+    .dem-hd.passivo,.dem-hd.desp{background:#fef2f2;color:#b91c1c}
+    .dem-hd.pl{background:#eff6ff;color:#1d4ed8}
+    .dem-hd.neutro{background:#f8f8f8;color:#555}
+    .card{border:1px solid #dde3ec;border-radius:8px;overflow:hidden;margin-bottom:16px;break-inside:avoid}
+    .card-h{padding:10px 14px;border-bottom:1px solid #eee;background:#f8fafc;font-weight:600;font-size:12px}
+    .dem-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .hr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+    .hr-section{border:1px solid #eee;border-radius:6px;overflow:hidden}
+    .hr-hd{padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #eee}
+    .hr-hd.gn{background:#e8faf6;color:#0e7a5e}.hr-hd.rd{background:#fef2f2;color:#b91c1c}
+    .hr-row{display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid #f5f5f5;font-size:11.5px}
+    .hr-total{display:flex;justify-content:space-between;padding:8px 10px;border-top:2px solid #dde3ec;font-weight:700;font-size:12px}
+    .enc-banner{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#eff6ff;border:1px solid #dbeafe;border-radius:6px;padding:10px;margin-top:8px}
+    .enc-item{text-align:center}
+    .enc-lbl{font-size:10px;color:#555;margin-bottom:3px}
+    .enc-val{font-size:13px;font-weight:700;color:#1d4ed8}
+    .money{font-family:'Courier New',monospace;font-size:11.5px}
+    .money.g{color:#0e7a5e}.money.r{color:#b91c1c}.money.a{color:#92400e}
+    .st-pill,.badge,.pill,.nav-badge,.rb,.ra,.btn,.tab-btn,.tab-strip,
+    select,input,button,.m-tabs,.view-btn,.filter-bar,.topbar,
+    aside,.sb-footer,.side-panel,#overlay,.ov,
+    [onclick],[style*="cursor:pointer"]{pointer-events:none}
+    .card-pag,.pagArea,#pagArea,#pagBtns,#pagInfo{display:none!important}
+    canvas{max-width:100%}
+    @page{margin:15mm;size:A4}
+    @media print{body{padding:0}.card{break-inside:avoid}}
+  `;
+  const janela = window.open('','_blank','width=960,height=750,scrollbars=yes');
+  janela.document.write(
+    '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<title>' + titulo + ' — ' + empresa + '</title>' +
+    '<style>' + estilos + '</style></head><body>' +
+    '<div class="rpt-header">' +
+      '<div><div class="rpt-logo">DTP Contábil <span>ERP Multi-Empresa</span></div></div>' +
+      '<div class="rpt-meta"><strong>' + titulo + '</strong>' + empresa + '<br>' + subtitulo + '<br>Gerado em: ' + dataGer + '</div>' +
+    '</div>' +
+    htmlConteudo +
+    '<div class="rpt-footer"><span>DTP Contábil ERP — Relatório gerado automaticamente</span><span>' + dataGer + '</span></div>' +
+    '</body></html>'
+  );
+  janela.document.close();
+  setTimeout(function(){ janela.focus(); janela.print(); }, 800);
+}
+
+function exportarLivroCSV(tipo){ ui.toast('⬇️','Exportando...'); }
+function exportarFiscalCSV(){
+  if(!nfsDados.length){ui.toast('⚠️','Sem dados');return;}
+  const h=['Tipo','NF','Série','Emissão','CFOP','CST','Fornecedor','CNPJ','Valor Total','Base Cálculo','ICMS','PIS','COFINS','IPI','ISS'];
+  const rows=nfsDados.map(n=>[n.tipo,n.numero||'—',n.serie||'—',ui.date(n.dataEmissao),n.cfop||'—',n.cst||'—',n.fornecedor||'—',n.cnpjFornec||'—',(n.valorTotal||0).toFixed(2).replace('.',','),(n.baseCalculo||0).toFixed(2).replace('.',','),(n.icms||0).toFixed(2).replace('.',','),(n.pis||0).toFixed(2).replace('.',','),(n.cofins||0).toFixed(2).replace('.',','),(n.ipi||0).toFixed(2).replace('.',','),(n.iss||0).toFixed(2).replace('.',',')]);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join(String.fromCharCode(10));
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv); a.download='escrituracao_fiscal.csv'; a.click(); ui.toast('⬇️','CSV exportado!');
+}
+function exportarApuracaoCSV(){ ui.toast('⬇️','Exportando apuração...'); }
+function exportarRelatorio(){ ui.toast('⬇️','Exportando relatório...'); }
+
+load();
+</script>
+</body>
+</html>

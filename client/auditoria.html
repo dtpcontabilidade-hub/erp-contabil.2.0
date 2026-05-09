@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Auditoria</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .15s}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.bl::before{background:var(--blue)}.kpi.gn::before{background:var(--green)}
+.kpi.rd::before{background:var(--red)}.kpi.am::before{background:var(--amber)}.kpi.pu::before{background:var(--purple)}.kpi.tl::before{background:var(--teal)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10px;color:var(--txt3);margin-top:4px}
+.tab-strip{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:4px}
+.tab-btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt2);transition:all .14s;white-space:nowrap}
+.tab-btn.on{background:var(--blue);color:#fff}
+.tab-btn:hover:not(.on){background:rgba(255,255,255,.06)}
+/* CHECKLIST */
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s}
+.check-item:hover{background:rgba(26,111,196,.04)}
+.check-item:last-child{border-bottom:none}
+.check-box{width:20px;height:20px;border-radius:6px;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .13s;margin-top:1px}
+.check-box.conf{background:var(--green);border-color:var(--green);color:#fff}
+.check-box.nc{background:var(--red);border-color:var(--red);color:#fff}
+.check-box.na{background:var(--txt3);border-color:var(--txt3);color:#fff}
+.risco-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.risco-badge.alto{background:rgba(239,68,68,.15);color:var(--red)}
+.risco-badge.medio{background:rgba(245,158,11,.15);color:var(--amber)}
+.risco-badge.baixo{background:rgba(0,201,167,.12);color:var(--green)}
+.conf-bar{background:var(--bg4);border-radius:20px;height:6px;overflow:hidden;margin-top:6px}
+.conf-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--green),var(--teal));transition:width 1s ease}
+/* SIDE */
+.side-panel{position:fixed;top:0;right:-480px;width:480px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd2);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.3)}
+.side-panel.open{right:0}
+.sp-top{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sp-close{margin-left:auto;background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer}
+.sp-body{flex:1;overflow-y:auto;padding:16px 20px}
+.sp-foot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;flex-wrap:wrap}
+.ra{display:flex;gap:4px;justify-content:flex-end}
+.rb{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.rb:hover{border-color:var(--bd2)}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+  <header class="topbar">
+    <span class="topbar-title">🔍 Auditoria</span>
+    <span class="tb-badge blue"  id="tbTotal">0 auditorias</span>
+    <span class="tb-badge amber" id="tbAnd">0 em andamento</span>
+    <span class="tb-badge red"   id="tbRisco">0 alto risco</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="fEmp" style="height:32px;font-size:11px;width:200px" onchange="load()">
+      <option value="">DTP + Clientes</option>
+      <option value="dtp">Somente DTP</option>
+    </select>
+    <select class="fin" id="fTipo" style="height:32px;font-size:11px;width:145px" onchange="load()">
+      <option value="">Todos os tipos</option>
+      <option value="fiscal">Fiscal</option>
+      <option value="contabil">Contábil</option>
+      <option value="trabalhista">Trabalhista</option>
+      <option value="societaria">Societária</option>
+      <option value="interna">Interna</option>
+    </select>
+    <select class="fin" id="fStatus" style="height:32px;font-size:11px;width:135px" onchange="load()">
+      <option value="">Todos os status</option>
+      <option value="planejada">Planejada</option>
+      <option value="em_andamento">Em andamento</option>
+      <option value="concluida">Concluída</option>
+    </select>
+    <button class="btn primary" onclick="openNova()">+ Nova Auditoria</button>
+  </header>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+    <div class="kpi-row">
+      <div class="kpi bl"><div class="kpi-l">Total</div><div class="kpi-v" id="kA">—</div><div class="kpi-s">auditorias</div></div>
+      <div class="kpi am"><div class="kpi-l">Planejadas</div><div class="kpi-v" id="kP">—</div><div class="kpi-s">aguardando início</div></div>
+      <div class="kpi tl"><div class="kpi-l">Em Andamento</div><div class="kpi-v" id="kM">—</div><div class="kpi-s">em execução</div></div>
+      <div class="kpi gn"><div class="kpi-l">Concluídas</div><div class="kpi-v" id="kC">—</div><div class="kpi-s">finalizadas</div></div>
+      <div class="kpi rd"><div class="kpi-l">Alto Risco</div><div class="kpi-v" id="kR">—</div><div class="kpi-s">requer atenção</div></div>
+      <div class="kpi pu">
+        <div class="kpi-l">Conformidade</div>
+        <div class="kpi-v" id="kConf">—%</div>
+        <div class="conf-bar"><div class="conf-fill" id="confFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <span class="card-ht">Auditorias</span>
+        <span style="font-size:11px;color:var(--txt3)" id="tCount"></span>
+      </div>
+      <div id="tBody"><div class="empty"><div class="empty-ic">⏳</div></div></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- PAINEL DETALHE -->
+<div class="side-panel" id="sidePanel">
+  <div class="sp-top">
+    <div style="width:40px;height:40px;border-radius:10px;background:rgba(26,111,196,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔍</div>
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--txt)" id="spTt">—</div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:2px" id="spSt">—</div>
+    </div>
+    <button class="sp-close" onclick="fecharPanel()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+<div id="overlay" onclick="fecharPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199"></div>
+
+<!-- MODAL NOVA AUDITORIA -->
+<div class="ov" id="ovAud">
+<div class="modal xl">
+  <div class="m-top">
+    <div class="m-ico b">🔍</div>
+    <div class="m-hi"><div class="m-tg">Auditoria</div><div class="m-tt" id="audTt">Nova Auditoria</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovAud')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'a0')">📋 Dados</div>
+    <div class="m-tab" onclick="ui.tab(this,'a1')">✅ Checklist</div>
+    <div class="m-tab" onclick="ui.tab(this,'a2')">📝 Conclusão</div>
+  </div>
+  <div class="m-bd">
+    <div class="tp on" id="a0">
+      <div class="fg2">
+        <div class="fgp ffu"><label class="fbl">Empresa</label>
+          <select class="fin" id="aEmp"><option value="">DTP Soluções Contábeis (Interna)</option></select>
+        </div>
+        <div class="fgp ffu"><label class="fbl">Título *</label><input class="fin" id="aTitulo" placeholder="Ex: Auditoria Fiscal 2025"></div>
+        <div class="fgp"><label class="fbl">Tipo *</label>
+          <select class="fin" id="aTipo" onchange="gerarChecklist()">
+            <option value="fiscal">Fiscal</option><option value="contabil">Contábil</option>
+            <option value="trabalhista">Trabalhista</option><option value="societaria">Societária</option>
+            <option value="interna">Interna</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Competência</label><input class="fin" type="month" id="aComp"></div>
+        <div class="fgp"><label class="fbl">Data Início</label><input class="fin" type="date" id="aInicio"></div>
+        <div class="fgp"><label class="fbl">Data Fim Prevista</label><input class="fin" type="date" id="aFim"></div>
+        <div class="fgp"><label class="fbl">Responsável DTP</label><input class="fin" id="aResp"></div>
+        <div class="fgp"><label class="fbl">Status</label>
+          <select class="fin" id="aSt">
+            <option value="planejada">Planejada</option><option value="em_andamento">Em Andamento</option><option value="concluida">Concluída</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Gerar Checklist Automático</label>
+          <select class="fin" id="aChecklist"><option value="1">Sim — gerar checklist padrão</option><option value="0">Não</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="tp" id="a1">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--txt2)">Itens do checklist de auditoria</span>
+        <button class="btn sm" onclick="addCheckItem()">+ Adicionar Item</button>
+      </div>
+      <div id="checklistForm"></div>
+    </div>
+    <div class="tp" id="a2">
+      <div class="fg2">
+        <div class="fgp"><label class="fbl">Risco Ponderado</label>
+          <select class="fin" id="aRisco"><option value="baixo">Baixo</option><option value="medio">Médio</option><option value="alto">Alto</option></select>
+        </div>
+        <div class="fgp ffu"><label class="fbl">Conclusão</label><textarea class="fin" id="aConcl" rows="3" style="resize:none" placeholder="Resumo das conclusões da auditoria..."></textarea></div>
+        <div class="fgp ffu"><label class="fbl">Recomendações</label><textarea class="fin" id="aRec" rows="3" style="resize:none" placeholder="Medidas recomendadas para mitigação dos riscos..."></textarea></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="audBtn" onclick="salvarAuditoria()">💾 Salvar</button>
+    <button class="mfb" onclick="ui.closeModal('ovAud')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let editId=null, checkItems=[], curAuditoria=null;
+const g   = id => document.getElementById(id)?.value?.trim()||'';
+const sv  = (id,v) => { const e=document.getElementById(id); if(e) e.value=v||''; };
+const cur = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+
+const CHECKLISTS = {
+  fiscal:      ['Verificar apuração de impostos','Conferir SPED Fiscal','Analisar créditos tributários','Verificar obrigações acessórias','Conferir DAS/PGDAS','Analisar notas fiscais emitidas','Verificar retenções na fonte','Conferir prazo de entrega das obrigações'],
+  contabil:    ['Verificar balancete mensal','Conferir lançamentos contábeis','Analisar contas a reconciliar','Verificar provisões','Conferir depreciações','Analisar resultado do período','Verificar conciliação bancária','Conferir plano de contas'],
+  trabalhista: ['Verificar folha de pagamento','Conferir recolhimento FGTS','Analisar GPS/INSS','Verificar eSocial','Conferir férias e 13º','Analisar admissões e demissões','Verificar CAGED','Conferir horas extras'],
+  societaria:  ['Verificar contrato social','Conferir registro na Junta Comercial','Analisar composição societária','Verificar licenças e alvarás','Conferir certidões negativas','Analisar atas de reunião','Verificar registro de marca','Conferir CNPJ ativo'],
+  interna:     ['Verificar processos internos','Analisar fluxo de trabalho','Conferir prazos de entrega','Verificar satisfação dos clientes','Analisar produtividade','Conferir segurança de dados','Verificar backups','Analisar custos operacionais'],
+};
+const STATUS_COR = {planejada:'var(--amber)',em_andamento:'var(--bl)',concluida:'var(--green)',cancelada:'var(--txt3)'};
+const TIPO_ICON  = {fiscal:'🧾',contabil:'📒',trabalhista:'👥',societaria:'⚖️',interna:'🏢'};
+
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  const o=r.companies.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  document.getElementById('aEmp').innerHTML='<option value="">DTP Soluções Contábeis (Interna)</option>'+o;
+});
+
+async function load(){
+  const [listR,statsR]=await Promise.all([
+    fetch('/api/auditoria?'+new URLSearchParams({company:g('fEmp'),tipo:g('fTipo'),status:g('fStatus'),limit:50}),{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()),
+    fetch('/api/auditoria/stats',{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()),
+  ]);
+
+  if(statsR?.success){
+    const s=statsR.stats;
+    document.getElementById('kA').textContent=s.total;
+    document.getElementById('kP').textContent=s.planejadas;
+    document.getElementById('kM').textContent=s.em_andamento;
+    document.getElementById('kC').textContent=s.concluidas;
+    document.getElementById('kR').textContent=s.alto_risco;
+    document.getElementById('kConf').textContent=s.conformidade+'%';
+    document.getElementById('confFill').style.width=s.conformidade+'%';
+    document.getElementById('tbTotal').textContent=s.total+' auditorias';
+    document.getElementById('tbAnd').textContent=s.em_andamento+' em andamento';
+    document.getElementById('tbRisco').textContent=s.alto_risco+' alto risco';
+  }
+
+  if(!listR?.success) return;
+  document.getElementById('tCount').textContent=listR.pagination.total+' registro(s)';
+
+  if(!listR.items.length){
+    document.getElementById('tBody').innerHTML='<div class="empty"><div class="empty-ic">🔍</div><div class="empty-t">Nenhuma auditoria</div><div class="empty-s"><span onclick="openNova()" style="color:var(--bl);cursor:pointer">+ Criar primeira auditoria</span></div></div>';
+    return;
+  }
+
+  document.getElementById('tBody').innerHTML=`<div style="overflow-x:auto"><table class="tbl">
+    <thead><tr><th>Empresa/Escopo</th><th>Tipo</th><th>Título</th><th>Período</th><th>Conformidade</th><th>Risco</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${listR.items.map((a,i)=>`
+      <tr style="animation-delay:${i*20}ms">
+        <td style="font-size:12px;font-weight:500">${a.company?.tradeName||a.company?.legalName||'DTP Soluções Contábeis'}</td>
+        <td><span class="badge b">${TIPO_ICON[a.tipo]||''} ${a.tipo}</span></td>
+        <td style="font-size:13px;font-weight:500;color:var(--txt)">${a.titulo}</td>
+        <td style="font-size:12px;color:var(--txt3)">${a.competence?ui.competence(a.competence):'—'}</td>
+        <td>
+          <div style="font-size:12px;font-weight:600;color:${a.conformidade>=80?'var(--green)':a.conformidade>=50?'var(--amber)':'var(--red)'}">${a.conformidade||0}%</div>
+          <div class="conf-bar" style="width:80px"><div class="conf-fill" style="width:${a.conformidade||0}%"></div></div>
+        </td>
+        <td>${a.riscoPonderado?`<span class="risco-badge ${a.riscoPonderado}">${a.riscoPonderado}</span>`:'—'}</td>
+        <td><span style="font-size:11px;font-weight:600;color:${STATUS_COR[a.status]||'var(--txt3)'}">${a.status?.replace('_',' ')}</span></td>
+        <td><div class="ra">
+          <div class="rb" onclick="verDetalhe('${a._id}')" title="Detalhes">🔍</div>
+          <div class="rb" onclick="editarAuditoria('${a._id}')" title="Editar">✏️</div>
+          <div class="rb" onclick="imprimirAuditoria('${a._id}')" title="Imprimir">🖨️</div>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+async function verDetalhe(id){
+  const r=await fetch(`/api/auditoria/${id}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json());
+  if(!r?.success) return;
+  const a=r.item; curAuditoria=a;
+  const total=a.itens.length;
+  const conf=a.itens.filter(i=>i.status==='conforme').length;
+  const nc=a.itens.filter(i=>i.status==='nao_conforme').length;
+  const pct=total>0?Math.round(conf/total*100):0;
+
+  document.getElementById('spTt').textContent=a.titulo;
+  document.getElementById('spSt').textContent=(a.company?.tradeName||'DTP')+' · '+a.tipo+' · '+a.status.replace('_',' ');
+
+  document.getElementById('spBody').innerHTML=`
+    <!-- Barra de conformidade -->
+    <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+        <span style="color:var(--txt2)">Conformidade Geral</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;color:${pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}">${pct}%</span>
+      </div>
+      <div class="conf-bar"><div class="conf-fill" style="width:${pct}%"></div></div>
+      <div style="display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--txt3)">
+        <span>✅ ${conf} conformes</span>
+        <span>❌ ${nc} não conformes</span>
+        <span>⏳ ${total-conf-nc} pendentes</span>
+      </div>
+    </div>
+    <!-- Checklist -->
+    <div style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Checklist (${total} itens)</div>
+    ${a.itens.map((item,i)=>`
+      <div class="check-item">
+        <div class="check-box ${item.status==='conforme'?'conf':item.status==='nao_conforme'?'nc':item.status==='nao_aplicavel'?'na':''}"
+          onclick="toggleItem('${a._id}',${i},'${item._id}')">
+          ${item.status==='conforme'?'✓':item.status==='nao_conforme'?'✕':item.status==='nao_aplicavel'?'—':''}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--txt);font-weight:500">${item.descricao}</div>
+          ${item.observacao?`<div style="font-size:11px;color:var(--txt3);margin-top:3px">${item.observacao}</div>`:''}
+        </div>
+        <span class="risco-badge ${item.risco}">${item.risco}</span>
+      </div>`).join('')}
+    <!-- Conclusão -->
+    ${a.conclusao?`<div style="margin-top:14px;padding:12px 14px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs)">
+      <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:6px">CONCLUSÃO</div>
+      <div style="font-size:12px;color:var(--txt2);line-height:1.6">${a.conclusao}</div>
+    </div>`:''}
+    ${a.recomendacoes?`<div style="margin-top:10px;padding:12px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs)">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:6px">RECOMENDAÇÕES</div>
+      <div style="font-size:12px;color:var(--txt2);line-height:1.6">${a.recomendacoes}</div>
+    </div>`:''}`;
+
+  document.getElementById('spFoot').innerHTML=`
+    <button class="btn primary sm" onclick="editarAuditoria('${a._id}')">✏️ Editar</button>
+    <button class="btn sm" onclick="imprimirAuditoria('${a._id}')">🖨️ Imprimir</button>
+    <div style="flex:1"></div>
+    <select class="fin" style="height:28px;font-size:11px;width:140px" onchange="atualizarStatus('${a._id}',this.value)">
+      <option value="">Atualizar status...</option>
+      <option value="planejada">Planejada</option>
+      <option value="em_andamento">Em Andamento</option>
+      <option value="concluida">Concluída</option>
+    </select>`;
+
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+}
+
+async function toggleItem(audId, idx, itemId){
+  if(!curAuditoria)return;
+  const item=curAuditoria.itens[idx];
+  const prox={pendente:'conforme',conforme:'nao_conforme',nao_conforme:'nao_aplicavel',nao_aplicavel:'pendente'}[item.status];
+  item.status=prox;
+  const itens=[...curAuditoria.itens];
+  await fetch(`/api/auditoria/${audId}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth.getToken()},body:JSON.stringify({itens})});
+  verDetalhe(audId);
+  load();
+}
+
+async function atualizarStatus(id,status){
+  if(!status)return;
+  await fetch(`/api/auditoria/${id}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth.getToken()},body:JSON.stringify({status})});
+  ui.toast('✅','Status atualizado'); fecharPanel(); load();
+}
+
+function fecharPanel(){ document.getElementById('sidePanel').classList.remove('open'); document.getElementById('overlay').style.display='none'; }
+
+function openNova(){
+  editId=null;
+  document.getElementById('audTt').textContent='Nova Auditoria';
+  document.getElementById('audBtn').textContent='💾 Salvar';
+  ['aTitulo','aResp','aConcl','aRec'].forEach(id=>sv(id,''));
+  document.getElementById('aTipo').value='fiscal';
+  document.getElementById('aSt').value='planejada';
+  document.getElementById('aRisco').value='medio';
+  document.getElementById('aComp').value=ui.currentCompetence();
+  document.getElementById('aInicio').value=new Date().toISOString().substring(0,10);
+  checkItems=[]; gerarChecklist();
+  ui.tab(document.querySelector('#ovAud .m-tab'),'a0');
+  ui.openModal('ovAud');
+}
+
+async function editarAuditoria(id){
+  fecharPanel();
+  const r=await fetch(`/api/auditoria/${id}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json());
+  if(!r?.success)return;
+  const a=r.item; editId=id;
+  document.getElementById('audTt').textContent='Editar — '+a.titulo;
+  sv('aEmp',a.company?._id||''); sv('aTitulo',a.titulo); sv('aTipo',a.tipo);
+  sv('aSt',a.status); sv('aRisco',a.riscoPonderado||'medio');
+  sv('aComp',a.competence||''); sv('aResp',a.responsavel||'');
+  if(a.dataInicio) sv('aInicio',new Date(a.dataInicio).toISOString().substring(0,10));
+  if(a.dataFim)    sv('aFim',new Date(a.dataFim).toISOString().substring(0,10));
+  sv('aConcl',a.conclusao||''); sv('aRec',a.recomendacoes||'');
+  checkItems=a.itens.map(i=>({...i})); renderChecklist();
+  ui.tab(document.querySelector('#ovAud .m-tab'),'a0');
+  ui.openModal('ovAud');
+}
+
+function gerarChecklist(){
+  const tipo=g('aTipo');
+  if(g('aChecklist')==='1' && CHECKLISTS[tipo]){
+    checkItems=CHECKLISTS[tipo].map(d=>({descricao:d,status:'pendente',risco:'medio',observacao:''}));
+    renderChecklist();
+  }
+}
+
+function addCheckItem(){
+  checkItems.push({descricao:'',status:'pendente',risco:'medio',observacao:''});
+  renderChecklist();
+}
+
+function renderChecklist(){
+  const el=document.getElementById('checklistForm');
+  el.innerHTML=checkItems.length
+    ? checkItems.map((item,i)=>`
+      <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+          <input class="fin" style="flex:1;height:28px;font-size:12px" value="${item.descricao}" placeholder="Descrição do item..." oninput="checkItems[${i}].descricao=this.value">
+          <select class="fin" style="height:28px;font-size:11px;width:110px" onchange="checkItems[${i}].risco=this.value">
+            <option value="baixo"${item.risco==='baixo'?' selected':''}>Baixo</option>
+            <option value="medio"${item.risco==='medio'?' selected':''}>Médio</option>
+            <option value="alto"${item.risco==='alto'?' selected':''}>Alto</option>
+          </select>
+          <select class="fin" style="height:28px;font-size:11px;width:130px" onchange="checkItems[${i}].status=this.value">
+            <option value="pendente"${item.status==='pendente'?' selected':''}>Pendente</option>
+            <option value="conforme"${item.status==='conforme'?' selected':''}>✅ Conforme</option>
+            <option value="nao_conforme"${item.status==='nao_conforme'?' selected':''}>❌ Não Conforme</option>
+            <option value="nao_aplicavel"${item.status==='nao_aplicavel'?' selected':''}>N/A</option>
+          </select>
+          <button class="btn sm" style="color:var(--red);height:28px;padding:0 8px;flex-shrink:0" onclick="checkItems.splice(${i},1);renderChecklist()">✕</button>
+        </div>
+        <input class="fin" style="height:26px;font-size:11px" value="${item.observacao||''}" placeholder="Observação (opcional)..." oninput="checkItems[${i}].observacao=this.value">
+      </div>`).join('')
+    : '<div style="padding:14px;text-align:center;font-size:12px;color:var(--txt3);border:1px dashed var(--bd);border-radius:var(--rs)">Clique em "+ Adicionar Item" ou selecione um tipo para gerar checklist automático</div>';
+}
+
+async function salvarAuditoria(){
+  const titulo=g('aTitulo'); if(!titulo){ ui.toast('⚠️','Informe o título'); return; }
+  const empVal=g('aEmp');
+  const payload={
+    titulo, tipo:g('aTipo'), status:g('aSt'),
+    riscoPonderado:g('aRisco'), responsavel:g('aResp'),
+    competence:g('aComp')||undefined,
+    dataInicio:g('aInicio')||undefined, dataFim:g('aFim')||undefined,
+    conclusao:g('aConcl')||undefined, recomendacoes:g('aRec')||undefined,
+    gerarChecklist:'0', itens:checkItems,
+  };
+  if(empVal) payload.company=empVal;
+  const btn=document.getElementById('audBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+  const method=editId?'PUT':'POST';
+  const url=editId?`/api/auditoria/${editId}`:'/api/auditoria';
+  const res=await fetch(url,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth.getToken()},body:JSON.stringify(payload)}).then(r=>r.json());
+  btn.disabled=false; btn.innerHTML='💾 Salvar';
+  if(res?.success){ ui.toast('✅',res.message); ui.closeModal('ovAud'); load(); }
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+function imprimirAuditoria(id){
+  fetch(`/api/auditoria/${id}`,{headers:{Authorization:'Bearer '+auth.getToken()}}).then(r=>r.json()).then(r=>{
+    if(!r?.success)return;
+    const a=r.item;
+    const total=a.itens.length, conf=a.itens.filter(i=>i.status==='conforme').length;
+    const pct=total>0?Math.round(conf/total*100):0;
+    const janela=window.open('','_blank','width=900,height=700');
+    janela.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Auditoria — ${a.titulo}</title>
+    <style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;padding:24px;background:#fff}
+    .header{display:flex;justify-content:space-between;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:20px}
+    .logo{font-size:18px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}.logo span{font-size:11px;display:block;font-weight:400;color:#666}
+    .meta{text-align:right;font-size:11px;color:#666;line-height:1.8}.meta strong{font-size:14px;color:#1a1a2e;display:block}
+    h2{font-size:13px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;padding-bottom:5px;border-bottom:2px solid #1a6fc4}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11.5px}
+    th{background:#eff6ff;color:#1d4ed8;padding:7px 10px;text-align:left;border:1px solid #dde3ec;font-weight:600}
+    td{padding:6px 10px;border:1px solid #eef0f5}
+    .conf{color:#0e7a5e;font-weight:700}.nc{color:#b91c1c;font-weight:700}.pend{color:#92400e}
+    .footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ec;font-size:10px;color:#999;display:flex;justify-content:space-between}
+    @page{margin:15mm;size:A4}</style></head><body>
+    <div class="header">
+      <div><div class="logo">DTP Contábil <span>ERP Multi-Empresa</span></div></div>
+      <div class="meta"><strong>Relatório de Auditoria</strong>${a.titulo}<br>
+        ${a.company?.legalName||'DTP Soluções Contábeis'} · Tipo: ${a.tipo}<br>
+        Conformidade: ${pct}% · Gerado em: ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
+      </div>
+    </div>
+    <h2>Checklist de Auditoria (${total} itens)</h2>
+    <table><thead><tr><th>#</th><th>Item</th><th>Status</th><th>Risco</th><th>Observação</th></tr></thead>
+    <tbody>${a.itens.map((item,i)=>`<tr>
+      <td style="text-align:center;color:#666">${i+1}</td>
+      <td>${item.descricao}</td>
+      <td class="${item.status==='conforme'?'conf':item.status==='nao_conforme'?'nc':'pend'}">${item.status==='conforme'?'✅ Conforme':item.status==='nao_conforme'?'❌ Não Conforme':item.status==='nao_aplicavel'?'N/A':'⏳ Pendente'}</td>
+      <td>${item.risco}</td>
+      <td style="color:#555">${item.observacao||'—'}</td>
+    </tr>`).join('')}</tbody></table>
+    ${a.conclusao?`<h2>Conclusão</h2><p style="line-height:1.7;color:#333">${a.conclusao}</p>`:''}
+    ${a.recomendacoes?`<h2>Recomendações</h2><p style="line-height:1.7;color:#333">${a.recomendacoes}</p>`:''}
+    <div class="footer"><span>DTP Contábil ERP</span><span>${new Date().toLocaleDateString('pt-BR')}</span></div>
+    </body></html>`);
+    janela.document.close(); setTimeout(()=>{janela.focus();janela.print();},600);
+  });
+}
+
+(()=>{
+  const now=new Date();
+  document.getElementById('aComp').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('aInicio').value=now.toISOString().substring(0,10);
+})();
+
+load();
+</script>
+</body>
+</html>

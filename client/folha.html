@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Folha de Pagamento</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden;transition:all .15s;cursor:default}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.bl::before{background:var(--blue)}.kpi.gn::before{background:var(--green)}
+.kpi.rd::before{background:var(--red)}.kpi.am::before{background:var(--amber)}.kpi.pu::before{background:var(--purple)}.kpi.tl::before{background:var(--teal)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10px;color:var(--txt3);margin-top:4px}
+.st-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600}
+.st-pill::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.st-pill.rascunho{background:rgba(255,255,255,.05);color:var(--txt2)}.st-pill.rascunho::before{background:var(--txt3)}
+.st-pill.processando{background:rgba(26,111,196,.12);color:var(--bl)}.st-pill.processando::before{background:var(--bl)}
+.st-pill.fechada{background:rgba(245,158,11,.12);color:var(--amber)}.st-pill.fechada::before{background:var(--amber)}
+.st-pill.paga{background:rgba(0,201,167,.12);color:var(--green)}.st-pill.paga::before{background:var(--green)}
+.emp-row{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:8px;overflow:hidden;transition:border-color .13s}
+.emp-row:hover{border-color:var(--bd2)}.emp-row.open{border-color:rgba(26,111,196,.35)}
+.emp-hd{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+.emp-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.emp-bd{display:none;padding:14px;border-top:1px solid var(--bd)}
+.emp-row.open .emp-bd{display:block}
+.emp-chev{font-size:10px;color:var(--txt3);transition:transform .15s;flex-shrink:0}
+.emp-row.open .emp-chev{transform:rotate(90deg)}
+.hr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+.hr-section{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);overflow:hidden}
+.hr-hd{padding:7px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--bd)}
+.hr-hd.gn{color:var(--green);background:rgba(0,201,167,.05)}.hr-hd.rd{color:var(--red);background:rgba(239,68,68,.05)}
+.hr-row{display:flex;justify-content:space-between;padding:5px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.hr-row:last-child{border-bottom:none}
+.hr-lbl{color:var(--txt2)}.hr-val{font-family:'JetBrains Mono',monospace;font-weight:500}
+.hr-val.gn{color:var(--green)}.hr-val.rd{color:var(--red)}
+.hr-total{display:flex;justify-content:space-between;padding:8px 12px;border-top:2px solid var(--bd2);font-weight:700;font-size:13px}
+.enc-banner{background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs);padding:10px 14px;margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.enc-item{text-align:center}
+.enc-lbl{font-size:10px;color:var(--txt3);margin-bottom:3px}.enc-val{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--bl)}
+.view-btn{padding:7px 14px;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--bg3);color:var(--txt2);transition:all .14s}
+.view-btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.side-panel{position:fixed;top:0;right:-480px;width:480px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd2);z-index:200;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,.3)}
+.side-panel.open{right:0}
+.sp-top{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sp-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sp-tt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--txt)}
+.sp-st{font-size:11px;color:var(--txt3);margin-top:2px}
+.sp-close{margin-left:auto;background:none;border:none;color:var(--txt3);font-size:18px;cursor:pointer}
+.sp-body{flex:1;overflow-y:auto;padding:18px 20px}
+.sp-foot{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;flex-wrap:wrap}
+.func-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .13s}
+.func-card:hover{border-color:var(--bd2)}
+.func-card.sel{border-color:rgba(0,201,167,.4);background:rgba(0,201,167,.05)}
+.func-sel-ic{width:20px;height:20px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;transition:all .13s}
+.func-card.sel .func-sel-ic{background:var(--green);border-color:var(--green);color:#fff}
+.st-func{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.st-func.ativo{background:rgba(0,201,167,.12);color:var(--green)}
+.st-func.ferias{background:rgba(26,111,196,.12);color:var(--bl)}
+.st-func.afastado{background:rgba(245,158,11,.12);color:var(--amber)}
+.st-func.demitido{background:rgba(239,68,68,.12);color:var(--red)}
+.ra{display:flex;gap:4px;justify-content:flex-end}
+.rb{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;border:1px solid var(--bd);background:var(--bg4);transition:all .13s}
+.rb:hover{border-color:var(--bd2)}
+.money{font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.money.g{color:var(--green)}.money.r{color:var(--red)}.money.b{color:var(--bl)}
+.sec-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--txt3);font-weight:600;margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+.empty{padding:28px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:28px;margin-bottom:8px}.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:4px}.empty-s{font-size:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+  <header class="topbar">
+    <span class="topbar-title">👥 Folha de Pagamento</span>
+    <span class="tb-badge blue"  id="tbTotal">0 folhas</span>
+    <span class="tb-badge amber" id="tbRasc">0 rascunhos</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="fEmp" style="height:32px;font-size:11px;width:210px" onchange="pg=1;load()">
+      <option value="">Todas as empresas</option>
+    </select>
+    <div style="display:flex;gap:4px">
+      <button class="view-btn on" id="vFolhas"   onclick="setView('folhas',this)">📋 Folhas</button>
+      <button class="view-btn"    id="vFuncs"    onclick="setView('funcs',this)">👤 Funcionários</button>
+      <button class="view-btn"    id="vResumo"   onclick="setView('resumo',this)">📊 Resumo</button>
+    </div>
+    <button class="btn primary" id="btnNew" onclick="handleNew()">+ Nova Folha</button>
+    <button class="btn sm" onclick="exportarCSV()">⬇ CSV</button>
+  </header>
+
+  <div class="filter-bar" style="gap:7px">
+    <select class="fin" id="fComp" style="height:28px;font-size:11px;width:155px" onchange="pg=1;load()"></select>
+    <select class="fin" id="fSt"   style="height:28px;font-size:11px;width:145px" onchange="pg=1;load()">
+      <option value="">Todos os status</option>
+      <option value="rascunho">Rascunho</option>
+      <option value="processando">Processando</option>
+      <option value="fechada">Fechada</option>
+      <option value="paga">Paga</option>
+    </select>
+    <button class="btn sm" onclick="limparFiltros()">🔄 Limpar</button>
+  </div>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+    <div class="kpi-row">
+      <div class="kpi bl"><div class="kpi-l">Funcionários</div><div class="kpi-v" id="kH">—</div><div class="kpi-s">headcount ativo</div></div>
+      <div class="kpi gn"><div class="kpi-l">Total Bruto</div><div class="kpi-v" id="kG">—</div><div class="kpi-s">no período</div></div>
+      <div class="kpi tl"><div class="kpi-l">Total Líquido</div><div class="kpi-v" id="kN">—</div><div class="kpi-s">a receber</div></div>
+      <div class="kpi am"><div class="kpi-l">Encargos Emp.</div><div class="kpi-v" id="kE">—</div><div class="kpi-s">INSS + FGTS patronal</div></div>
+      <div class="kpi rd"><div class="kpi-l">Custo Total</div><div class="kpi-v" id="kC">—</div><div class="kpi-s">bruto + encargos</div></div>
+      <div class="kpi pu"><div class="kpi-l">Folhas</div><div class="kpi-v" id="kF">—</div><div class="kpi-s">no período</div></div>
+    </div>
+
+    <!-- VIEW FOLHAS -->
+    <div id="viewFolhas">
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht" id="tTitle">Folhas de Pagamento</span>
+          <span style="font-size:11px;color:var(--txt3)" id="tCount"></span>
+        </div>
+        <div id="tBody"><div class="empty"><div class="empty-ic">⏳</div></div></div>
+        <div class="card-pag" id="pagArea" style="display:none">
+          <span style="font-size:11px;color:var(--txt3)" id="pagInfo"></span>
+          <div style="display:flex;gap:4px" id="pagBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW FUNCIONÁRIOS -->
+    <div id="viewFuncs" style="display:none">
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">👤 Funcionários Cadastrados</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:11px;color:var(--txt3)" id="funcCount"></span>
+            <button class="btn primary sm" onclick="openNovoFunc()">+ Novo Funcionário</button>
+          </div>
+        </div>
+        <div id="funcBody"><div class="empty"><div class="empty-ic">⏳</div></div></div>
+      </div>
+    </div>
+
+    <!-- VIEW RESUMO -->
+    <div id="viewResumo" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="resumoCards"></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- PAINEL DETALHE FOLHA -->
+<div class="side-panel" id="sidePanel">
+  <div class="sp-top">
+    <div class="sp-ico" id="spIco" style="background:rgba(26,111,196,.15)">👥</div>
+    <div><div class="sp-tt" id="spTt">—</div><div class="sp-st" id="spSt">—</div></div>
+    <button class="sp-close" onclick="fecharDetalhe()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+<div id="overlay" onclick="fecharDetalhe()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199"></div>
+
+<!-- MODAL NOVA FOLHA (com seleção de funcionários) -->
+<div class="ov" id="ovNova">
+<div class="modal xl">
+  <div class="m-top">
+    <div class="m-ico b">📋</div>
+    <div class="m-hi"><div class="m-tg">Folha de Pagamento</div><div class="m-tt">Nova Folha</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovNova')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'nova0')">1. Dados</div>
+    <div class="m-tab" onclick="ui.tab(this,'nova1')">2. Funcionários</div>
+  </div>
+  <div class="m-bd">
+    <!-- ABA 1: DADOS -->
+    <div class="tp on" id="nova0">
+      <div class="fg2">
+        <div class="fgp ffu"><label class="fbl">Empresa *</label>
+          <select class="fin" id="nEmp" onchange="carregarFuncionariosNova()">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Competência *</label><input class="fin" type="month" id="nComp"></div>
+        <div class="fgp"><label class="fbl">Data de Pagamento</label><input class="fin" type="date" id="nPay"></div>
+        <div class="fgp"><label class="fbl">Status</label>
+          <select class="fin" id="nSt">
+            <option value="rascunho">Rascunho</option>
+            <option value="processando">Processando</option>
+          </select>
+        </div>
+        <div class="fgp ffu"><label class="fbl">Observações</label><textarea class="fin" id="nNotes" rows="2" style="resize:none"></textarea></div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs);font-size:12px;color:var(--bl)">
+        💡 Após preencher os dados, vá para a aba <strong>Funcionários</strong> para selecionar e configurar os valores de cada colaborador.
+      </div>
+    </div>
+    <!-- ABA 2: FUNCIONÁRIOS -->
+    <div class="tp" id="nova1">
+      <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:var(--txt2)">Selecione os funcionários e configure os valores</span>
+        <button class="btn sm" onclick="selecionarTodos()">Selecionar todos</button>
+      </div>
+      <div id="novaFuncList"><div class="empty"><div class="empty-s">Selecione uma empresa primeiro</div></div></div>
+      <!-- Preview totais -->
+      <div id="novaPreview" style="display:none;margin-top:14px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:8px">Preview da Folha</div>
+        <div id="previewContent"></div>
+      </div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="nBtn" onclick="salvarNova()">💾 Criar Folha</button>
+    <button class="mfb" onclick="ui.closeModal('ovNova')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL FUNCIONÁRIO (cadastro completo) -->
+<div class="ov" id="ovFunc">
+<div class="modal xl">
+  <div class="m-top">
+    <div class="m-ico b" id="funcIco">👤</div>
+    <div class="m-hi"><div class="m-tg">Gestão de Funcionários</div><div class="m-tt" id="funcTt">Novo Funcionário</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovFunc')">✕</button>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab on" onclick="ui.tab(this,'f0')">👤 Pessoal</div>
+    <div class="m-tab" onclick="ui.tab(this,'f1')">📋 Contrato</div>
+    <div class="m-tab" onclick="ui.tab(this,'f2')">💰 Remuneração</div>
+    <div class="m-tab" onclick="ui.tab(this,'f3')">🏦 Bancário</div>
+    <div class="m-tab" onclick="ui.tab(this,'f4')">📎 Dependentes</div>
+  </div>
+  <div class="m-bd">
+
+    <!-- ABA PESSOAL -->
+    <div class="tp on" id="f0">
+      <div class="fg3">
+        <div class="fgp ffu"><label class="fbl">Empresa *</label><select class="fin" id="fEmpFunc"><option value="">Selecione...</option></select></div>
+        <div class="fgp ffu"><label class="fbl">Nome Completo *</label><input class="fin" id="fNome" placeholder="Nome completo"></div>
+        <div class="fgp"><label class="fbl">CPF *</label><input class="fin mono" id="fCpf" placeholder="000.000.000-00" maxlength="14"></div>
+        <div class="fgp"><label class="fbl">RG</label><input class="fin mono" id="fRg" placeholder="00.000.000-0"></div>
+        <div class="fgp"><label class="fbl">Data de Nascimento</label><input class="fin" type="date" id="fNasc"></div>
+        <div class="fgp"><label class="fbl">Sexo</label>
+          <select class="fin" id="fSexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option><option value="O">Outro</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Estado Civil</label>
+          <select class="fin" id="fEcivil"><option value="">—</option><option>Solteiro(a)</option><option>Casado(a)</option><option>Divorciado(a)</option><option>Viúvo(a)</option><option>União Estável</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Nacionalidade</label><input class="fin" id="fNacionalidade" value="Brasileiro(a)"></div>
+        <div class="fgp"><label class="fbl">Naturalidade</label><input class="fin" id="fNaturalidade" placeholder="Cidade/UF"></div>
+        <div class="fgp"><label class="fbl">Grau de Instrução</label>
+          <select class="fin" id="fEscolaridade">
+            <option value="">—</option><option>Fundamental Incompleto</option><option>Fundamental Completo</option>
+            <option>Médio Incompleto</option><option>Médio Completo</option>
+            <option>Superior Incompleto</option><option>Superior Completo</option><option>Pós-Graduação</option><option>Mestrado</option><option>Doutorado</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">E-mail</label><input class="fin" type="email" id="fEmail"></div>
+        <div class="fgp"><label class="fbl">Telefone</label><input class="fin" id="fTel" placeholder="(00) 00000-0000"></div>
+        <div class="fgp ffu"><label class="fbl">Endereço Completo</label><input class="fin" id="fEnd" placeholder="Rua, Nº, Bairro, Cidade - UF, CEP"></div>
+        <div class="fgp"><label class="fbl">PIS/PASEP</label><input class="fin mono" id="fPis" placeholder="000.00000.00-0"></div>
+        <div class="fgp"><label class="fbl">CTPS Nº</label><input class="fin mono" id="fCtps"></div>
+        <div class="fgp"><label class="fbl">CTPS Série</label><input class="fin mono" id="fCtpsSerie"></div>
+      </div>
+    </div>
+
+    <!-- ABA CONTRATO -->
+    <div class="tp" id="f1">
+      <div class="fg3">
+        <div class="fgp"><label class="fbl">Cargo / Função *</label><input class="fin" id="fCargo" placeholder="Ex: Analista Contábil"></div>
+        <div class="fgp"><label class="fbl">Departamento</label><input class="fin" id="fDepto" placeholder="Ex: Contabilidade"></div>
+        <div class="fgp"><label class="fbl">CBO (Classificação)</label><input class="fin mono" id="fCbo" placeholder="Ex: 2522-05"></div>
+        <div class="fgp"><label class="fbl">Tipo de Contrato</label>
+          <select class="fin" id="fTpContrato">
+            <option>CLT - Prazo Indeterminado</option><option>CLT - Prazo Determinado</option>
+            <option>Aprendiz</option><option>Estagiário</option><option>Temporário</option><option>PJ</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Data de Admissão *</label><input class="fin" type="date" id="fAdmissao"></div>
+        <div class="fgp"><label class="fbl">Data de Demissão</label><input class="fin" type="date" id="fDemissao"></div>
+        <div class="fgp"><label class="fbl">Motivo Demissão</label>
+          <select class="fin" id="fMotivoDemissao">
+            <option value="">—</option><option>Pedido de Demissão</option><option>Demissão Sem Justa Causa</option>
+            <option>Demissão Com Justa Causa</option><option>Acordo Mútuo (§6º CLT)</option>
+            <option>Aposentadoria</option><option>Falecimento</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Jornada</label>
+          <select class="fin" id="fJornada">
+            <option>44h semanais</option><option>40h semanais</option><option>36h semanais</option>
+            <option>30h semanais</option><option>20h semanais</option><option>Outra</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Turno</label>
+          <select class="fin" id="fTurno"><option>Diurno</option><option>Noturno</option><option>Misto</option><option>Escala 12x36</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Nível / Categoria</label><input class="fin" id="fNivel" placeholder="Ex: Júnior, Pleno, Sênior"></div>
+        <div class="fgp"><label class="fbl">Status *</label>
+          <select class="fin" id="fStatus">
+            <option value="ativo">Ativo</option><option value="ferias">Em Férias</option>
+            <option value="afastado">Afastado</option><option value="demitido">Demitido</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">Sindicato</label><input class="fin" id="fSindicato" placeholder="Ex: SESCON"></div>
+        <div class="fgp ffu"><label class="fbl">Observações</label><textarea class="fin" id="fObs" rows="2" style="resize:none"></textarea></div>
+      </div>
+    </div>
+
+    <!-- ABA REMUNERAÇÃO -->
+    <div class="tp" id="f2">
+      <div class="fg3">
+        <div class="fgp"><label class="fbl">Salário Base *</label><input class="fin" type="number" id="fSalario" min="0" step="50" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Horas Extras (R$)</label><input class="fin" type="number" id="fHorasExtras" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Comissões (R$)</label><input class="fin" type="number" id="fComissao" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Bônus / Gratificação (R$)</label><input class="fin" type="number" id="fBonus" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Vale Refeição/Aliment. (R$)</label><input class="fin" type="number" id="fVr" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Vale Transporte (R$)</label><input class="fin" type="number" id="fVt" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Outros Proventos (R$)</label><input class="fin" type="number" id="fOutrosProv" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Plano de Saúde — Desc. (R$)</label><input class="fin" type="number" id="fPlanoSaude" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Adiantamento (R$)</label><input class="fin" type="number" id="fAdiantamento" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Outros Descontos (R$)</label><input class="fin" type="number" id="fOutrosDesc" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgp"><label class="fbl">Forma de Pagamento</label>
+          <select class="fin" id="fFormaPgto"><option>Depósito em Conta</option><option>PIX</option><option>Dinheiro</option><option>Cheque</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Insalubridade</label>
+          <select class="fin" id="fInsalubridade"><option value="">Nenhuma</option><option value="10">10% (Mínima)</option><option value="20">20% (Média)</option><option value="40">40% (Máxima)</option></select>
+        </div>
+      </div>
+      <!-- Preview INSS/IRRF -->
+      <div id="calcPreview" style="margin-top:14px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:8px">Preview de Cálculo (aproximado)</div>
+        <div id="calcPreviewContent" style="font-size:12px;color:var(--txt3)">Preencha o salário base para ver o preview</div>
+      </div>
+    </div>
+
+    <!-- ABA BANCÁRIO -->
+    <div class="tp" id="f3">
+      <div class="fg3">
+        <div class="fgp"><label class="fbl">Banco</label><input class="fin" id="fBanco" placeholder="Ex: Nubank, Itaú, Bradesco..."></div>
+        <div class="fgp"><label class="fbl">Agência</label><input class="fin mono" id="fAgencia" placeholder="0000"></div>
+        <div class="fgp"><label class="fbl">Conta Corrente</label><input class="fin mono" id="fConta" placeholder="00000-0"></div>
+        <div class="fgp"><label class="fbl">Tipo de Conta</label>
+          <select class="fin" id="fTipoConta"><option>Conta Corrente</option><option>Conta Poupança</option><option>Conta Salário</option></select>
+        </div>
+        <div class="fgp"><label class="fbl">Chave PIX</label><input class="fin" id="fPix" placeholder="CPF, e-mail, telefone ou aleatória"></div>
+        <div class="fgp"><label class="fbl">Titular da Conta</label><input class="fin" id="fTitular" placeholder="Nome do titular"></div>
+      </div>
+    </div>
+
+    <!-- ABA DEPENDENTES -->
+    <div class="tp" id="f4">
+      <div class="fg3">
+        <div class="fgp"><label class="fbl">Nº de Dependentes IRRF</label><input class="fin" type="number" id="fDeps" min="0" value="0" oninput="calcPreviewFunc()"></div>
+        <div class="fgp"><label class="fbl">Nº Filhos</label><input class="fin" type="number" id="fFilhos" min="0" value="0"></div>
+        <div class="fgp"><label class="fbl">Salário Família</label><input class="fin" type="number" id="fSalFam" min="0" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div class="sec-title">Dependentes Cadastrados</div>
+      <div id="depsListForm"></div>
+      <button class="btn sm" style="margin-top:8px" onclick="addDepForm()">+ Adicionar Dependente</button>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="funcBtn" onclick="salvarFunc()">💾 Salvar Funcionário</button>
+    <button class="mfb" onclick="ui.closeModal('ovFunc')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL STATUS -->
+<div class="ov" id="ovSt">
+<div class="modal sm">
+  <div class="m-top">
+    <div class="m-ico g">🔄</div>
+    <div class="m-hi"><div class="m-tg">Atualizar</div><div class="m-tt">Status da Folha</div></div>
+    <button class="m-cl" onclick="ui.closeModal('ovSt')">✕</button>
+  </div>
+  <div class="m-bd">
+    <div class="fg2">
+      <div class="fgp ffu"><label class="fbl">Novo Status</label>
+        <select class="fin" id="qSt">
+          <option value="rascunho">Rascunho</option><option value="processando">Processando</option>
+          <option value="fechada">Fechada</option><option value="paga">Paga ✅</option>
+        </select>
+      </div>
+      <div class="fgp"><label class="fbl">Data de Pagamento</label><input class="fin" type="date" id="qPay"></div>
+      <div class="fgp ffu"><label class="fbl">Observação</label><input class="fin" id="qNotes"></div>
+    </div>
+  </div>
+  <div class="m-ft">
+    <button class="mfb p" id="qBtn" onclick="confirmarStatus()">✅ Confirmar</button>
+    <button class="mfb" onclick="ui.closeModal('ovSt')">Cancelar</button>
+  </div>
+</div>
+</div>
+
+<div class="ov" id="ovConf">
+<div class="modal sm">
+  <div class="conf-bd"><div class="conf-ic" id="cIc">⚠️</div><div class="conf-tt" id="cTt">Confirmar</div><div class="conf-ms" id="cMs"></div></div>
+  <div class="conf-ft"><button class="mfb r" id="cBtn">Confirmar</button><button class="mfb" onclick="ui.closeModal('ovConf')">Cancelar</button></div>
+</div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let editFolhaId=null, editFuncId=null, stId=null, pg=1, curView='folhas';
+let allPayrolls=[], funcsDaEmpresa=[], funcsSelecionados=[], depsForm=[];
+const g  = id => document.getElementById(id)?.value?.trim()||'';
+const sv = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||''; };
+const gn = id => parseFloat(document.getElementById(id)?.value)||0;
+const cur = v => 'R$\u00a0'+Math.abs(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const curK = v => v>=1000?'R$\u00a0'+(v/1000).toFixed(1).replace('.',',')+'\u00a0k':cur(v);
+
+// INIT
+(()=>{
+  const now=new Date();
+  let o='<option value="">Todas as competências</option>';
+  for(let i=-1;i<24;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const v=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    o+=`<option value="${v}"${i===0?' selected':''}>${ui.competence(v)}</option>`;
+  }
+  document.getElementById('fComp').innerHTML=o;
+  document.getElementById('nComp').value=ui.currentCompetence();
+  document.getElementById('nPay').value=now.toISOString().substring(0,10);
+  document.getElementById('qPay').value=now.toISOString().substring(0,10);
+})();
+
+API.companies.list({limit:200}).then(r=>{
+  if(!r?.success)return;
+  const o=r.companies.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  ['fEmp','nEmp','fEmpFunc'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=(id==='fEmp'?'<option value="">Todas as empresas</option>':'<option value="">Selecione...</option>')+o;
+  });
+});
+
+// Preview INSS/IRRF no form funcionário
+document.getElementById('fSalario').addEventListener('input', calcPreviewFunc);
+document.getElementById('fDeps').addEventListener('input', calcPreviewFunc);
+
+function calcPreviewFunc(){
+  const sal=gn('fSalario'), deps=gn('fDeps');
+  if(!sal){ document.getElementById('calcPreviewContent').textContent='Preencha o salário base para ver o preview'; return; }
+  const inss=calcINSS(sal);
+  const grossEst=sal+gn('fHorasExtras')+gn('fBonus')+gn('fComissao')+gn('fVr')+gn('fVt');
+  const irrf=calcIRRF(grossEst,inss,deps);
+  const fgts=Math.round(grossEst*0.08*100)/100;
+  const inssP=Math.round(grossEst*0.20*100)/100;
+  const net=Math.max(0,grossEst-inss-irrf-gn('fPlanoSaude')-gn('fAdiantamento')-gn('fOutrosDesc'));
+  document.getElementById('calcPreviewContent').innerHTML=[
+    ['Salário Base',cur(sal),''],
+    ['Gross Estimado',cur(grossEst),'var(--txt)'],
+    ['INSS (Funcionário)',cur(inss),'var(--red)'],
+    ['IRRF',cur(irrf),'var(--red)'],
+    ['Líquido Estimado',`<strong style="color:var(--green)">${cur(net)}</strong>`,''],
+    ['INSS Patronal (20%)',cur(inssP),'var(--amber)'],
+    ['FGTS (8%)',cur(fgts),'var(--amber)'],
+    ['Custo Total Est.',cur(grossEst+inssP+fgts),'var(--red)'],
+  ].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;${c?'color:'+c:''}">${v}</span></div>`).join('');
+}
+
+// Cálculos INSS/IRRF (tabela 2025)
+function calcINSS(base){
+  const t=[{max:1412,r:.075},{max:2666.68,r:.09},{max:4000.03,r:.12},{max:7786.02,r:.14}];
+  let inss=0,prev=0;
+  for(const f of t){ if(base<=prev)break; inss+=(Math.min(base,f.max)-prev)*f.r; prev=f.max; }
+  return Math.round(inss*100)/100;
+}
+function calcIRRF(gross,inss,deps=0){
+  const base=gross-inss-deps*189.59;
+  if(base<=0)return 0;
+  const t=[{max:2259.2,r:0,d:0},{max:2826.65,r:.075,d:169.44},{max:3751.05,r:.15,d:381.44},{max:4664.68,r:.225,d:662.77},{max:Infinity,r:.275,d:896}];
+  for(const f of t){ if(base<=f.max)return Math.round(Math.max(0,base*f.r-f.d)*100)/100; }
+  return 0;
+}
+
+// VIEWS
+function setView(v,el){
+  curView=v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('on')); el.classList.add('on');
+  document.getElementById('viewFolhas').style.display = v==='folhas'?'block':'none';
+  document.getElementById('viewFuncs').style.display  = v==='funcs' ?'block':'none';
+  document.getElementById('viewResumo').style.display = v==='resumo'?'block':'none';
+  document.getElementById('btnNew').textContent = v==='funcs'?'+ Novo Funcionário':'+ Nova Folha';
+  if(v==='funcs')  loadFuncionarios();
+  if(v==='resumo') renderResumo();
+}
+
+function handleNew(){
+  if(curView==='funcs') openNovoFunc();
+  else openNovaFolha();
+}
+
+// LOAD FOLHAS
+async function load(p=pg){
+  pg=p;
+  const params={page:p,limit:20};
+  const emp=g('fEmp'),comp=g('fComp'),st=g('fSt');
+  if(emp)params.company=emp; if(comp)params.competence=comp; if(st)params.status=st;
+  document.getElementById('tBody').innerHTML='<div class="empty"><div class="empty-ic">⏳</div></div>';
+  const [listR,statsR]=await Promise.all([
+    API.payroll.list(params),
+    API.payroll.stats({competence:comp||undefined}),
+  ]);
+  if(!listR?.success)return;
+  allPayrolls=listR.payrolls||[];
+  if(statsR?.success){
+    const s=statsR.summary;
+    document.getElementById('kH').textContent=s.headcount||0;
+    document.getElementById('kG').textContent=curK(s.totalGross||0);
+    document.getElementById('kN').textContent=curK(s.totalNet||0);
+    document.getElementById('kE').textContent=curK((s.totalINSS||0)+(s.totalFGTS||0));
+    document.getElementById('kC').textContent=curK(s.totalCost||0);
+    document.getElementById('kF').textContent=s.totalPayrolls||0;
+    document.getElementById('tbTotal').textContent=(s.totalPayrolls||0)+' folhas';
+    document.getElementById('tbRasc').textContent=(s.byStatus?.rascunho||0)+' rascunhos';
+  }
+  document.getElementById('tCount').textContent=`${listR.pagination.total} folha(s)`;
+  if(!listR.payrolls.length){
+    document.getElementById('tBody').innerHTML='<div class="empty"><div class="empty-ic">👥</div><div class="empty-t">Nenhuma folha</div><div class="empty-s"><span onclick="openNovaFolha()" style="color:var(--bl);cursor:pointer">+ Criar nova folha</span></div></div>';
+    document.getElementById('pagArea').style.display='none'; return;
+  }
+  document.getElementById('tBody').innerHTML=`<div style="overflow-x:auto"><table class="tbl">
+    <thead><tr><th>Empresa</th><th>Competência</th><th>Func.</th><th>Bruto</th><th>INSS</th><th>IRRF</th><th>FGTS</th><th>Líquido</th><th>Custo Total</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${listR.payrolls.map((p,i)=>`
+      <tr style="animation-delay:${i*20}ms">
+        <td style="font-size:12px;font-weight:500;color:var(--txt)">${p.company?.tradeName||p.company?.legalName||'—'}</td>
+        <td style="font-size:12px">${ui.competence(p.competence)}</td>
+        <td style="text-align:center;font-weight:600;color:var(--bl)">${p.headcount||0}</td>
+        <td class="money g">${cur(p.totalGross||0)}</td>
+        <td class="money r">${cur(p.totalINSSEmployee||0)}</td>
+        <td class="money r">${cur(p.totalIRRF||0)}</td>
+        <td class="money r">${cur(p.totalFGTS||0)}</td>
+        <td class="money g" style="font-weight:700">${cur(p.totalNet||0)}</td>
+        <td class="money r" style="font-weight:700">${cur(p.totalCost||0)}</td>
+        <td><span class="st-pill ${p.status}">${p.status}</span></td>
+        <td><div class="ra">
+          <div class="rb" onclick="verDetalhe('${p._id}')" title="Detalhes">👁️</div>
+          <div class="rb" onclick="openSt('${p._id}','${p.status}')" title="Status">🔄</div>
+          <div class="rb" onclick="imprimirFolha('${p._id}')" title="Imprimir">🖨️</div>
+          <div class="rb" onclick="exportarFolhaCSV('${p._id}')" title="CSV">⬇</div>
+          <div class="rb" onclick="removerFolha('${p._id}')" title="Remover">🗑️</div>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  document.getElementById('pagArea').style.display='flex';
+  ui.pagination('pagBtns','pagInfo',listR.pagination,load);
+}
+
+// LOAD FUNCIONÁRIOS
+async function loadFuncionarios(){
+  const emp=g('fEmp');
+  const el=document.getElementById('funcBody');
+  el.innerHTML='<div class="empty"><div class="empty-ic">⏳</div></div>';
+  // Busca via folhas para extrair funcionários únicos
+  const params={limit:200}; if(emp)params.company=emp;
+  const r=await API.payroll.list(params);
+  if(!r?.success){ el.innerHTML='<div class="empty"><div class="empty-s">Erro ao carregar</div></div>'; return; }
+  // Extrai funcionários únicos das folhas (pega da folha mais recente)
+  const latest=r.payrolls[0];
+  if(!latest){ el.innerHTML='<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">Nenhum funcionário</div><div class="empty-s"><span onclick="openNovoFunc()" style="color:var(--bl);cursor:pointer">Cadastrar primeiro funcionário</span></div></div>'; document.getElementById('funcCount').textContent='0 funcionários'; return; }
+  // Busca folha completa para ter employees
+  const det=await API.payroll.get(latest._id);
+  const emps=det?.payroll?.employees||[];
+  document.getElementById('funcCount').textContent=emps.length+' funcionário(s)';
+  if(!emps.length){ el.innerHTML='<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">Nenhum funcionário</div><div class="empty-s"><span onclick="openNovoFunc()" style="color:var(--bl);cursor:pointer">Cadastrar primeiro funcionário</span></div></div>'; return; }
+  el.innerHTML=`<table class="tbl">
+    <thead><tr><th>Funcionário</th><th>Cargo</th><th>CPF</th><th>Salário Base</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${emps.map(e=>`
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:${CORES[0]};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">${ui.ini(e.name)}</div>
+          <span style="font-size:13px;font-weight:500;color:var(--txt)">${e.name}</span>
+        </div></td>
+        <td style="font-size:12px;color:var(--txt2)">${e.role||'—'}</td>
+        <td class="money" style="font-size:11px;color:var(--txt3)">${e.cpf||'—'}</td>
+        <td class="money g">${cur(e.salaryBase||0)}</td>
+        <td><span class="st-func ${e.status||'ativo'}">${e.status||'ativo'}</span></td>
+        <td><div class="ra">
+          <div class="rb" onclick="editarFunc(${JSON.stringify(e).replace(/"/g,'&quot;')})" title="Editar">✏️</div>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+// NOVA FOLHA
+function openNovaFolha(){
+  funcsSelecionados=[];
+  sv('nEmp',g('fEmp')); sv('nNotes','');
+  document.getElementById('nComp').value=ui.currentCompetence();
+  document.getElementById('nPay').value=new Date().toISOString().substring(0,10);
+  document.getElementById('nSt').value='rascunho';
+  document.getElementById('novaFuncList').innerHTML='<div class="empty"><div class="empty-s">Selecione uma empresa primeiro</div></div>';
+  document.getElementById('novaPreview').style.display='none';
+  ui.tab(document.querySelector('#ovNova .m-tab'),'nova0');
+  ui.openModal('ovNova');
+}
+
+async function carregarFuncionariosNova(){
+  const emp=g('nEmp');
+  if(!emp){ document.getElementById('novaFuncList').innerHTML='<div class="empty"><div class="empty-s">Selecione uma empresa</div></div>'; return; }
+  funcsDaEmpresa=[];
+  const r=await API.payroll.list({company:emp,limit:1});
+  if(r?.success&&r.payrolls.length){
+    const det=await API.payroll.get(r.payrolls[0]._id);
+    funcsDaEmpresa=det?.payroll?.employees||[];
+  }
+  renderFuncsSelecionados();
+}
+
+function renderFuncsSelecionados(){
+  const el=document.getElementById('novaFuncList');
+  if(!funcsDaEmpresa.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">Nenhum funcionário cadastrado</div><div class="empty-s"><button class="btn primary sm" onclick="ui.closeModal('ovNova');openNovoFunc()">+ Cadastrar Funcionário</button></div></div>`;
+    return;
+  }
+  el.innerHTML=funcsDaEmpresa.map((e,i)=>{
+    const isSel=funcsSelecionados.some(f=>f.name===e.name);
+    return `<div class="func-card${isSel?' sel':''}" onclick="toggleFuncSel(${i})">
+      <div class="func-sel-ic">${isSel?'✓':''}</div>
+      <div class="emp-av" style="background:${CORES[i%CORES.length]}">${ui.ini(e.name)}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--txt)">${e.name}</div>
+        <div style="font-size:11px;color:var(--txt3)">${e.role||'—'} · Sal. base: ${cur(e.salaryBase||0)}</div>
+      </div>
+      <span class="st-func ${e.status||'ativo'}">${e.status||'ativo'}</span>
+    </div>`;
+  }).join('');
+  atualizarPreview();
+}
+
+function toggleFuncSel(i){
+  const e=funcsDaEmpresa[i];
+  const idx=funcsSelecionados.findIndex(f=>f.name===e.name);
+  if(idx>=0) funcsSelecionados.splice(idx,1);
+  else funcsSelecionados.push({...e});
+  renderFuncsSelecionados();
+}
+
+function selecionarTodos(){
+  if(funcsSelecionados.length===funcsDaEmpresa.length) funcsSelecionados=[];
+  else funcsSelecionados=[...funcsDaEmpresa];
+  renderFuncsSelecionados();
+}
+
+function atualizarPreview(){
+  const prev=document.getElementById('novaPreview');
+  if(!funcsSelecionados.length){ prev.style.display='none'; return; }
+  prev.style.display='block';
+  let bruto=0,liquido=0,custo=0,inss=0,irrf=0,fgts=0;
+  funcsSelecionados.forEach(e=>{
+    const gross=(e.salaryBase||0)+(e.extraHours||0)+(e.bonuses||0)+(e.commission||0)+(e.mealAllowance||0)+(e.transportAllowance||0);
+    const i2=calcINSS(e.salaryBase||0);
+    const ir=calcIRRF(gross,i2,e.dependentes||0);
+    const fg=Math.round(gross*0.08*100)/100;
+    const inssP=Math.round(gross*0.20*100)/100;
+    const net=Math.max(0,gross-i2-ir-(e.healthPlan||0)-(e.advance||0));
+    bruto+=gross; liquido+=net; inss+=i2; irrf+=ir; fgts+=fg; custo+=gross+inssP+fg;
+  });
+  document.getElementById('previewContent').innerHTML=[
+    [`${funcsSelecionados.length} funcionário(s)`,  ''],
+    ['Total Bruto',  cur(bruto)],
+    ['INSS + IRRF',  cur(inss+irrf)],
+    ['Total Líquido',`<strong style="color:var(--green)">${cur(liquido)}</strong>`],
+    ['Custo Total',  `<strong style="color:var(--red)">${cur(custo)}</strong>`],
+  ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace">${v}</span></div>`).join('');
+}
+
+async function salvarNova(){
+  const emp=g('nEmp'),comp=g('nComp');
+  if(!emp||!comp){ ui.toast('⚠️','Selecione empresa e competência'); return; }
+  if(!funcsSelecionados.length){ ui.toast('⚠️','Selecione ao menos um funcionário'); return; }
+  const btn=document.getElementById('nBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Criando...';
+  const res=await API.payroll.create({
+    company:emp, competence:comp,
+    paymentDate:g('nPay')||undefined,
+    notes:g('nNotes'), status:g('nSt')||'rascunho',
+    employees:funcsSelecionados,
+  });
+  btn.disabled=false; btn.innerHTML='💾 Criar Folha';
+  if(res?.success){ ui.toast('✅',res.message); ui.closeModal('ovNova'); load(); setTimeout(()=>verDetalhe(res.payroll._id),400); }
+  else ui.toast('❌',res?.message||'Erro ao criar');
+}
+
+// NOVO FUNCIONÁRIO
+let editFuncData=null;
+function openNovoFunc(){
+  editFuncData=null;
+  document.getElementById('funcTt').textContent='Novo Funcionário';
+  document.getElementById('funcBtn').textContent='💾 Salvar Funcionário';
+  document.querySelectorAll('#ovFunc .fin').forEach(f=>{ if(f.type!=='number') f.value=''; else f.value=''; });
+  document.getElementById('fDeps').value='0';
+  document.getElementById('fFilhos').value='0';
+  document.getElementById('fStatus').value='ativo';
+  document.getElementById('fTpContrato').value='CLT - Prazo Indeterminado';
+  document.getElementById('fJornada').value='44h semanais';
+  document.getElementById('fFormaPgto').value='Depósito em Conta';
+  sv('fEmpFunc',g('fEmp'));
+  depsForm=[]; renderDepsForm();
+  ui.tab(document.querySelector('#ovFunc .m-tab'),'f0');
+  ui.openModal('ovFunc');
+}
+
+function editarFunc(e){
+  editFuncData=e;
+  document.getElementById('funcTt').textContent='Editar Funcionário';
+  document.getElementById('funcBtn').textContent='💾 Salvar Alterações';
+  sv('fNome',e.name); sv('fCargo',e.role); sv('fCpf',e.cpf);
+  sv('fStatus',e.status||'ativo');
+  document.getElementById('fSalario').value=e.salaryBase||0;
+  document.getElementById('fHorasExtras').value=e.extraHours||0;
+  document.getElementById('fBonus').value=e.bonuses||0;
+  document.getElementById('fComissao').value=e.commission||0;
+  document.getElementById('fVr').value=e.mealAllowance||0;
+  document.getElementById('fVt').value=e.transportAllowance||0;
+  document.getElementById('fPlanoSaude').value=e.healthPlan||0;
+  document.getElementById('fAdiantamento').value=e.advance||0;
+  document.getElementById('fOutrosDesc').value=e.otherDiscount||0;
+  document.getElementById('fDeps').value=e.dependentes||0;
+  calcPreviewFunc();
+  depsForm=[]; renderDepsForm();
+  ui.tab(document.querySelector('#ovFunc .m-tab'),'f0');
+  ui.openModal('ovFunc');
+}
+
+// Dependentes no form
+function addDepForm(){ depsForm.push({nome:'',parentesco:'Filho(a)',cpf:'',nasc:''}); renderDepsForm(); }
+function renderDepsForm(){
+  document.getElementById('depsListForm').innerHTML=depsForm.map((d,i)=>`
+    <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;color:var(--txt2)">Dependente ${i+1}</span>
+        <button class="btn sm" style="height:20px;font-size:10px" onclick="depsForm.splice(${i},1);renderDepsForm()">✕</button>
+      </div>
+      <div class="fg2">
+        <div class="fgp"><label class="fbl">Nome</label><input class="fin" value="${d.nome}" oninput="depsForm[${i}].nome=this.value" placeholder="Nome completo"></div>
+        <div class="fgp"><label class="fbl">Parentesco</label>
+          <select class="fin" onchange="depsForm[${i}].parentesco=this.value">
+            <option${d.parentesco==='Filho(a)'?' selected':''}>Filho(a)</option>
+            <option${d.parentesco==='Cônjuge'?' selected':''}>Cônjuge</option>
+            <option${d.parentesco==='Pai/Mãe'?' selected':''}>Pai/Mãe</option>
+            <option${d.parentesco==='Outro'?' selected':''}>Outro</option>
+          </select>
+        </div>
+        <div class="fgp"><label class="fbl">CPF</label><input class="fin mono" value="${d.cpf}" oninput="depsForm[${i}].cpf=this.value" placeholder="000.000.000-00"></div>
+        <div class="fgp"><label class="fbl">Data Nasc.</label><input class="fin" type="date" value="${d.nasc}" oninput="depsForm[${i}].nasc=this.value"></div>
+      </div>
+    </div>`).join('')||'<div style="padding:12px;text-align:center;color:var(--txt3);font-size:12px;border:1px dashed var(--bd);border-radius:var(--rs)">Nenhum dependente cadastrado</div>';
+}
+
+async function salvarFunc(){
+  const nome=g('fNome'),cargo=g('fCargo'),sal=gn('fSalario');
+  const emp=g('fEmpFunc');
+  if(!nome||!emp){ ui.toast('⚠️','Preencha empresa e nome do funcionário'); return; }
+  const funcData={
+    name:nome, role:cargo, cpf:g('fCpf'), status:g('fStatus')||'ativo',
+    salaryBase:gn('fSalario'), extraHours:gn('fHorasExtras'), bonuses:gn('fBonus'),
+    commission:gn('fComissao'), mealAllowance:gn('fVr'), transportAllowance:gn('fVt'),
+    otherProvents:gn('fOutrosProv'), healthPlan:gn('fPlanoSaude'),
+    advance:gn('fAdiantamento'), otherDiscount:gn('fOutrosDesc'),
+    dependentes:gn('fDeps'), salarioFamilia:gn('fSalFam'),
+    // Dados pessoais adicionais
+    email:g('fEmail'), telefone:g('fTel'), endereco:g('fEnd'),
+    dataAdmissao:g('fAdmissao')||undefined, dataDemissao:g('fDemissao')||undefined,
+    motivoDemissao:g('fMotivoDemissao')||undefined,
+    tipoContrato:g('fTpContrato'), jornada:g('fJornada'), turno:g('fTurno'),
+    nivel:g('fNivel'), depto:g('fDepto'), cbo:g('fCbo'),
+    sexo:g('fSexo'), estadoCivil:g('fEcivil'), escolaridade:g('fEscolaridade'),
+    nascimento:g('fNasc')||undefined, sindicato:g('fSindicato'),
+    pis:g('fPis'), ctps:g('fCtps'), ctpsSerie:g('fCtpsSerie'),
+    banco:g('fBanco'), agencia:g('fAgencia'), conta:g('fConta'),
+    tipoConta:g('fTipoConta'), pix:g('fPix'), titular:g('fTitular'),
+    formaPgto:g('fFormaPgto'), insalubridade:g('fInsalubridade'),
+    dependentesDetalhes:depsForm, obs:g('fObs'),
+  };
+
+  // Funcionário é salvo criando/atualizando uma folha com o employee
+  // Estratégia: busca folha mais recente da empresa e adiciona/atualiza o funcionário
+  const btn=document.getElementById('funcBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+
+  const existeR=await API.payroll.list({company:emp,limit:1});
+  let res;
+  if(existeR?.success&&existeR.payrolls.length){
+    const folhaId=existeR.payrolls[0]._id;
+    const detR=await API.payroll.get(folhaId);
+    const emps=(detR?.payroll?.employees||[]).filter(e=>editFuncData?e.name!==editFuncData.name:true);
+    emps.push(funcData);
+    res=await API.payroll.update(folhaId,{employees:emps});
+  } else {
+    // Cria folha inicial com o funcionário
+    const now=new Date();
+    const comp=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    res=await API.payroll.create({company:emp,competence:comp,employees:[funcData],status:'rascunho'});
+  }
+
+  btn.disabled=false; btn.innerHTML='💾 Salvar Funcionário';
+  if(res?.success){ ui.toast('✅',editFuncData?'Funcionário atualizado!':'Funcionário cadastrado!'); ui.closeModal('ovFunc'); loadFuncionarios(); }
+  else ui.toast('❌',res?.message||'Erro ao salvar');
+}
+
+// DETALHE FOLHA
+async function verDetalhe(id){
+  const r=await API.payroll.get(id); if(!r?.success) return ui.toast('❌','Erro');
+  const p=r.payroll; const emps=p.employees||[];
+  document.getElementById('spTt').textContent=`${p.company?.tradeName||p.company?.legalName} — ${ui.competence(p.competence)}`;
+  document.getElementById('spSt').textContent=`${p.headcount||0} funcionários · ${p.status}`;
+  document.getElementById('spBody').innerHTML=`
+    <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px">
+      <div class="sec-title" style="margin-top:0">Totais da Folha</div>
+      ${[['Total Bruto',cur(p.totalGross||0),'var(--txt)'],['INSS Funcionários',cur(p.totalINSSEmployee||0),'var(--red)'],['IRRF',cur(p.totalIRRF||0),'var(--red)'],['Total Líquido',cur(p.totalNet||0),'var(--green)'],['INSS Patronal',cur(p.totalINSSEmployer||0),'var(--amber)'],['FGTS',cur(p.totalFGTS||0),'var(--amber)'],['Custo Total',cur(p.totalCost||0),'var(--red)']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:600">${v}</span></div>`).join('')}
+    </div>
+    <div class="sec-title">Holerites (${emps.length})</div>
+    ${emps.map((e,i)=>`
+      <div class="emp-row" id="sp-emp-${i}">
+        <div class="emp-hd" onclick="this.parentElement.classList.toggle('open')">
+          <div class="emp-av" style="background:${CORES[i%CORES.length]}">${ui.ini(e.name)}</div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--txt)">${e.name}</div><div style="font-size:11px;color:var(--txt3)">${e.role||'—'}</div></div>
+          <div style="text-align:right;margin-right:8px"><div style="font-size:13px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace">${cur(e.netSalary||0)}</div><div style="font-size:10px;color:var(--txt3)">líquido</div></div>
+          <span class="emp-chev">›</span>
+        </div>
+        <div class="emp-bd">
+          <div class="hr-grid">
+            <div class="hr-section">
+              <div class="hr-hd gn">➕ Proventos</div>
+              ${[['Salário Base',e.salaryBase],['Horas Extras',e.extraHours],['Comissões',e.commission],['Bônus',e.bonuses],['Vale Refeição',e.mealAllowance],['Vale Transporte',e.transportAllowance],['Outros',e.otherProvents]].filter(([,v])=>v>0).map(([l,v])=>`<div class="hr-row"><span class="hr-lbl">${l}</span><span class="hr-val gn">${cur(v)}</span></div>`).join('')}
+              <div class="hr-total"><span>Total Bruto</span><span style="color:var(--green)">${cur(e.grossSalary||0)}</span></div>
+            </div>
+            <div class="hr-section">
+              <div class="hr-hd rd">➖ Descontos</div>
+              ${[['INSS',e.inssEmployee],['IRRF',e.irrf],['Plano Saúde',e.healthPlan],['Adiantamento',e.advance],['Outros',e.otherDiscount]].filter(([,v])=>v>0).map(([l,v])=>`<div class="hr-row"><span class="hr-lbl">${l}</span><span class="hr-val rd">(${cur(v)})</span></div>`).join('')}
+              <div class="hr-total"><span>Líquido</span><span style="color:var(--green)">${cur(e.netSalary||0)}</span></div>
+            </div>
+          </div>
+          <div class="enc-banner">
+            <div class="enc-item"><div class="enc-lbl">INSS Patronal</div><div class="enc-val">${cur(e.inssEmployer||0)}</div></div>
+            <div class="enc-item"><div class="enc-lbl">FGTS (8%)</div><div class="enc-val">${cur(e.fgts||0)}</div></div>
+            <div class="enc-item"><div class="enc-lbl">Dependentes</div><div class="enc-val">${e.dependentes||0}</div></div>
+            <div class="enc-item"><div class="enc-lbl">Custo Total</div><div class="enc-val" style="color:var(--red)">${cur(e.totalCost||0)}</div></div>
+          </div>
+        </div>
+      </div>`).join('')}`;
+  document.getElementById('spFoot').innerHTML=`
+    <button class="btn primary sm" onclick="openSt('${p._id}','${p.status}')">🔄 Status</button>
+    <button class="btn sm" onclick="imprimirFolha('${p._id}')">🖨️ Holerites</button>
+    <button class="btn sm" onclick="exportarFolhaCSV('${p._id}')">⬇ CSV</button>
+    <div style="flex:1"></div>
+    <button class="btn sm" style="color:var(--red)" onclick="fecharDetalhe();removerFolha('${p._id}')">🗑️</button>`;
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+}
+function fecharDetalhe(){ document.getElementById('sidePanel').classList.remove('open'); document.getElementById('overlay').style.display='none'; }
+
+// STATUS
+function openSt(id,cur){ stId=id; document.getElementById('qSt').value=cur; document.getElementById('qPay').value=new Date().toISOString().substring(0,10); document.getElementById('qNotes').value=''; ui.openModal('ovSt'); }
+async function confirmarStatus(){
+  const btn=document.getElementById('qBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  const res=await API.payroll.status(stId,{status:g('qSt'),paymentDate:g('qPay')||undefined,notes:g('qNotes')});
+  btn.disabled=false; btn.innerHTML='✅ Confirmar';
+  if(res?.success){ ui.toast('✅','Status atualizado!'); ui.closeModal('ovSt'); fecharDetalhe(); load(); }
+  else ui.toast('❌',res?.message||'Erro');
+}
+
+// RESUMO
+async function renderResumo(){
+  const comp=g('fComp'),emp=g('fEmp');
+  const params={limit:100}; if(comp)params.competence=comp; if(emp)params.company=emp;
+  const r=await API.payroll.list(params); if(!r?.success)return;
+  const el=document.getElementById('resumoCards');
+  if(!r.payrolls.length){ el.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-ic">👥</div><div class="empty-t">Nenhuma folha</div></div>'; return; }
+  el.innerHTML=r.payrolls.map(p=>`
+    <div class="card" onclick="verDetalhe('${p._id}')" style="cursor:pointer">
+      <div class="card-h">
+        <div><div style="font-size:13px;font-weight:600;color:var(--txt)">${p.company?.tradeName||p.company?.legalName}</div><div style="font-size:11px;color:var(--txt3)">${ui.competence(p.competence)} · ${p.headcount||0} func.</div></div>
+        <span class="st-pill ${p.status}">${p.status}</span>
+      </div>
+      <div style="padding:12px 16px">
+        ${[['Bruto',cur(p.totalGross||0),'var(--txt)'],['INSS+IRRF',cur((p.totalINSSEmployee||0)+(p.totalIRRF||0)),'var(--red)'],['Líquido',cur(p.totalNet||0),'var(--green)'],['Encargos Emp.',cur((p.totalINSSEmployer||0)+(p.totalFGTS||0)),'var(--amber)'],['Custo Total',cur(p.totalCost||0),'var(--red)']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12.5px"><span style="color:var(--txt2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:500">${v}</span></div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// IMPRIMIR
+async function imprimirFolha(id){
+  const r=await API.payroll.get(id); if(!r?.success)return;
+  const p=r.payroll; const emps=p.employees||[];
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Holerites</title>
+  <style>body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:0}
+  .holerite{border:1px solid #999;padding:14px;margin:10px;page-break-after:always;max-width:700px}
+  .h-header{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px}
+  .co{font-size:13px;font-weight:700}.sub{font-size:10px;color:#555}
+  table{width:100%;border-collapse:collapse;margin:8px 0}
+  th{background:#eee;padding:4px 7px;text-align:left;border:1px solid #ccc;font-size:10px}
+  td{padding:4px 7px;border:1px solid #ccc;font-size:11px}
+  .total-row{font-weight:700;background:#f5f5f5}
+  .liq{font-size:15px;font-weight:700;border:2px solid #000;padding:6px;text-align:right;margin-top:8px}
+  .assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px}
+  .ass-linha{border-top:1px solid #000;padding-top:4px;text-align:center;font-size:10px}
+  @media print{.holerite{page-break-after:always;border:1px solid #999}}
+  </style></head><body>
+  ${emps.map(e=>`
+    <div class="holerite">
+      <div class="h-header">
+        <div><div class="co">${p.company?.legalName}</div><div class="sub">CNPJ: ${p.company?.cnpj||'—'}</div><div class="sub">Competência: ${ui.competence(p.competence)} · Pgto: ${p.paymentDate?ui.date(p.paymentDate):'—'}</div></div>
+        <div style="text-align:right"><div style="font-weight:700">RECIBO DE PAGAMENTO</div><div class="sub">CPF: ${e.cpf||'—'} · PIS: ${e.pis||'—'}</div></div>
+      </div>
+      <table><tr><td><b>${e.name}</b></td><td>Cargo: ${e.role||'—'}</td><td>Admissão: ${e.dataAdmissao?ui.date(e.dataAdmissao):'—'}</td><td>Deps: ${e.dependentes||0}</td></tr></table>
+      <table>
+        <thead><tr><th>Código</th><th>Descrição</th><th>Referência</th><th>Proventos</th><th>Descontos</th></tr></thead>
+        <tbody>
+          ${e.salaryBase>0?`<tr><td>001</td><td>Salário Base</td><td>30 dias</td><td>${e.salaryBase?.toFixed(2)}</td><td></td></tr>`:''}
+          ${e.extraHours>0?`<tr><td>002</td><td>Horas Extras</td><td>—</td><td>${e.extraHours?.toFixed(2)}</td><td></td></tr>`:''}
+          ${e.commission>0?`<tr><td>003</td><td>Comissões</td><td>—</td><td>${e.commission?.toFixed(2)}</td><td></td></tr>`:''}
+          ${e.bonuses>0?`<tr><td>004</td><td>Bônus/Gratif.</td><td>—</td><td>${e.bonuses?.toFixed(2)}</td><td></td></tr>`:''}
+          ${e.mealAllowance>0?`<tr><td>005</td><td>Vale Refeição</td><td>—</td><td>${e.mealAllowance?.toFixed(2)}</td><td></td></tr>`:''}
+          ${e.transportAllowance>0?`<tr><td>006</td><td>Vale Transporte</td><td>—</td><td>${e.transportAllowance?.toFixed(2)}</td><td></td></tr>`:''}
+          ${e.inssEmployee>0?`<tr><td>100</td><td>INSS s/ Salário</td><td>${((e.inssEmployee/(e.grossSalary||1))*100).toFixed(2)}%</td><td></td><td>${e.inssEmployee?.toFixed(2)}</td></tr>`:''}
+          ${e.irrf>0?`<tr><td>101</td><td>IRRF</td><td>—</td><td></td><td>${e.irrf?.toFixed(2)}</td></tr>`:''}
+          ${e.healthPlan>0?`<tr><td>102</td><td>Plano de Saúde</td><td>—</td><td></td><td>${e.healthPlan?.toFixed(2)}</td></tr>`:''}
+          ${e.advance>0?`<tr><td>103</td><td>Adiantamento</td><td>—</td><td></td><td>${e.advance?.toFixed(2)}</td></tr>`:''}
+          <tr class="total-row"><td colspan="3">TOTAIS</td><td>${e.grossSalary?.toFixed(2)}</td><td>${((e.inssEmployee||0)+(e.irrf||0)+(e.healthPlan||0)+(e.advance||0)+(e.otherDiscount||0)).toFixed(2)}</td></tr>
+        </tbody>
+      </table>
+      <div class="liq">SALÁRIO LÍQUIDO: R$ ${e.netSalary?.toFixed(2)?.replace('.',',')}</div>
+      <div style="margin-top:8px;font-size:10px;color:#777">
+        INSS Patronal: R$ ${e.inssEmployer?.toFixed(2)} | FGTS: R$ ${e.fgts?.toFixed(2)} | Custo Total: R$ ${e.totalCost?.toFixed(2)}
+      </div>
+      <div class="assinaturas">
+        <div class="ass-linha">Assinatura do Funcionário<br><small>${e.name}</small></div>
+        <div class="ass-linha">DTP Contábil — Responsável<br><small>CRC-SC</small></div>
+      </div>
+    </div>`).join('')}
+  </body></html>`);
+  w.document.close(); setTimeout(()=>w.print(),600);
+}
+
+async function exportarFolhaCSV(id){
+  const r=await API.payroll.get(id); if(!r?.success)return;
+  const p=r.payroll;
+  const h=['Funcionário','Cargo','CPF','Admissão','Salário Base','H.Extras','Bônus','Comissão','V.Refeição','V.Transp','Bruto','INSS','IRRF','Plano Saúde','Adiant.','Líquido','INSS Patron.','FGTS','Custo Total'];
+  const rows=(p.employees||[]).map(e=>[e.name,e.role||'—',e.cpf||'—',e.dataAdmissao?ui.date(e.dataAdmissao):'—',e.salaryBase||0,e.extraHours||0,e.bonuses||0,e.commission||0,e.mealAllowance||0,e.transportAllowance||0,e.grossSalary||0,e.inssEmployee||0,e.irrf||0,e.healthPlan||0,e.advance||0,e.netSalary||0,e.inssEmployer||0,e.fgts||0,e.totalCost||0].map(v=>typeof v==='number'?v.toFixed(2).replace('.',','):v));
+  const csv=[h,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=`folha_${p.company?.legalName?.replace(/\s/g,'_')}_${p.competence}.csv`;
+  a.click(); ui.toast('⬇️','CSV exportado!');
+}
+
+function exportarCSV(){
+  if(!allPayrolls.length){ ui.toast('⚠️','Nenhum dado'); return; }
+  const h=['Empresa','Competência','Func.','Bruto','Líquido','INSS','IRRF','FGTS','Custo','Status'];
+  const rows=allPayrolls.map(p=>[p.company?.legalName||'—',ui.competence(p.competence),p.headcount||0,(p.totalGross||0).toFixed(2).replace('.',','),(p.totalNet||0).toFixed(2).replace('.',','),(p.totalINSSEmployee||0).toFixed(2).replace('.',','),(p.totalIRRF||0).toFixed(2).replace('.',','),(p.totalFGTS||0).toFixed(2).replace('.',','),(p.totalCost||0).toFixed(2).replace('.',','),p.status]);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${v}"`).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=`folhas_${g('fComp')||'export'}.csv`; a.click(); ui.toast('⬇️','CSV exportado!');
+}
+
+function removerFolha(id){
+  document.getElementById('cIc').textContent='🗑️'; document.getElementById('cTt').textContent='Remover Folha';
+  document.getElementById('cMs').textContent='Remover esta folha? Ação irreversível.';
+  document.getElementById('cBtn').onclick=async()=>{ const r=await API.payroll.remove(id); ui.closeModal('ovConf'); if(r?.success){ ui.toast('🗑️','Removida'); load(); } else ui.toast('❌',r?.message); };
+  ui.openModal('ovConf');
+}
+
+function limparFiltros(){ ['fEmp','fSt'].forEach(id=>sv(id,'')); document.getElementById('fComp').value=ui.currentCompetence(); pg=1; load(); }
+
+
+// ── IMPRESSÃO ISOLADA — abre janela limpa só com o relatório ──
+function abrirJanelaImpressao(titulo, empresa, subtitulo, htmlConteudo) {
+  const dataGer = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const estilos = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;background:#fff;padding:20px 28px}
+    .rpt-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:20px}
+    .rpt-logo{font-size:20px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}
+    .rpt-logo span{font-size:11px;display:block;font-weight:400;color:#666;margin-top:2px}
+    .rpt-meta{text-align:right;font-size:11px;color:#666;line-height:1.8}
+    .rpt-meta strong{color:#1a1a2e;font-size:14px;display:block;margin-bottom:4px}
+    .rpt-footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ec;font-size:10px;color:#999;display:flex;justify-content:space-between}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11.5px}
+    th{background:#eff6ff;color:#1d4ed8;padding:8px 10px;text-align:left;border:1px solid #dde3ec;font-weight:600}
+    td{padding:7px 10px;border:1px solid #eef0f5;color:#333;vertical-align:top}
+    tr:nth-child(even) td{background:#f8fafc}
+    .tbl thead th{background:#1a6fc4;color:#fff}
+    h2{font-size:14px;font-weight:700;color:#1a1a2e;margin:16px 0 8px;padding-bottom:6px;border-bottom:2px solid #1a6fc4}
+    h3{font-size:12px;font-weight:600;color:#1d4ed8;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+    .dem-row{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #f0f0f0;font-size:12px}
+    .dem-row.sub{padding-left:26px;color:#555;font-size:11.5px}
+    .dem-row.total{font-weight:700;background:#f0f4f8;border-top:2px solid #dde3ec;padding:10px 12px;font-size:13px}
+    .dem-row.resultado{background:#1a6fc4;color:#fff;font-weight:800;font-size:14px;padding:12px}
+    .dem-hd{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:7px 12px;margin-bottom:0}
+    .dem-hd.ativo,.dem-hd.rec{background:#e8faf6;color:#0e7a5e}
+    .dem-hd.passivo,.dem-hd.desp{background:#fef2f2;color:#b91c1c}
+    .dem-hd.pl{background:#eff6ff;color:#1d4ed8}
+    .dem-hd.neutro{background:#f8f8f8;color:#555}
+    .card{border:1px solid #dde3ec;border-radius:8px;overflow:hidden;margin-bottom:16px;break-inside:avoid}
+    .card-h{padding:10px 14px;border-bottom:1px solid #eee;background:#f8fafc;font-weight:600;font-size:12px}
+    .dem-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .hr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+    .hr-section{border:1px solid #eee;border-radius:6px;overflow:hidden}
+    .hr-hd{padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #eee}
+    .hr-hd.gn{background:#e8faf6;color:#0e7a5e}.hr-hd.rd{background:#fef2f2;color:#b91c1c}
+    .hr-row{display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid #f5f5f5;font-size:11.5px}
+    .hr-total{display:flex;justify-content:space-between;padding:8px 10px;border-top:2px solid #dde3ec;font-weight:700;font-size:12px}
+    .enc-banner{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#eff6ff;border:1px solid #dbeafe;border-radius:6px;padding:10px;margin-top:8px}
+    .enc-item{text-align:center}
+    .enc-lbl{font-size:10px;color:#555;margin-bottom:3px}
+    .enc-val{font-size:13px;font-weight:700;color:#1d4ed8}
+    .money{font-family:'Courier New',monospace;font-size:11.5px}
+    .money.g{color:#0e7a5e}.money.r{color:#b91c1c}.money.a{color:#92400e}
+    .st-pill,.badge,.pill,.nav-badge,.rb,.ra,.btn,.tab-btn,.tab-strip,
+    select,input,button,.m-tabs,.view-btn,.filter-bar,.topbar,
+    aside,.sb-footer,.side-panel,#overlay,.ov,
+    [onclick],[style*="cursor:pointer"]{pointer-events:none}
+    .card-pag,.pagArea,#pagArea,#pagBtns,#pagInfo{display:none!important}
+    canvas{max-width:100%}
+    @page{margin:15mm;size:A4}
+    @media print{body{padding:0}.card{break-inside:avoid}}
+  `;
+  const janela = window.open('','_blank','width=960,height=750,scrollbars=yes');
+  janela.document.write(
+    '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<title>' + titulo + ' — ' + empresa + '</title>' +
+    '<style>' + estilos + '</style></head><body>' +
+    '<div class="rpt-header">' +
+      '<div><div class="rpt-logo">DTP Contábil <span>ERP Multi-Empresa</span></div></div>' +
+      '<div class="rpt-meta"><strong>' + titulo + '</strong>' + empresa + '<br>' + subtitulo + '<br>Gerado em: ' + dataGer + '</div>' +
+    '</div>' +
+    htmlConteudo +
+    '<div class="rpt-footer"><span>DTP Contábil ERP — Relatório gerado automaticamente</span><span>' + dataGer + '</span></div>' +
+    '</body></html>'
+  );
+  janela.document.close();
+  setTimeout(function(){ janela.focus(); janela.print(); }, 800);
+}
+
+if(new URLSearchParams(location.search).get('new')) openNovaFolha();
+load();
+</script>
+</body>
+</html>

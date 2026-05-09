@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP Contábil — Portal do Cliente</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a121e;--bg2:#0f1c2e;--bg3:#152135;--bg4:#1a2a3d;
+  --blue:#1a6fc4;--bl:#1a6fc4;--green:#00c9a7;--amber:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --txt:#e8f0fc;--txt2:#a0b4c8;--txt3:#5a7a96;
+  --bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.12);
+  --r:12px;--rs:8px;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;overflow-x:hidden}
+
+/* ─── LAYOUT ─── */
+.layout{display:flex;min-height:100vh}
+
+/* ─── SIDEBAR ─── */
+.sb{width:240px;background:var(--bg2);border-right:1px solid var(--bd);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;overflow-y:auto;z-index:50}
+.sb-logo{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
+.sb-logo-ic{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff}
+.sb-logo-tx{flex:1;min-width:0}
+.sb-logo-nm{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--txt);line-height:1}
+.sb-logo-sb{font-size:10.5px;color:var(--txt3);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+
+.sb-nav{flex:1;padding:14px 12px;overflow-y:auto}
+.sb-grp{margin-bottom:14px}
+.sb-grp-h{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);font-weight:700;padding:0 10px 6px}
+.sb-it{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--txt2);font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .12s;margin-bottom:1px}
+.sb-it:hover{background:rgba(255,255,255,.04);color:var(--txt)}
+.sb-it.on{background:linear-gradient(90deg,rgba(26,111,196,.2),rgba(26,111,196,.05));color:var(--txt);border-left:3px solid var(--blue);padding-left:7px}
+.sb-it .sb-ic{font-size:14px;width:20px;text-align:center}
+.sb-it .sb-bd{margin-left:auto;background:var(--red);color:#fff;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
+
+.sb-foot{border-top:1px solid var(--bd);padding:12px}
+.sb-user{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--bg3)}
+.sb-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--green));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:12px;flex-shrink:0}
+.sb-u-tx{flex:1;min-width:0}
+.sb-u-nm{font-size:12px;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-u-sb{font-size:10px;color:var(--txt3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-out{width:30px;height:30px;border-radius:7px;border:1px solid var(--bd);background:none;color:var(--txt2);cursor:pointer;font-size:14px;flex-shrink:0;transition:all .12s;display:flex;align-items:center;justify-content:center}
+.sb-out:hover{background:rgba(239,68,68,.1);border-color:var(--red);color:var(--red)}
+
+/* ─── MAIN ─── */
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.tbar{position:sticky;top:0;z-index:30;background:rgba(10,18,30,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);padding:0 28px;display:flex;align-items:center;height:54px;gap:12px}
+.tbar-tt{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--txt)}
+.tbar-sb{font-size:11.5px;color:var(--txt3);margin-left:8px}
+.tbar-spc{flex:1}
+.tb-bg{padding:3px 9px;border-radius:6px;font-size:10.5px;font-weight:600}
+.tb-bg.gr{background:rgba(0,201,167,.12);color:var(--green)}
+.tb-bg.am{background:rgba(245,158,11,.12);color:var(--amber)}
+.tb-bg.rd{background:rgba(239,68,68,.12);color:var(--red)}
+.tb-bg.bl{background:rgba(26,111,196,.12);color:var(--blue)}
+
+.body{flex:1;padding:22px 28px;overflow-y:auto}
+
+/* ─── COMPONENTES ─── */
+.card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;transition:all .14s}
+.card:hover{border-color:var(--bd2)}
+.card-h{padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
+.card-t{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--txt);flex:1}
+.card-a{padding:4px 10px;border-radius:6px;background:rgba(26,111,196,.15);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .12s}
+.card-a:hover{background:rgba(26,111,196,.25)}
+.card-b{padding:14px 18px}
+
+.welc{background:linear-gradient(135deg,rgba(26,111,196,.18),rgba(0,201,167,.06));border:1px solid rgba(26,111,196,.25);border-radius:var(--r);padding:20px 26px;margin-bottom:18px}
+.welc-h{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--txt);margin-bottom:4px}
+.welc-s{font-size:12px;color:var(--txt2)}
+.welc-b{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.welc-bg{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.bg-ok{background:rgba(0,201,167,.12);color:var(--green)}
+.bg-rd{background:rgba(239,68,68,.12);color:var(--red)}
+.bg-am{background:rgba(245,158,11,.12);color:var(--amber)}
+
+.kpi-g{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue)}
+.kpi.gr::before{background:var(--green)}
+.kpi.am::before{background:var(--amber)}
+.kpi.rd::before{background:var(--red)}
+.kpi.pu::before{background:var(--purple)}
+.kpi-l{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600;margin-bottom:5px}
+.kpi-v{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--txt);line-height:1}
+.kpi-s{font-size:10.5px;color:var(--txt3);margin-top:3px}
+
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{padding:10px 12px;text-align:left;font-weight:600;color:var(--txt3);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bd);background:var(--bg2)}
+.tbl td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--txt)}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+.sp{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;font-size:10.5px;font-weight:600}
+.sp-pendente{background:rgba(245,158,11,.14);color:var(--amber)}
+.sp-em_andamento{background:rgba(59,144,232,.14);color:#3b90e8}
+.sp-entregue{background:rgba(0,201,167,.14);color:var(--green)}
+.sp-pago{background:rgba(0,201,167,.14);color:var(--green)}
+.sp-atrasado{background:rgba(239,68,68,.14);color:var(--red)}
+
+.btn{padding:7px 14px;background:var(--bg3);border:1px solid var(--bd);border-radius:7px;color:var(--txt);font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--bg4);border-color:var(--bd2)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:#1558a3;border-color:#1558a3}
+.btn.sm{padding:5px 10px;font-size:11px}
+
+.empty{padding:34px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:34px;margin-bottom:8px;opacity:.5}
+.empty-t{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:3px}
+.empty-s{font-size:11px;color:var(--txt3)}
+
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.fin{height:34px;padding:0 11px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;color:var(--txt);font-size:12.5px;outline:none;font-family:inherit;width:100%}
+.fin:focus{border-color:var(--blue)}
+
+.toast{position:fixed;top:18px;right:18px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 14px;display:none;align-items:center;gap:8px;z-index:9999;animation:tin .25s ease}
+.toast.h{display:flex}
+@keyframes tin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+.row{display:flex;align-items:center;gap:11px;padding:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.row:last-child{border-bottom:none}
+
+.dp{font-size:10px;font-weight:700;padding:3px 8px;border-radius:14px;white-space:nowrap}
+.dp-rd{background:rgba(239,68,68,.18);color:var(--red)}
+.dp-am{background:rgba(245,158,11,.18);color:var(--amber)}
+.dp-gn{background:rgba(0,201,167,.18);color:var(--green)}
+
+.prog{height:7px;background:var(--bg2);border-radius:10px;overflow:hidden}
+.prog-f{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .8s ease}
+
+.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--rs);padding:14px 18px;margin-bottom:14px;display:none;align-items:center;gap:10px}
+.err.show{display:flex}
+
+.ro-badge{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.25);padding:3px 9px;border-radius:5px;font-size:10px;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-left:6px}
+
+@media (max-width:768px){
+  .sb{transform:translateX(-100%);transition:transform .25s}
+  .sb.open{transform:none}
+  .main{margin-left:0}
+  .kpi-g{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ═══════════════════════ SIDEBAR ═══════════════════════ -->
+  <aside class="sb" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-ic">DTP</div>
+      <div class="sb-logo-tx">
+        <div class="sb-logo-nm" id="sbNomeEmp">Carregando</div>
+        <div class="sb-logo-sb">Portal do Cliente</div>
+      </div>
+    </div>
+
+    <nav class="sb-nav" id="sbNav">
+      <div class="empty"><span class="spin"></span></div>
+    </nav>
+
+    <div class="sb-foot">
+      <div class="sb-user">
+        <div class="sb-av" id="sbAv">--</div>
+        <div class="sb-u-tx">
+          <div class="sb-u-nm" id="sbNome">—</div>
+          <div class="sb-u-sb" id="sbCargo">—</div>
+        </div>
+        <button class="sb-out" onclick="auth.logout()" title="Sair">↩</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════ MAIN ═══════════════════════ -->
+  <main class="main">
+
+    <header class="tbar">
+      <span class="tbar-tt" id="tbTit">Início</span>
+      <span class="tbar-sb" id="tbSub"></span>
+      <div class="tbar-spc"></div>
+      <span class="tb-bg bl" id="tbData"></span>
+      <span class="tb-bg" id="tbStatusEmp" style="display:none"></span>
+    </header>
+
+    <div class="body" id="bodyEl">
+
+      <!-- LOADING INICIAL -->
+      <div id="loadingDiv" style="text-align:center;padding:60px 20px">
+        <div class="spin" style="width:34px;height:34px;border-width:3px"></div>
+        <div style="margin-top:14px;font-size:13px;color:var(--txt3)">Carregando seu portal...</div>
+      </div>
+
+      <!-- BANNER DE ERRO -->
+      <div class="err" id="errBanner">
+        <div style="font-size:22px">⚠️</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--red)" id="errTitle">Erro</div>
+          <div style="font-size:11.5px;color:var(--txt2);margin-top:2px" id="errMsg">—</div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ MÓDULO INÍCIO ═══════════════ -->
+      <div id="mod-inicio" class="mod" style="display:none">
+        <div class="welc">
+          <div class="welc-h" id="welcH">Bem-vindo</div>
+          <div class="welc-s" id="welcS">—</div>
+          <div class="welc-b" id="welcB"></div>
+          <div id="welcMsg" style="font-size:12px;color:var(--txt2);margin-top:10px;display:none;padding:10px 14px;background:rgba(26,111,196,.1);border-radius:7px;border-left:3px solid var(--blue)"></div>
+        </div>
+
+        <div class="kpi-g" id="iKpis"></div>
+
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:14px">
+          <div class="card">
+            <div class="card-h"><span class="card-t">⏰ Obrigações Urgentes</span><button class="card-a" onclick="ir('obrigacoes')">Ver todas →</button></div>
+            <div class="card-b" id="iObrig"><div class="empty"><span class="spin"></span></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-t">📊 Compliance</span></div>
+            <div class="card-b" id="iCompl"><div class="empty"><span class="spin"></span></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="card-t">📋 Últimas Entregas</span></div>
+          <div class="card-b" id="iEntr"><div class="empty"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- ═══ PAINEL ANALÍTICO DO PORTAL ═══ -->
+      <div style="margin-top:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:var(--txt)">📊 Painel Analítico</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select class="fin" id="pAnMes" style="height:32px;font-size:11px;width:140px" onchange="loadPortalAnalytics()"></select>
+            <select class="fin" id="pAnAno" style="height:32px;font-size:11px;width:100px" onchange="loadPortalAnalytics()"></select>
+            <button class="btn sm" onclick="loadPortalAnalytics()">↻</button>
+          </div>
+        </div>
+
+        <div class="kpi-g" id="pAnKpis"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div class="card">
+            <div class="card-h"><span class="card-t">💰 Entradas vs Saídas</span><button class="btn sm" onclick="expandPAN('entradas')">⛶</button></div>
+            <div class="card-b" style="height:240px"><canvas id="pAnEntradas"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-t">📈 Acumulado Anual</span><button class="btn sm" onclick="expandPAN('acumulado')">⛶</button></div>
+            <div class="card-b" style="height:240px"><canvas id="pAnAcumulado"></canvas></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div class="card">
+            <div class="card-h"><span class="card-t">📋 Relatório do Mês</span><span class="card-a" id="pAnMesLabel">—</span></div>
+            <div class="card-b" style="height:240px"><canvas id="pAnMes"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-t">📊 Obrigações — Histórico</span><button class="btn sm" onclick="expandPAN('obrigHist')">⛶</button></div>
+            <div class="card-b" style="height:240px"><canvas id="pAnObrig"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-h"><span class="card-t">📝 Detalhamento do Mês</span></div>
+          <div id="pAnRelatorio" class="card-b"><div class="empty"><div class="empty-s">Carregando...</div></div></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ OBRIGAÇÕES ═══════════════ -->
+      <div id="mod-obrigacoes" class="mod" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <input class="fin" id="filtroObrig" placeholder="🔍 Filtrar obrigações..." style="flex:1;max-width:340px" oninput="renderObrigacoes()">
+          <select class="fin" id="filtroObrigStatus" style="width:170px" onchange="renderObrigacoes()">
+            <option value="">Todos os status</option>
+            <option value="pendente">Pendente</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="atrasado">Atrasado</option>
+            <option value="entregue">Entregue</option>
+          </select>
+          <span id="obrigEdit" style="display:none" class="ro-badge">✏️ Edição liberada</span>
+        </div>
+        <div class="card">
+          <div id="obrigTable"><div class="empty"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ HONORÁRIOS ═══════════════ -->
+      <div id="mod-honorarios" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">📅 Histórico de Honorários</span></div>
+          <div id="honTable"><div class="empty"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ BPO FINANCEIRO ═══════════════ -->
+      <div id="mod-bpo" class="mod" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <span id="bpoEdit" style="display:none" class="ro-badge">✏️ Edição liberada</span>
+          <button id="bpoAddBtn" class="btn primary sm" style="display:none" onclick="adicionarBPO()">+ Nova Conta</button>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-t">💳 Movimentação Financeira</span></div>
+          <div id="bpoTable"><div class="empty"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ FOLHA / RH ═══════════════ -->
+      <div id="mod-folha" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">👥 Histórico de Folhas</span></div>
+          <div id="folhaTable"><div class="empty"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ DOCUMENTOS ═══════════════ -->
+      <div id="mod-documentos" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">📄 Documentos Disponíveis</span></div>
+          <div class="card-b" id="docsBody"><div class="empty"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ DEMONSTRATIVOS ═══════════════ -->
+      <div id="mod-demonstrativos" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">📊 Demonstrativos</span></div>
+          <div class="card-b">
+            <div style="font-size:12.5px;color:var(--txt2);line-height:1.6">
+              Aqui você pode visualizar os demonstrativos contábeis da sua empresa: Balanço Patrimonial, DRE, DFC e DVA.
+              <br><br>
+              <button class="btn primary sm" onclick="ui.toast(&quot;ℹ️&quot;,&quot;Funcionalidade em desenvolvimento&quot;)">📊 Solicitar demonstrativos</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ AUDITORIA ═══════════════ -->
+      <div id="mod-auditoria" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">🔍 Auditoria</span></div>
+          <div class="card-b" style="font-size:12.5px;color:var(--txt2);line-height:1.6">
+            Acompanhe checklists de auditoria contábil aplicados à sua empresa.
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ CONSULTORIAS ═══════════════ -->
+      <div id="mod-consultorias" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">💡 Consultorias</span></div>
+          <div class="card-b" style="font-size:12.5px;color:var(--txt2);line-height:1.6">
+            Consultorias contratadas com a DTP — diagnóstico, ações e parecer técnico.
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ ESCRITURAÇÃO ═══════════════ -->
+      <div id="mod-escrituracao" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">📚 Escrituração</span></div>
+          <div class="card-b" style="font-size:12.5px;color:var(--txt2);line-height:1.6">
+            Livro Diário, Razão e Balancete da sua empresa.
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ FP&A ═══════════════ -->
+      <div id="mod-fpa" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">📈 FP&A — Planejamento</span></div>
+          <div class="card-b" style="font-size:12.5px;color:var(--txt2);line-height:1.6">
+            Cenários, orçamentos e projeções da sua empresa.
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ CONTROLADORIA ═══════════════ -->
+      <div id="mod-controladoria" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">🎛️ Controladoria</span></div>
+          <div class="card-b" style="font-size:12.5px;color:var(--txt2);line-height:1.6">
+            Indicadores gerenciais, custos detalhados e análise de RH.
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ MENSAGENS ═══════════════ -->
+      <div id="mod-mensagens" class="mod" style="display:none">
+        <div class="card">
+          <div class="card-h"><span class="card-t">💬 Mensagens com a DTP</span></div>
+          <div class="card-b">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px;background:var(--bg2);border-radius:var(--rs);margin-bottom:12px">
+              <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:22px">👨‍💼</div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;color:var(--txt)" id="msgResp">DTP Contábil</div>
+                <div style="font-size:11.5px;color:var(--txt3)" id="msgEmail">contato@dtpcontabilidade.com.br</div>
+              </div>
+              <a href="https://wa.me/5548999005586" target="_blank" class="btn primary sm">💬 WhatsApp</a>
+            </div>
+            <textarea class="fin" id="msgTxt" rows="4" placeholder="Digite sua mensagem para o escritório..." style="width:100%;height:auto;padding:11px;font-family:inherit"></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:10px">
+              <button class="btn primary" onclick="enviarMsg()">📨 Enviar Mensagem</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+
+<!-- Modal Expandir Gráfico -->
+<div id="ovChartP" style="display:none;position:fixed;inset:0;background:rgba(0,5,16,.88);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(16px)" onclick="if(event.target===this)fecharChartModal()">
+  <div style="background:linear-gradient(180deg,rgba(14,32,64,.95),rgba(8,20,42,.98));border:1px solid rgba(59,144,232,.2);border-radius:18px;width:1100px;max-width:96vw;max-height:90vh;box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 80px rgba(26,111,196,.1);overflow:hidden;position:relative">
+    <div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)">
+      <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,rgba(26,111,196,.25),rgba(26,111,196,.1));display:flex;align-items:center;justify-content:center;font-size:18px">📊</div>
+      <div style="flex:1"><div style="font-family:Syne,sans-serif;font-size:17px;font-weight:700;color:#fff" id="pChartModalTitle">Gráfico</div><div style="font-size:11px;color:rgba(176,204,224,.6)">Visualização expandida</div></div>
+      <button style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(176,204,224,.7);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" onclick="fecharChartModal()" onmouseover="this.style.background='rgba(239,68,68,.15)';this.style.color='#ef4444'" onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.color='rgba(176,204,224,.7)'">×</button>
+    </div>
+    <div style="padding:24px;height:450px;position:relative"><canvas id="pChartExpanded"></canvas></div>
+  </div>
+</div>
+
+
+<!-- Modal Expandir -->
+<div id="pOvExp" style="display:none;position:fixed;inset:0;background:rgba(0,5,16,.88);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(16px)" onclick="if(event.target===this)document.getElementById('pOvExp').style.display='none'">
+  <div style="background:linear-gradient(180deg,rgba(14,32,64,.95),rgba(8,20,42,.98));border:1px solid rgba(59,144,232,.2);border-radius:18px;width:1100px;max-width:96vw;box-shadow:0 24px 64px rgba(0,0,0,.6);overflow:hidden">
+    <div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)">
+      <div style="font-size:18px">📊</div>
+      <div style="flex:1;font-family:Syne,sans-serif;font-size:16px;font-weight:700;color:#fff" id="pExpTitle">—</div>
+      <button style="width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(176,204,224,.7);cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('pOvExp').style.display='none'">×</button>
+    </div>
+    <div style="padding:20px 24px;height:440px"><canvas id="pAnChartExp"></canvas></div>
+  </div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+
+<script src="/js/auth.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/ui.js"></script>
+<script>
+if (!auth.requireCliente()) { /* redireciona */ }
+
+// ═══════════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════
+let permissoes = {};
+let modulosVisiveis = {};
+let podeEditar = {};
+let cfgEmp = null;
+let cfgUser = null;
+let allDuties = [];
+let allBpo = [];
+let allPayroll = [];
+let modAtual = 'inicio';
+
+const MODULOS_INFO = {
+  inicio:        { lbl:'Início',         ic:'🏠', desc:'Visão geral' },
+  obrigacoes:    { lbl:'Obrigações',     ic:'📋', desc:'Obrigações fiscais' },
+  honorarios:    { lbl:'Honorários',     ic:'💰', desc:'Histórico financeiro' },
+  bpo:           { lbl:'BPO Financeiro', ic:'💳', desc:'Contas a pagar/receber' },
+  folha:         { lbl:'Folha & RH',     ic:'👥', desc:'Folha de pagamento' },
+  documentos:    { lbl:'Documentos',     ic:'📄', desc:'Relatórios disponíveis' },
+  demonstrativos:{ lbl:'Demonstrativos', ic:'📊', desc:'BP, DRE, DFC' },
+  auditoria:     { lbl:'Auditoria',      ic:'🔍', desc:'Checklists' },
+  consultorias:  { lbl:'Consultorias',   ic:'💡', desc:'Diagnósticos' },
+  escrituracao:  { lbl:'Escrituração',   ic:'📚', desc:'Livros contábeis' },
+  fpa:           { lbl:'FP&A',           ic:'📈', desc:'Planejamento' },
+  controladoria: { lbl:'Controladoria',  ic:'🎛️', desc:'Indicadores' },
+  mensagens:     { lbl:'Mensagens',      ic:'💬', desc:'Chat com DTP' },
+};
+
+const GRUPOS = [
+  { titulo:'Principal',  modulos:['inicio'] },
+  { titulo:'Operacional',modulos:['obrigacoes','honorarios','documentos'] },
+  { titulo:'Financeiro', modulos:['bpo','folha','demonstrativos'] },
+  { titulo:'Gestão',     modulos:['controladoria','fpa','auditoria','consultorias','escrituracao'] },
+  { titulo:'Comunicação',modulos:['mensagens'] },
+];
+
+const ST_L = {pendente:'Pendente',em_andamento:'Em andamento',entregue:'Entregue',pago:'Pago',atrasado:'Atrasado'};
+
+const fmt = n => 'R$ ' + (Number(n||0)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtK = n => {
+  const v = Number(n||0);
+  if (v >= 1e6) return 'R$ ' + (v/1e6).toFixed(1).replace('.',',') + 'M';
+  if (v >= 1e3) return 'R$ ' + (v/1e3).toFixed(1).replace('.',',') + 'k';
+  return fmt(v);
+};
+const fmtD = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+
+// ═══════════════════════════════════════════════════════════
+// INIT — carregar permissões e configuração
+// ═══════════════════════════════════════════════════════════
+(async () => {
+  try {
+    // 1. Buscar permissões do usuário
+    const r = await API.cliente.me();
+    if (!r?.success) { mostrarErro('Erro ao carregar permissões', r?.message || 'Tente novamente'); return; }
+
+    cfgUser = r.user || auth.getUser() || {};
+    cfgEmp = cfgUser.company || null;
+    
+    // Se admin, dar acesso total
+    if (r.permissoes === 'admin' || cfgUser.role === 'admin' || cfgUser.role === 'contador') {
+      modulosVisiveis = {inicio:true,obrigacoes:true,honorarios:true,bpo:true,folha:true,documentos:true,demonstrativos:true,auditoria:true,consultorias:true,escrituracao:true,fpa:true,controladoria:true,mensagens:true};
+      podeEditar = {bpo:true,obrigacoes:true,folha:true,documentos:true};
+      permissoes = {verValoresFinanceiros:true,baixarRelatorios:true,enviarMensagens:true,verHolerites:true,aprovarLancamentos:true};
+    } else {
+      modulosVisiveis = r.modulosVisiveis || {};
+      podeEditar      = r.podeEditar      || {};
+      permissoes      = r.permissoes      || {};
+    }
+
+    // Se veio por URL com company=xxx, usar essa empresa
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCompany = urlParams.get('company');
+    if (urlCompany && !cfgEmp) {
+      try {
+        const empR = await API.companies.get(urlCompany);
+        if (empR?.success) cfgEmp = empR.company || empR;
+      } catch(e) {}
+    }
+
+    // 2. Header
+    document.getElementById('sbNomeEmp').textContent = cfgEmp?.tradeName || cfgEmp?.legalName || 'Portal do Cliente';
+    document.getElementById('sbNome').textContent  = cfgUser.name || 'Usuário';
+    document.getElementById('sbCargo').textContent = cfgUser.cargo || cfgUser.role || 'Cliente';
+    document.getElementById('sbAv').textContent = (cfgUser.name||'?').substring(0,2).toUpperCase();
+
+    // 3. Renderizar sidebar
+    renderSidebar();
+
+    // 4. Carregar dados
+    await carregarDados();
+
+    // 5. Mostrar Início
+    document.getElementById('loadingDiv').style.display = 'none';
+    abrirModulo('inicio');
+
+  } catch(e) {
+    console.error(e);
+    mostrarErro('Erro ao carregar portal', e.message);
+  }
+})();
+
+function mostrarErro(titulo, msg){
+  document.getElementById('loadingDiv').style.display='none';
+  const eb = document.getElementById('errBanner');
+  document.getElementById('errTitle').textContent = titulo;
+  document.getElementById('errMsg').textContent = msg;
+  eb.classList.add('show');
+}
+
+function renderSidebar(){
+  let html = '';
+  GRUPOS.forEach(g => {
+    const visiveis = g.modulos.filter(m => modulosVisiveis[m] !== false);
+    if (!visiveis.length) return;
+    html += '<div class="sb-grp"><div class="sb-grp-h">' + g.titulo + '</div>';
+    visiveis.forEach(m => {
+      const info = MODULOS_INFO[m];
+      const editIc = podeEditar[m] ? ' ✏️' : '';
+      html += '<a class="sb-it" data-mod="'+m+'" onclick="abrirModulo(this.dataset.mod)">' +
+              '<span class="sb-ic">'+info.ic+'</span>' +
+              '<span>'+info.lbl+'</span>' +
+              '<span id="bd-'+m+'" class="sb-bd" style="display:none">0</span>' +
+              '</a>';
+    });
+    html += '</div>';
+  });
+  document.getElementById('sbNav').innerHTML = html;
+}
+
+function abrirModulo(mod){
+  modAtual = mod;
+  // Marcar item ativo
+  document.querySelectorAll('.sb-it').forEach(el => el.classList.toggle('on', el.dataset.mod === mod));
+  // Esconder todos, mostrar o atual
+  document.querySelectorAll('.mod').forEach(el => el.style.display = 'none');
+  const target = document.getElementById('mod-'+mod);
+  if (target) target.style.display = 'block';
+  // Atualizar título
+  document.getElementById('tbTit').textContent = MODULOS_INFO[mod]?.lbl || '';
+  document.getElementById('tbSub').textContent = MODULOS_INFO[mod]?.desc || '';
+  // Renderizar conteúdo
+  renderModulo(mod);
+}
+
+window.ir = abrirModulo;
+
+// ═══════════════════════════════════════════════════════════
+// CARREGAR DADOS
+// ═══════════════════════════════════════════════════════════
+async function carregarDados(){
+  const urlParams = new URLSearchParams(window.location.search);
+  const cid = cfgEmp?._id || urlParams.get('company');
+  if (!cid) return;
+  try {
+    const results = await Promise.allSettled([
+      API.duties.list({company:cid, limit:200}),
+      API.bpo.list({company:cid, limit:200}),
+      API.payroll.list({company:cid, limit:50}),
+    ]);
+    if (results[0].status==='fulfilled' && results[0].value?.success) allDuties  = results[0].value.duties || [];
+    if (results[1].status==='fulfilled' && results[1].value?.success) allBpo     = results[1].value.items  || [];
+    if (results[2].status==='fulfilled' && results[2].value?.success) allPayroll = results[2].value.payrolls || [];
+  } catch(e){ console.error(e); }
+
+  // Atualizar header
+  const hoje = new Date();
+  document.getElementById('tbData').textContent = hoje.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+
+  // Status da empresa
+  if (cfgEmp.status === 'ativo') {
+    document.getElementById('tbStatusEmp').textContent = '✓ Ativo';
+    document.getElementById('tbStatusEmp').classList.add('gr');
+    document.getElementById('tbStatusEmp').style.display = 'inline-block';
+  } else if (cfgEmp.status === 'atrasado') {
+    document.getElementById('tbStatusEmp').textContent = '⚠ Pagto atrasado';
+    document.getElementById('tbStatusEmp').classList.add('rd');
+    document.getElementById('tbStatusEmp').style.display = 'inline-block';
+  }
+
+  // Mensagens
+  document.getElementById('msgResp').textContent  = 'Daniel Teotonio Pinto';
+  document.getElementById('msgEmail').textContent = 'dtp@dtpcontabilidade.com.br';
+
+  // Badges de notificação na sidebar
+  const atrasadas = allDuties.filter(d=>d.status==='atrasado').length;
+  const pendentes = allDuties.filter(d=>d.status==='pendente'||d.status==='em_andamento').length;
+  if (atrasadas+pendentes > 0) {
+    const bd = document.getElementById('bd-obrigacoes');
+    if (bd) { bd.textContent = atrasadas+pendentes; bd.style.display='inline-block'; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDERIZAR MÓDULO ESPECÍFICO
+// ═══════════════════════════════════════════════════════════
+function renderModulo(mod){
+  if (mod === 'inicio')        renderInicio();
+  if (mod === 'obrigacoes')    renderObrigacoes();
+  if (mod === 'honorarios')    renderHonorarios();
+  if (mod === 'bpo')           renderBPO();
+  if (mod === 'folha')         renderFolha();
+  if (mod === 'documentos')    renderDocumentos();
+}
+
+function renderInicio(){
+  const user = cfgUser || {};
+  const h = new Date().getHours();
+  const saud = h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+  document.getElementById('welcH').textContent = saud + ', ' + (user.name?.split(' ')[0] || 'cliente') + '!';
+  document.getElementById('welcS').textContent = (cfgEmp?.tradeName || cfgEmp?.legalName || '') + (user.cargo ? ' · ' + user.cargo : '');
+
+  if (user.clienteConfig?.mensagemBemVindo) {
+    document.getElementById('welcMsg').textContent = '💬 ' + user.clienteConfig.mensagemBemVindo;
+    document.getElementById('welcMsg').style.display = 'block';
+  }
+
+  // Badges de alerta
+  const atrasadas = allDuties.filter(d=>d.status==='atrasado').length;
+  const pendentes = allDuties.filter(d=>d.status==='pendente'||d.status==='em_andamento').length;
+  let badges = '';
+  if (atrasadas>0) badges += '<span class="welc-bg bg-rd" data-go="obrigacoes" onclick="ir(this.dataset.go)">🚨 '+atrasadas+' em atraso</span>';
+  if (pendentes>0) badges += '<span class="welc-bg bg-am" data-go="obrigacoes" onclick="ir(this.dataset.go)">⏳ '+pendentes+' pendente(s)</span>';
+  if (!badges) badges = '<span class="welc-bg bg-ok">✅ Tudo em dia</span>';
+  document.getElementById('welcB').innerHTML = badges;
+
+  // KPIs
+  const concl = allDuties.filter(d=>d.status==='entregue'||d.status==='pago').length;
+  const totalBpo = allBpo.length;
+  const honorario = cfgEmp?.fee || 0;
+  document.getElementById('iKpis').innerHTML = [
+    {l:'PENDENTES',v:pendentes,s:'aguardando',c:''},
+    {l:'EM ATRASO',v:atrasadas,s:'requer atenção',c:'rd'},
+    {l:'CONCLUÍDAS',v:concl,s:'no período',c:'gr'},
+    {l:'HONORÁRIO/MÊS',v:fmtK(honorario),s:cfgEmp?.taxRegime||'—',c:'pu'},
+  ].map(k => '<div class="kpi '+k.c+'"><div class="kpi-l">'+k.l+'</div><div class="kpi-v">'+k.v+'</div><div class="kpi-s">'+k.s+'</div></div>').join('');
+
+  // Obrigações urgentes
+  const urgentes = allDuties.filter(d=>d.status==='atrasado'||d.status==='pendente'||d.status==='em_andamento')
+    .sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).slice(0,5);
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  document.getElementById('iObrig').innerHTML = urgentes.length ? urgentes.map(d => {
+    const diff = Math.ceil((new Date(d.dueDate)-hoje)/86400000);
+    let dp = '';
+    if (d.status==='atrasado') dp = '<span class="dp dp-rd">'+Math.abs(diff)+'d atraso</span>';
+    else if (diff<=0) dp = '<span class="dp dp-rd">Hoje!</span>';
+    else if (diff<=3) dp = '<span class="dp dp-am">'+diff+'d</span>';
+    else dp = '<span class="dp dp-gn">'+diff+'d</span>';
+    return '<div class="row"><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:500;color:var(--txt)">'+d.name+'</div><div style="font-size:10.5px;color:var(--txt3)">'+(d.type||'—')+' · '+fmtD(d.dueDate)+'</div></div>'+dp+'<span class="sp sp-'+d.status+'">'+ST_L[d.status||'pendente']+'</span></div>';
+  }).join('') : '<div class="empty"><div class="empty-ic">🎉</div><div class="empty-t">Nenhuma urgente!</div></div>';
+
+  // Analytics - só renderiza quando visível
+  setTimeout(()=>{ try { loadPortalAnalytics(); } catch(e) { console.warn('Portal analytics:', e); } }, 300);
+
+  // Compliance
+  const total = allDuties.length || 1;
+  const pct = Math.round(concl/total*100);
+  document.getElementById('iCompl').innerHTML = '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--txt2)">Conformidade Geral</span><span style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;color:'+(pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)')+'">'+pct+'%</span></div><div class="prog"><div class="prog-f" style="width:'+pct+'%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-top:8px"><span>✅ '+concl+'</span><span>⏳ '+pendentes+'</span><span>❌ '+atrasadas+'</span></div>';
+
+  // Últimas entregas
+  const entregas = allDuties.filter(d=>d.status==='entregue'||d.status==='pago').slice(0,4);
+  document.getElementById('iEntr').innerHTML = entregas.length ? entregas.map(d =>
+    '<div class="row"><span style="font-size:16px">✅</span><div style="flex:1"><div style="font-size:12.5px;font-weight:500;color:var(--txt)">'+d.name+'</div><div style="font-size:10.5px;color:var(--txt3)">'+(d.type||'')+(d.competence?' · '+d.competence:'')+'</div></div><span class="sp sp-'+d.status+'">'+ST_L[d.status]+'</span></div>'
+  ).join('') : '<div class="empty">Nenhuma entrega ainda</div>';
+}
+
+function renderObrigacoes(){
+  const filtro = document.getElementById('filtroObrig')?.value?.toLowerCase().trim() || '';
+  const status = document.getElementById('filtroObrigStatus')?.value || '';
+
+  const lista = allDuties.filter(d => {
+    if (filtro && !(d.name||'').toLowerCase().includes(filtro) && !(d.type||'').toLowerCase().includes(filtro)) return false;
+    if (status && d.status !== status) return false;
+    return true;
+  });
+
+  // Mostrar badge de edição
+  const obrigEditEl = document.getElementById('obrigEdit');
+  if(obrigEditEl) obrigEditEl.style.display = podeEditar.obrigacoes ? 'inline-flex' : 'none';
+
+  if (!lista.length) {
+    document.getElementById('obrigTable').innerHTML = '<div class="empty"><div class="empty-ic">📋</div><div class="empty-t">Nenhuma obrigação</div></div>';
+    return;
+  }
+
+  const linhas = lista.sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).map(d => {
+    const acoes = podeEditar.obrigacoes
+      ? '<button class="btn sm" data-id="'+d._id+'" onclick="visualizarObrig(this.dataset.id)">👁️ Ver</button>'
+      : '<button class="btn sm" data-id="'+d._id+'" onclick="visualizarObrig(this.dataset.id)">👁️ Ver</button>';
+    return '<tr><td><strong>'+d.name+'</strong></td><td>'+(d.type||'—')+'</td><td>'+(d.competence||'—')+'</td><td>'+fmtD(d.dueDate)+'</td><td><span class="sp sp-'+d.status+'">'+ST_L[d.status||'pendente']+'</span></td><td style="text-align:right">'+acoes+'</td></tr>';
+  }).join('');
+
+  document.getElementById('obrigTable').innerHTML =
+    '<table class="tbl"><thead><tr><th>Obrigação</th><th>Tipo</th><th>Competência</th><th>Vencimento</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+}
+
+function visualizarObrig(id){
+  const d = allDuties.find(x=>x._id===id);
+  if (!d) return;
+  alert('Obrigação: '+d.name+'\\nTipo: '+(d.type||'—')+'\\nVencimento: '+fmtD(d.dueDate)+'\\nStatus: '+ST_L[d.status]+(d.notes?'\\n\\nObs: '+d.notes:''));
+}
+
+function renderHonorarios(){
+  const verValores = permissoes.verValoresFinanceiros !== false;
+  const honMensal = cfgEmp?.fee || 0;
+
+  // KPIs removidos - só tabela
+  const honDummy = [
+    {l:'HONORÁRIO MENSAL',v:verValores?fmtK(honMensal):'••••',s:'valor contratado',c:''},
+    {l:'REGIME',v:(cfgEmp?.taxRegime||'—').toUpperCase(),s:'tributação',c:'pu'},
+    {l:'STATUS',v:cfgEmp?.status==='ativo'?'✓ Ativo':'⚠️',s:'pagamento',c:cfgEmp?.status==='ativo'?'gr':'rd'},
+    {l:'DIA DO VENCIMENTO',v:'Dia '+(cfgEmp?.dueDay||10),s:'mensal',c:'am'},
+  ].map(k => '<div class="kpi '+k.c+'"><div class="kpi-l">'+k.l+'</div><div class="kpi-v">'+k.v+'</div><div class="kpi-s">'+k.s+'</div></div>').join('');
+
+  // Histórico simulado dos últimos 6 meses
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const hoje = new Date();
+  const hist = [];
+  for (let i=0;i<6;i++) {
+    const d = new Date(hoje); d.setMonth(d.getMonth()-i);
+    hist.push({
+      ref: meses[d.getMonth()] + '/' + d.getFullYear(),
+      valor: honMensal,
+      vencimento: new Date(d.getFullYear(), d.getMonth(), cfgEmp?.dueDay||10),
+      status: i===0?'pendente':'pago',
+    });
+  }
+
+  document.getElementById('honTable').innerHTML = '<table class="tbl"><thead><tr><th>Referência</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>' +
+    hist.map(h => '<tr><td><strong>'+h.ref+'</strong></td><td>'+fmtD(h.vencimento)+'</td><td>'+(verValores?fmt(h.valor):'••••')+'</td><td><span class="sp sp-'+h.status+'">'+(h.status==='pago'?'Pago':'Pendente')+'</span></td></tr>').join('') +
+    '</tbody></table>';
+}
+
+function renderBPO(){
+  const bpoEditEl = document.getElementById('bpoEdit');
+  const bpoAddEl = document.getElementById('bpoAddBtn');
+  if(bpoEditEl) bpoEditEl.style.display = podeEditar.bpo ? 'inline-flex' : 'none';
+  if(bpoAddEl) bpoAddEl.style.display = podeEditar.bpo ? 'inline-flex' : 'none';
+  if(bpoAddEl) bpoAddEl.style.display = podeEditar.bpo ? 'inline-flex' : 'none';
+
+  const verValores = permissoes.verValoresFinanceiros !== false;
+  const receber = allBpo.filter(b=>b.tipo==='receber'||b.type==='receber');
+  const pagar = allBpo.filter(b=>b.tipo==='pagar'||b.type==='pagar');
+  const totalRec = receber.reduce((s,b)=>s+(b.valor||b.amount||0),0);
+  const totalPag = pagar.reduce((s,b)=>s+(b.valor||b.amount||0),0);
+
+  // KPIs removidos da aba BPO
+
+  if (!allBpo.length) {
+    const bpoTbl = document.getElementById('bpoTable');
+    if(bpoTbl) bpoTbl.innerHTML = '<div class="empty"><div class="empty-ic">💳</div><div class="empty-t">Sem movimentações</div></div>';
+    return;
+  }
+
+  const linhas = allBpo.slice(0,30).map(b => {
+    const tipo = b.tipo || b.type;
+    const valor = b.valor || b.amount || 0;
+    const status = b.status || 'pendente';
+    const acao = podeEditar.bpo ? '<button class="btn sm primary" data-id="' + (b._id||'') + '" onclick="baixarBPO(this.dataset.id)">💰 Baixar</button>' : '<button class="btn sm">👁️</button>';
+    return '<tr><td><strong>'+(b.descricao||b.description||'—')+'</strong></td><td>'+(tipo==='receber'?'⬆️ A Receber':'⬇️ A Pagar')+'</td><td>'+fmtD(b.vencimento||b.dueDate)+'</td><td style="color:'+(tipo==='receber'?'var(--green)':'var(--red)')+'">'+(verValores?fmt(valor):'••••')+'</td><td><span class="sp sp-'+status+'">'+status+'</span></td><td style="text-align:right">'+acao+'</td></tr>';
+  }).join('');
+
+  document.getElementById('bpoTable').innerHTML =
+    '<table class="tbl"><thead><tr><th>Descrição</th><th>Tipo</th><th>Vencimento</th><th>Valor</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+}
+
+function renderFolha(){
+  const verHolerites = permissoes.verHolerites === true;
+  const verValores = permissoes.verValoresFinanceiros !== false;
+
+  if (!verHolerites && !verValores) {
+    const folhaKEl = document.getElementById('folhaKpis');
+    if(folhaKEl) folhaKEl.innerHTML = '';
+    document.getElementById('folhaTable').innerHTML = '<div class="empty"><div class="empty-ic">🔒</div><div class="empty-t">Sem permissão</div><div class="empty-s">Você não tem permissão para visualizar dados de folha. Contate o administrador.</div></div>';
+    return;
+  }
+
+  const ult = allPayroll[0] || {};
+  const headcount = ult.headcount || 0;
+  const totalBruto = ult.totalGross || 0;
+  const totalLiquido = ult.totalNet || 0;
+  const custoTotal = ult.totalCost || 0;
+
+  // KPIs removidos da aba Folha
+
+  if (!allPayroll.length) {
+    document.getElementById('folhaTable').innerHTML = '<div class="empty"><div class="empty-ic">👥</div><div class="empty-t">Sem folhas processadas</div></div>';
+    return;
+  }
+
+  const linhas = allPayroll.slice(0,12).map(f =>
+    '<tr><td><strong>'+(f.competence||'—')+'</strong></td><td>'+(f.headcount||0)+'</td><td>'+(verValores?fmt(f.totalGross||0):'••••')+'</td><td>'+(verValores?fmt(f.totalNet||0):'••••')+'</td><td>'+(verValores?fmt(f.totalCost||0):'••••')+'</td><td><span class="sp sp-'+(f.status==='paga'?'pago':'pendente')+'">'+(f.status||'—')+'</span></td></tr>'
+  ).join('');
+
+  document.getElementById('folhaTable').innerHTML =
+    '<table class="tbl"><thead><tr><th>Competência</th><th>Funcionários</th><th>Bruto</th><th>Líquido</th><th>Custo Total</th><th>Status</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+}
+
+function renderDocumentos(){
+  if (permissoes.baixarRelatorios === false) {
+    const docsEl = document.getElementById('docsBody');
+    if(docsEl) docsEl.innerHTML = '<div class="empty"><div class="empty-ic">🔒</div><div class="empty-t">Sem permissão para baixar</div></div>';
+    return;
+  }
+
+  const docs = [
+    { ic:'📊', tit:'Demonstrativo Anual', desc:'DRE consolidado do exercício', dt:'Atualizado mensalmente'},
+    { ic:'📋', tit:'Razão Contábil',     desc:'Movimentação por conta',         dt:'Disponível'},
+    { ic:'📒', tit:'Livro Diário',       desc:'Lançamentos cronológicos',       dt:'Disponível'},
+    { ic:'🧾', tit:'Extratos de Folha',  desc:'Holerites consolidados',         dt:'Mensal'},
+    { ic:'📑', tit:'Recibos de Honorários', desc:'Comprovantes de pagamento',  dt:'Mensal'},
+    { ic:'📂', tit:'SPED Fiscais',       desc:'Arquivos transmitidos',          dt:'Anual/mensal'},
+  ];
+
+  document.getElementById('docsBody').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px">' +
+    docs.map(d => '<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;display:flex;align-items:center;gap:12px"><div style="font-size:28px">'+d.ic+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--txt)">'+d.tit+'</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">'+d.desc+'</div><div style="font-size:10px;color:var(--txt3);margin-top:3px">📅 '+d.dt+'</div></div><button class="btn sm" onclick="ui.toast(&quot;ℹ️&quot;,&quot;Solicite à DTP&quot;)">⬇️</button></div>').join('') +
+    '</div>';
+}
+
+function enviarMsg(){
+  if (permissoes.enviarMensagens === false) { ui.toast('🔒','Sem permissão para enviar'); return; }
+  const txt = document.getElementById('msgTxt').value.trim();
+  if (!txt) { ui.toast('⚠️','Digite uma mensagem'); return; }
+  const url = 'https://wa.me/5548999005586?text=' + encodeURIComponent('Olá DTP, ' + txt);
+  window.open(url,'_blank');
+  ui.toast('✅','Abrindo WhatsApp...');
+  document.getElementById('msgTxt').value = '';
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+// EDIÇÃO NO PORTAL (quando autorizado)
+// ═══════════════════════════════════════════════════════════
+async function marcarObrigVisualizada(id){
+  if(!podeEditar.obrigacoes){ ui.toast("🔒","Sem permissão de edição"); return; }
+  const r = await API.duties.status(id, {status:'em_andamento'});
+  if(r?.success){ ui.toast("✅","Status atualizado"); await carregarDados(); renderObrigacoes(); }
+  else ui.toast("❌", r?.message||"Erro");
+}
+
+async function adicionarBPO(){
+  if(!podeEditar.bpo){ ui.toast("🔒","Sem permissão"); return; }
+  const desc = prompt("Descrição da conta:");
+  if(!desc) return;
+  const valor = parseFloat(prompt("Valor (R$):")||"0");
+  if(!valor){ ui.toast("⚠️","Valor inválido"); return; }
+  const tipo = confirm("É conta A RECEBER?\n\nOK = A Receber\nCancelar = A Pagar") ? "receber" : "pagar";
+  const venc = prompt("Vencimento (AAAA-MM-DD):", new Date().toISOString().slice(0,10));
+  
+  const cid = cfgEmp?._id || new URLSearchParams(window.location.search).get("company");
+  const r = await API.bpo.create({company:cid, descricao:desc, description:desc, valor:valor, amount:valor, tipo:tipo, type:tipo, vencimento:venc, dueDate:venc, status:"pendente"});
+  if(r?.success){ ui.toast("✅","Conta adicionada"); await carregarDados(); renderBPO(); }
+  else ui.toast("❌", r?.message||"Erro");
+}
+
+async function baixarBPO(id){
+  if(!podeEditar.bpo){ ui.toast("🔒","Sem permissão"); return; }
+  const r = await API.bpo.baixa(id, {dataPagamento:new Date().toISOString(), status:"pago"});
+  if(r?.success){ ui.toast("✅","Conta baixada"); await carregarDados(); renderBPO(); }
+  else ui.toast("❌", r?.message||"Erro");
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// PAINEL ANALÍTICO DO PORTAL
+// ═══════════════════════════════════════════════════════════
+const pAnCharts = {};
+const pAnConfigs = {};
+let pAnExpI = null;
+const MESES_P = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+(function initPAnSelectors(){
+  const now = new Date();
+  const selM = document.getElementById('pAnMes');
+  const selA = document.getElementById('pAnAno');
+  if(!selM||!selA) return;
+  for(let m=0;m<12;m++){
+    const o=document.createElement('option');o.value=String(m+1).padStart(2,'0');o.textContent=MESES_P[m];
+    if(m===now.getMonth())o.selected=true;selM.appendChild(o);
+  }
+  for(let y=now.getFullYear();y>=now.getFullYear()-4;y--){
+    const o=document.createElement('option');o.value=y;o.textContent=y;selA.appendChild(o);
+  }
+})();
+
+async function loadPortalAnalytics(){
+  const modInicio = document.getElementById('mod-inicio');
+  if(!modInicio || modInicio.style.display === 'none') return;
+  const mes = document.getElementById('pAnMes')?.value || String(new Date().getMonth()+1).padStart(2,'0');
+  const ano = document.getElementById('pAnAno')?.value || new Date().getFullYear();
+  const comp = ano + '-' + mes;
+  const mesNome = MESES_P[parseInt(mes)-1]+'/'+ano;
+  const el = document.getElementById('pAnMesLabel');
+  if(el) el.textContent = mesNome;
+
+  const cid = cfgEmp?._id || new URLSearchParams(window.location.search).get('company');
+  if(!cid) return;
+
+  const [txR, duR] = await Promise.allSettled([
+    API.transactions.list({company:cid, limit:2000}),
+    API.duties.list({company:cid, limit:500}),
+  ]);
+
+  const txs = txR.status==='fulfilled'&&txR.value?.success ? (txR.value.transactions||[]) : [];
+  const duties = duR.status==='fulfilled'&&duR.value?.success ? (duR.value.duties||[]) : [];
+  const verValores = permissoes.verValoresFinanceiros !== false;
+  const now = new Date(parseInt(ano), parseInt(mes)-1, 1);
+
+  const mesesData = [];
+  for(let i=11;i>=0;i--){
+    const d=new Date(now);d.setMonth(d.getMonth()-i);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label=MESES_P[d.getMonth()]+'/'+String(d.getFullYear()).slice(2);
+    const txM=txs.filter(t=>(t.competence||'').startsWith(key));
+    const entradas=txM.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.amount||0),0);
+    const saidas=txM.filter(t=>t.type==='debit').reduce((s,t)=>s+(t.amount||0),0);
+    const duM=duties.filter(dd=>(dd.competence||'').startsWith(key));
+    const entregues=duM.filter(dd=>dd.status==='entregue'||dd.status==='pago').length;
+    const pendentes=duM.filter(dd=>dd.status==='pendente'||dd.status==='em_andamento').length;
+    const atrasados=duM.filter(dd=>dd.status==='atrasado').length;
+    mesesData.push({key,label,entradas,saidas,entregues,pendentes,atrasados});
+  }
+
+  const mesSel=mesesData[mesesData.length-1]||{};
+  const saldo=mesSel.entradas-mesSel.saidas;
+  const totalObrig=mesSel.entregues+mesSel.pendentes+mesSel.atrasados;
+  const compliance=totalObrig?Math.round(mesSel.entregues/totalObrig*100):0;
+  const hon=cfgEmp?.fee||0;
+
+  // KPIs
+  document.getElementById('pAnKpis').innerHTML = [
+    {l:'ENTRADAS',v:verValores?fmtK(mesSel.entradas):'••••',s:mesNome,c:'gr'},
+    {l:'SAÍDAS',v:verValores?fmtK(mesSel.saidas):'••••',s:mesNome,c:'rd'},
+    {l:'SALDO',v:verValores?fmtK(saldo):'••••',s:saldo>=0?'positivo':'negativo',c:saldo>=0?'gr':'rd'},
+    {l:'COMPLIANCE',v:compliance+'%',s:mesSel.entregues+'/'+totalObrig+' obrig.',c:compliance>=80?'gr':compliance>=50?'am':'rd'},
+  ].map(k=>'<div class="kpi '+k.c+'"><div class="kpi-l">'+k.l+'</div><div class="kpi-v">'+k.v+'</div><div class="kpi-s">'+k.s+'</div></div>').join('');
+
+  const labels12=mesesData.map(m=>m.label);
+  const cOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:10},usePointStyle:true,padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'rgba(176,204,224,.5)',font:{size:9},callback:v=>'R$ '+(v/1000).toFixed(1)+'k'}}}};
+
+  // Chart 1: Entradas vs Saídas
+  const c1={type:'bar',data:{labels:labels12,datasets:[{label:'Entradas',data:mesesData.map(m=>m.entradas),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:5,borderSkipped:false},{label:'Saídas',data:mesesData.map(m=>m.saidas),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:5,borderSkipped:false}]},options:cOpts};
+  pAnConfigs.entradas=c1;if(pAnCharts.entradas)pAnCharts.entradas.destroy();const el1=document.getElementById('pAnEntradas');if(el1&&el1.getContext)pAnCharts.entradas=new Chart(el1,c1);
+
+  // Chart 2: Acumulado
+  let aE=0,aS=0;const acE=mesesData.map(m=>{aE+=m.entradas;return aE});const acS=mesesData.map(m=>{aS+=m.saidas;return aS});
+  const c2={type:'line',data:{labels:labels12,datasets:[{label:'Entradas Acum.',data:acE,borderColor:'rgba(0,201,167,1)',backgroundColor:'rgba(0,201,167,.1)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},{label:'Saídas Acum.',data:acS,borderColor:'rgba(239,68,68,1)',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2.5},{label:'Saldo',data:acE.map((v,i)=>v-acS[i]),borderColor:'rgba(59,144,232,1)',backgroundColor:'rgba(59,144,232,.08)',fill:true,tension:.35,borderDash:[5,3],pointRadius:3,borderWidth:2}]},options:cOpts};
+  pAnConfigs.acumulado=c2;if(pAnCharts.acumulado)pAnCharts.acumulado.destroy();const el2=document.getElementById('pAnAcumulado');if(el2&&el2.getContext)pAnCharts.acumulado=new Chart(el2,c2);
+
+  // Chart 3: Relatório mês (doughnut)
+  const c3={type:'doughnut',data:{labels:['Entradas','Saídas','Honorário'],datasets:[{data:[mesSel.entradas||1,mesSel.saidas||1,hon||1],backgroundColor:['rgba(0,201,167,.7)','rgba(239,68,68,.6)','rgba(139,92,246,.6)'],borderColor:['rgba(0,201,167,1)','rgba(239,68,68,1)','rgba(139,92,246,1)'],borderWidth:2,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'rgba(176,204,224,.7)',font:{size:11},padding:14,usePointStyle:true}}},cutout:'60%'}};
+  pAnConfigs.mes=c3;if(pAnCharts.mes)pAnCharts.mes.destroy();const el3=document.getElementById('pAnMes');if(el3&&el3.getContext)pAnCharts.mes=new Chart(el3,c3);
+
+  // Chart 4: Obrigações
+  const c4={type:'bar',data:{labels:labels12,datasets:[{label:'Entregues',data:mesesData.map(m=>m.entregues),backgroundColor:'rgba(0,201,167,.2)',borderColor:'rgba(0,201,167,1)',borderWidth:2,borderRadius:4},{label:'Pendentes',data:mesesData.map(m=>m.pendentes),backgroundColor:'rgba(245,158,11,.15)',borderColor:'rgba(245,158,11,1)',borderWidth:2,borderRadius:4},{label:'Atrasadas',data:mesesData.map(m=>m.atrasados),backgroundColor:'rgba(239,68,68,.15)',borderColor:'rgba(239,68,68,1)',borderWidth:2,borderRadius:4}]},options:{...cOpts,scales:{x:{...cOpts.scales.x,stacked:true},y:{...cOpts.scales.y,stacked:true}}}};
+  pAnConfigs.obrigHist=c4;if(pAnCharts.obrigHist)pAnCharts.obrigHist.destroy();const el4=document.getElementById('pAnObrig');if(el4&&el4.getContext)pAnCharts.obrigHist=new Chart(el4,c4);
+
+  // Relatório detalhado
+  const txMesSel=txs.filter(t=>(t.competence||'').startsWith(comp));
+  const catE={},catS={};
+  txMesSel.forEach(t=>{const cat=t.category||'Outros';if(t.type==='credit')catE[cat]=(catE[cat]||0)+(t.amount||0);else catS[cat]=(catS[cat]||0)+(t.amount||0);});
+
+  let rH='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+  rH+='<div><div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">📈 Entradas</div>';
+  const eA=Object.entries(catE).sort((a,b)=>b[1]-a[1]);
+  rH+=eA.length?eA.map(([c,v])=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+c+'</span><span style="color:var(--green);font-weight:600">'+(verValores?fmt(v):'••••')+'</span></div>').join('')+'<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;border-top:1px solid var(--bd)"><span>Total</span><span style="color:var(--green)">'+(verValores?fmt(mesSel.entradas):'••••')+'</span></div>':'<div style="font-size:11px;color:var(--txt3)">Sem entradas</div>';
+  rH+='</div><div><div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:8px">📉 Saídas</div>';
+  const sA=Object.entries(catS).sort((a,b)=>b[1]-a[1]);
+  rH+=sA.length?sA.map(([c,v])=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px"><span style="color:var(--txt2)">'+c+'</span><span style="color:var(--red);font-weight:600">'+(verValores?fmt(v):'••••')+'</span></div>').join('')+'<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;border-top:1px solid var(--bd)"><span>Total</span><span style="color:var(--red)">'+(verValores?fmt(mesSel.saidas):'••••')+'</span></div>':'<div style="font-size:11px;color:var(--txt3)">Sem saídas</div>';
+  rH+='</div></div>';
+  rH+='<div style="margin-top:14px;padding:14px;background:rgba(59,144,232,.06);border:1px solid rgba(59,144,232,.15);border-radius:8px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--txt3)">Resultado do Mês</div><div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+(verValores?fmt(saldo):'••••')+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--txt3)">Margem</div><div style="font-size:15px;font-weight:700;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+(mesSel.entradas?Math.round(saldo/mesSel.entradas*100):0)+'%</div></div></div>';
+  document.getElementById('pAnRelatorio').innerHTML = rH;
+}
+
+function expandPAN(key){
+  const t={entradas:'💰 Entradas vs Saídas',acumulado:'📈 Acumulado Anual',obrigHist:'📊 Obrigações',mes:'📋 Relatório do Mês'};
+  document.getElementById('pExpTitle').textContent=t[key]||'Gráfico';
+  if(pAnExpI){pAnExpI.destroy();pAnExpI=null;}
+  const cfg=pAnConfigs[key];if(!cfg)return;
+  document.getElementById('pOvExp').style.display='flex';
+  setTimeout(()=>{pAnExpI=new Chart(document.getElementById('pAnChartExp'),JSON.parse(JSON.stringify(cfg)));},150);
+}
+
+</script>
+</body>
+</html>

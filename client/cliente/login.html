@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Portal do Cliente</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#09151f;--bg2:#0d1c2a;--bg3:#112233;--bg4:#162b3e;--blue:#1a6fc4;--bl:#3b90e8;--green:#00c9a7;--txt:#cfe0ef;--txt2:#6b94b2;--txt3:#2d5270;--bd:rgba(255,255,255,.055);--rs:8px}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);display:flex;align-items:center;justify-content:center}
+.bg-glow{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 70% 50%,rgba(0,201,167,.12) 0%,transparent 55%),radial-gradient(ellipse at 20% 20%,rgba(26,111,196,.08) 0%,transparent 50%)}
+.bg-grid{position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(0,201,167,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,201,167,.02) 1px,transparent 1px);background-size:52px 52px}
+.wrap{position:relative;z-index:10;width:100%;max-width:420px;padding:24px}
+.logo{text-align:center;margin-bottom:32px}
+.logo-icon{width:52px;height:52px;background:linear-gradient(135deg,#1a6fc4,#00c9a7);border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff;margin:0 auto 12px;box-shadow:0 8px 24px rgba(0,201,167,.25)}
+.logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--txt)}
+.logo-sub{font-size:11px;color:var(--txt3);margin-top:3px}
+.badge{display:inline-block;background:rgba(0,201,167,.1);color:var(--green);border:1px solid rgba(0,201,167,.2);padding:3px 12px;border-radius:20px;font-size:10px;font-weight:600;margin-top:8px}
+.card{background:var(--bg2);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:32px 28px}
+.card h2{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--txt);margin-bottom:4px}
+.card p{font-size:12.5px;color:var(--txt3);margin-bottom:22px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:10.5px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.fw{position:relative}
+.fw .fi{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;color:var(--txt3)}
+.fw input{width:100%;height:38px;padding:0 36px;background:var(--bg3);border:1px solid rgba(255,255,255,.055);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .18s}
+.fw input:focus{border-color:rgba(0,201,167,.4);box-shadow:0 0 0 3px rgba(0,201,167,.06)}
+.fw input::placeholder{color:var(--txt3)}
+.toggle{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:13px;cursor:pointer;color:var(--txt3)}
+.btn-login{width:100%;height:38px;background:linear-gradient(135deg,#1a6fc4,#00c9a7);border:none;border-radius:var(--rs);color:#fff;font-family:'Syne',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;transition:all .18s;margin-top:6px}
+.btn-login:hover{opacity:.9;box-shadow:0 6px 20px rgba(0,201,167,.25)}
+.btn-login:disabled{opacity:.6;cursor:not-allowed}
+.alert{display:none;padding:10px 13px;border-radius:var(--rs);font-size:12.5px;margin-bottom:14px;align-items:center;gap:9px}
+.alert.show{display:flex}
+.alert.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5}
+.alert.ok{background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.2);color:var(--green)}
+.link-back{text-align:center;margin-top:18px;font-size:12px;color:var(--txt3)}
+.link-back a{color:var(--txt2);text-decoration:none}
+.link-back a:hover{color:var(--txt)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div><div class="bg-grid"></div>
+<div class="wrap">
+  <div class="logo">
+    <div class="logo-icon">DTP</div>
+    <div class="logo-name">DTP Contábil</div>
+    <div class="logo-sub">Portal do Cliente</div>
+    <span class="badge">🔒 Acesso Seguro</span>
+  </div>
+  <div class="card">
+    <h2>Bem-vindo!</h2>
+    <p>Acesse para visualizar obrigações, honorários e documentos da sua empresa.</p>
+    <div class="alert" id="alertBox"><span id="alertIco"></span><span id="alertMsg"></span></div>
+    <div class="field">
+      <label>E-mail</label>
+      <div class="fw"><span class="fi">✉</span><input type="email" id="email" placeholder="seu@empresa.com.br" autocomplete="email"></div>
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <div class="fw">
+        <span class="fi">🔒</span>
+        <input type="password" id="password" placeholder="Sua senha" autocomplete="current-password">
+        <span class="toggle" id="togglePw">👁</span>
+      </div>
+    </div>
+    <button class="btn-login" id="btnLogin">Entrar no Portal</button>
+  </div>
+  <div class="link-back"><a href="/login.html">← Acesso do escritório</a></div>
+</div>
+<script>
+// Verifica se já está logado como cliente
+const _st = localStorage.getItem('dtp_token') || sessionStorage.getItem('dtp_token');
+const _su = JSON.parse(localStorage.getItem('dtp_user') || sessionStorage.getItem('dtp_user') || '{}');
+if (_st && _su.role === 'cliente') window.location.href = '/cliente/dashboard.html';
+
+document.getElementById('togglePw').onclick = function(){
+  const i = document.getElementById('password');
+  i.type = i.type==='password'?'text':'password';
+  this.textContent = i.type==='password'?'👁':'🙈';
+};
+document.getElementById('password').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('btnLogin').onclick = doLogin;
+
+function showAlert(msg,type='err'){
+  const b=document.getElementById('alertBox');
+  b.className='alert show '+type;
+  document.getElementById('alertIco').textContent = type==='err'?'⚠':'✓';
+  document.getElementById('alertMsg').textContent = msg;
+}
+
+async function doLogin(){
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('btnLogin');
+  if(!email||!password){ showAlert('Preencha e-mail e senha.'); return; }
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Verificando...';
+  try{
+    const r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const d = await r.json();
+    if(d.success){
+      if(d.user.role !== 'cliente'){
+        showAlert('Este acesso é exclusivo para clientes. Use o acesso do escritório.');
+        btn.disabled=false; btn.innerHTML='Entrar no Portal';
+        return;
+      }
+      // Salva sempre no localStorage para Visão Dual funcionar
+      localStorage.setItem('dtp_token', d.token);
+      localStorage.setItem('dtp_user',  JSON.stringify(d.user));
+      showAlert(`Olá, ${d.user.name.split(' ')[0]}! Redirecionando...`,'ok');
+      setTimeout(()=>window.location.href='/cliente/dashboard.html',800);
+    } else {
+      showAlert(d.message||'Credenciais inválidas.');
+      btn.disabled=false; btn.innerHTML='Entrar no Portal';
+    }
+  } catch {
+    showAlert('Erro de conexão. Tente novamente.');
+    btn.disabled=false; btn.innerHTML='Entrar no Portal';
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTP — Plano de Contas</title>
+<link rel="stylesheet" href="/assets/css/global.css">
+<style>
+html,body{overflow:hidden}
+
+/* ─── KPIs no topo ─── */
+.pc-kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px}
+.pc-kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.pc-kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.pc-kpi.active{background:rgba(26,111,196,.12);border-color:var(--bl)}
+.pc-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.pc-kpi.k-all::before{background:var(--bl)}.pc-kpi.k-at::before{background:#3b90e8}
+.pc-kpi.k-ps::before{background:var(--amber)}.pc-kpi.k-pl::before{background:var(--purple)}
+.pc-kpi.k-rc::before{background:var(--green)}.pc-kpi.k-cs::before{background:#a855f7}
+.pc-kpi.k-ds::before{background:var(--red)}
+.pc-kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);margin-bottom:3px;font-weight:600}
+.pc-kpi-v{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--txt);line-height:1}
+.pc-kpi-s{font-size:10px;color:var(--txt3);margin-top:2px}
+
+/* ─── ABAS ─── */
+.tabs-strip{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:4px;width:fit-content;margin-bottom:14px}
+.tab-btn{padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--txt2);transition:all .14s}
+.tab-btn.on{background:var(--blue);color:#fff}
+.tab-btn:hover:not(.on){background:rgba(255,255,255,.06)}
+
+/* ─── ÁRVORE HIERÁRQUICA ─── */
+.tree-node{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .12s;font-family:'JetBrains Mono',monospace}
+.tree-node:hover{background:rgba(26,111,196,.05)}
+.tree-node.lvl-1{background:rgba(26,111,196,.1);font-weight:700;border-left:3px solid var(--bl)}
+.tree-node.lvl-2{padding-left:36px;background:rgba(255,255,255,.02);font-weight:600}
+.tree-node.lvl-3{padding-left:60px;font-weight:500}
+.tree-node.lvl-4{padding-left:84px}
+.tree-cod{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--bl);font-weight:600;min-width:90px}
+.tree-desc{font-size:13px;color:var(--txt);flex:1}
+.tree-meta{display:flex;gap:8px;align-items:center}
+.toggle-btn{width:18px;height:18px;border-radius:3px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--txt2);user-select:none;flex-shrink:0}
+.tree-node.has-children .toggle-btn{background:rgba(26,111,196,.2);color:var(--bl)}
+
+/* Pills */
+.pill{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:.04em}
+.pill-at{background:rgba(59,144,232,.15);color:#3b90e8}
+.pill-ps{background:rgba(245,158,11,.15);color:var(--amber)}
+.pill-pl{background:rgba(139,92,246,.15);color:var(--purple)}
+.pill-rc{background:rgba(0,201,167,.15);color:var(--green)}
+.pill-cs{background:rgba(168,85,247,.15);color:#a855f7}
+.pill-ds{background:rgba(239,68,68,.15);color:var(--red)}
+.pill-lan{background:rgba(0,201,167,.1);color:var(--green);border:1px solid rgba(0,201,167,.2)}
+.pill-tot{background:rgba(255,255,255,.05);color:var(--txt3);border:1px solid rgba(255,255,255,.1)}
+.pill-nbc{background:rgba(26,111,196,.12);color:var(--bl)}
+.pill-empresa{background:rgba(245,158,11,.12);color:var(--amber)}
+
+.act-btn{padding:4px 8px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--bg3);color:var(--txt2);transition:all .12s;flex-shrink:0}
+.act-btn:hover{border-color:var(--bd2);color:var(--txt);background:var(--bg4)}
+.act-btn.danger:hover{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.05)}
+
+/* Centro de Custo */
+.cc-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .15s;position:relative}
+.cc-card:hover{border-color:var(--bd2);transform:translateY(-2px)}
+.cc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+
+/* Distribuição visual */
+.dist-bar{background:var(--bg4);border-radius:20px;height:8px;overflow:hidden;display:flex;margin:8px 0}
+.dist-seg{height:100%;transition:width .8s ease}
+
+.empty{padding:40px;text-align:center;color:var(--txt3)}
+.empty-ic{font-size:36px;margin-bottom:10px}
+.empty-t{font-size:14px;font-weight:600;color:var(--txt2);margin-bottom:4px}
+
+/* Modal */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgp{display:flex;flex-direction:column;gap:4px}
+.fbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);font-weight:600}
+.fin{height:34px;padding:0 10px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);color:var(--txt);font-size:13px;outline:none}
+.fin:focus{border-color:var(--bl)}
+textarea.fin{padding:8px 10px;height:auto;min-height:60px;resize:vertical}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div id="sidebar-mount"></div>
+<main class="main-wrap">
+
+  <header class="topbar">
+    <span class="topbar-title">📒 Plano de Contas</span>
+    <span class="tb-badge blue" id="tbCount">— contas</span>
+    <span class="tb-badge green" id="tbLanc" style="display:none">— aceitam lançamento</span>
+    <div class="topbar-spacer"></div>
+    <select class="fin" id="filtroEmpresa" style="height:32px;font-size:11px;width:200px" onchange="loadAll()">
+      <option value="">Plano NBC Padrão</option>
+    </select>
+    <button class="btn sm" onclick="seedNBC()">⬇ Carregar NBC</button>
+    <button class="btn sm primary" onclick="abrirNovaConta()">+ Nova Conta</button>
+    <button class="btn sm" onclick="exportarPlano()">📤 CSV</button>
+    <button class="btn sm" onclick="imprimirPlano()">🖨️ Imprimir</button>
+  </header>
+
+  <div class="page-body" style="overflow-y:auto;padding:16px 24px">
+
+    <!-- KPIs por tipo -->
+    <div class="pc-kpis" id="pcKpis"></div>
+
+    <!-- Abas -->
+    <div class="tabs-strip">
+      <button class="tab-btn on" id="tab-arvore" onclick="setTab('arvore')">🌳 Árvore</button>
+      <button class="tab-btn"    id="tab-lista"  onclick="setTab('lista')">📋 Lista</button>
+      <button class="tab-btn"    id="tab-cc"     onclick="setTab('cc')">🎯 Centros de Custo</button>
+      <button class="tab-btn"    id="tab-dist"   onclick="setTab('dist')">📊 Distribuição</button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-bar" style="margin-bottom:14px">
+      <input class="fin" id="searchInput" placeholder="🔍 Buscar conta (código ou descrição)" style="flex:1;max-width:380px" oninput="filtrar()">
+      <select class="fin" id="filtroTipo" style="width:160px" onchange="filtrar()">
+        <option value="">Todos os tipos</option>
+        <option value="ativo">Ativo</option>
+        <option value="passivo">Passivo</option>
+        <option value="patrimonio">Patrimônio Líquido</option>
+        <option value="receita">Receita</option>
+        <option value="custo">Custo</option>
+        <option value="despesa">Despesa</option>
+      </select>
+      <select class="fin" id="filtroNivel" style="width:130px" onchange="filtrar()">
+        <option value="">Todos níveis</option>
+        <option value="1">Nível 1</option>
+        <option value="2">Nível 2</option>
+        <option value="3">Nível 3</option>
+        <option value="4">Nível 4 (analítica)</option>
+      </select>
+      <select class="fin" id="filtroAceita" style="width:160px" onchange="filtrar()">
+        <option value="">Todas</option>
+        <option value="sim">Aceita lançamento</option>
+        <option value="nao">Apenas totalizadora</option>
+      </select>
+      <button class="btn sm" onclick="limparFiltros()">🧹 Limpar</button>
+    </div>
+
+    <!-- Árvore -->
+    <div id="pane-arvore" class="card">
+      <div id="arvoreBody"><div class="empty"><div class="empty-ic">🌳</div><div class="empty-t">Carregando...</div></div></div>
+    </div>
+
+    <!-- Lista -->
+    <div id="pane-lista" class="card" style="display:none">
+      <div style="overflow-x:auto"><table class="tbl">
+        <thead><tr>
+          <th style="width:90px">Código</th><th>Descrição</th><th>Tipo</th>
+          <th>Natureza</th><th style="text-align:center">Nível</th><th>Categoria</th>
+          <th>Origem</th><th style="text-align:right">Ações</th>
+        </tr></thead>
+        <tbody id="listaBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- Centros de Custo -->
+    <div id="pane-cc" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <input class="fin" id="ccSearch" placeholder="🔍 Buscar centro" style="flex:1;max-width:300px" oninput="renderCC()">
+        <select class="fin" id="ccFiltroTipo" style="width:160px" onchange="renderCC()">
+          <option value="">Todos os tipos</option>
+          <option value="operacional">Operacional</option>
+          <option value="administrativo">Administrativo</option>
+          <option value="comercial">Comercial</option>
+          <option value="producao">Produção</option>
+          <option value="financeiro">Financeiro</option>
+        </select>
+        <button class="btn sm primary" onclick="abrirNovoCC()">+ Novo Centro</button>
+      </div>
+      <div id="ccBody"><div class="empty"><div class="empty-ic">🎯</div><div class="empty-t">Carregando...</div></div></div>
+    </div>
+
+    <!-- Distribuição -->
+    <div id="pane-dist" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="card-h"><span class="card-ht">📊 Distribuição por Tipo</span></div>
+          <div style="padding:14px 16px" id="distTipo"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-ht">🌐 Distribuição por Nível</span></div>
+          <div style="padding:14px 16px" id="distNivel"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-ht">📈 Saúde do Plano de Contas</span></div>
+        <div style="padding:14px 16px" id="saudePlano"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- ── Modal Nova Conta ── -->
+<div class="overlay" id="ovConta">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-h">
+      <div class="modal-t" id="ovContaT">+ Nova Conta Contábil</div>
+      <button class="x" onclick="ui.closeModal('ovConta')">×</button>
+    </div>
+    <div class="modal-b" style="padding:18px">
+      <div class="fg" style="margin-bottom:12px">
+        <div class="fgp"><label class="fbl">Código *</label><input class="fin" id="contaCodigo" placeholder="Ex: 1.1.1.04"></div>
+        <div class="fgp"><label class="fbl">Nível</label><input class="fin" type="number" id="contaNivel" min="1" max="4" value="4"></div>
+      </div>
+      <div class="fgp" style="margin-bottom:12px"><label class="fbl">Descrição *</label><input class="fin" id="contaDescricao" placeholder="Ex: Banco Itaú c/c"></div>
+      <div class="fg" style="margin-bottom:12px">
+        <div class="fgp"><label class="fbl">Tipo *</label><select class="fin" id="contaTipo">
+          <option value="ativo">Ativo</option><option value="passivo">Passivo</option>
+          <option value="patrimonio">Patrimônio Líquido</option><option value="receita">Receita</option>
+          <option value="custo">Custo</option><option value="despesa">Despesa</option>
+        </select></div>
+        <div class="fgp"><label class="fbl">Natureza *</label><select class="fin" id="contaNatureza">
+          <option value="devedora">Devedora</option><option value="credora">Credora</option>
+        </select></div>
+      </div>
+      <div class="fgp" style="margin-bottom:12px">
+        <label class="fbl">Conta-Pai (opcional)</label>
+        <select class="fin" id="contaParent"><option value="">— Nenhuma (raiz)</option></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs)">
+        <input type="checkbox" id="contaAceita" checked style="width:16px;height:16px">
+        <label for="contaAceita" style="font-size:13px;color:var(--txt);cursor:pointer">Aceita lançamentos contábeis</label>
+        <span style="font-size:11px;color:var(--txt3);margin-left:auto">Desmarque para contas totalizadoras (sintéticas)</span>
+      </div>
+      <div style="margin-top:14px;padding:10px 14px;background:rgba(26,111,196,.06);border:1px solid rgba(26,111,196,.2);border-radius:var(--rs);font-size:11.5px;color:var(--bl)">
+        💡 <strong>Dica NBC:</strong> Ativo (1.x) e Despesa (5.x/6.x) têm natureza devedora. Passivo (2.x), PL (3.x) e Receita (4.x) têm natureza credora.
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="ui.closeModal('ovConta')">Cancelar</button>
+      <button class="btn primary" onclick="salvarConta()" id="contaBtn">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Centro de Custo ── -->
+<div class="overlay" id="ovCC">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-h">
+      <div class="modal-t" id="ovCCT">+ Novo Centro de Custo</div>
+      <button class="x" onclick="ui.closeModal('ovCC')">×</button>
+    </div>
+    <div class="modal-b" style="padding:18px">
+      <div class="fg" style="margin-bottom:12px">
+        <div class="fgp"><label class="fbl">Código *</label><input class="fin" id="ccCodigo" placeholder="Ex: CC-001"></div>
+        <div class="fgp"><label class="fbl">Tipo *</label><select class="fin" id="ccTipo">
+          <option value="operacional">Operacional</option>
+          <option value="administrativo">Administrativo</option>
+          <option value="comercial">Comercial</option>
+          <option value="producao">Produção</option>
+          <option value="financeiro">Financeiro</option>
+        </select></div>
+      </div>
+      <div class="fgp" style="margin-bottom:12px"><label class="fbl">Descrição *</label><input class="fin" id="ccDescricao" placeholder="Ex: Departamento Comercial"></div>
+      <div class="fgp" style="margin-bottom:12px"><label class="fbl">Responsável</label><input class="fin" id="ccResp" placeholder="Nome do responsável (opcional)"></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs)">
+        <input type="checkbox" id="ccAtivo" checked style="width:16px;height:16px">
+        <label for="ccAtivo" style="font-size:13px;color:var(--txt);cursor:pointer">Centro ativo (recebe lançamentos)</label>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="ui.closeModal('ovCC')">Cancelar</button>
+      <button class="btn primary" onclick="salvarCC()" id="ccBtn">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast h" id="_toast"><span id="_toastIc"></span><span id="_toastMsg"></span></div>
+<script src="/js/auth.js"></script><script src="/js/api.js"></script><script src="/js/ui.js"></script>
+<script>
+auth.require(); ui.loadSidebar();
+
+let allContas = [];
+let allCC = [];
+let curEmpId = '';
+let editContaId = null;
+let editCCId = null;
+let nodesAbertos = new Set();
+
+const TIPO_LABEL = {ativo:'Ativo',passivo:'Passivo',patrimonio:'Patrimônio Líquido',receita:'Receita',custo:'Custo',despesa:'Despesa'};
+const TIPO_ICON  = {ativo:'💰',passivo:'📋',patrimonio:'🏦',receita:'📈',custo:'📦',despesa:'💸'};
+const TIPO_PILL  = {ativo:'pill-at',passivo:'pill-ps',patrimonio:'pill-pl',receita:'pill-rc',custo:'pill-cs',despesa:'pill-ds'};
+
+(async ()=>{
+  // Carregar empresas
+  const r = await API.companies.list({limit:500});
+  if(r?.success){
+    document.getElementById('filtroEmpresa').innerHTML = '<option value="">Plano NBC Padrão</option>' +
+      r.companies.map(c=>`<option value="${c._id}">${c.tradeName||c.legalName}</option>`).join('');
+  }
+  loadAll();
+})();
+
+async function loadAll(){
+  curEmpId = document.getElementById('filtroEmpresa').value;
+  await Promise.all([loadContas(), loadCC()]);
+}
+
+async function loadContas(){
+  const r = await API.planoConta.list(curEmpId ? {company:curEmpId, limit:1000} : {limit:1000});
+  if(!r?.success){ ui.toast('❌','Erro ao carregar contas'); return; }
+  allContas = r.items || [];
+  renderKPIs();
+  filtrar();
+  renderDistribuicao();
+  popularContaPai();
+}
+
+async function loadCC(){
+  const r = await API.centroCusto.list(curEmpId ? {company:curEmpId, limit:500} : {limit:500});
+  if(!r?.success) return;
+  allCC = r.items || [];
+  renderCC();
+}
+
+function renderKPIs(){
+  const tipos = ['ativo','passivo','patrimonio','receita','custo','despesa'];
+  const cont = {};
+  tipos.forEach(t=>cont[t]=allContas.filter(c=>c.tipo===t).length);
+  const aceita = allContas.filter(c=>c.aceita_lancamento!==false).length;
+  document.getElementById('tbCount').textContent = `${allContas.length} contas`;
+  const tbLanc = document.getElementById('tbLanc');
+  if(aceita){ tbLanc.textContent = `${aceita} analíticas`; tbLanc.style.display='inline-flex'; }
+
+  document.getElementById('pcKpis').innerHTML = [
+    {l:'TOTAL',v:allContas.length,s:`${aceita} analíticas`,c:'k-all'},
+    {l:'ATIVO',v:cont.ativo||0,s:'1.x',c:'k-at'},
+    {l:'PASSIVO',v:cont.passivo||0,s:'2.x',c:'k-ps'},
+    {l:'PATRIMÔNIO',v:cont.patrimonio||0,s:'3.x',c:'k-pl'},
+    {l:'RECEITA',v:cont.receita||0,s:'4.x',c:'k-rc'},
+    {l:'CUSTO',v:cont.custo||0,s:'5.x',c:'k-cs'},
+    {l:'DESPESA',v:cont.despesa||0,s:'5.x/6.x',c:'k-ds'},
+  ].map(k=>`<div class="pc-kpi ${k.c}" onclick="filtrarPorTipo('${k.l.toLowerCase()}')"><div class="pc-kpi-l">${k.l}</div><div class="pc-kpi-v">${k.v}</div><div class="pc-kpi-s">${k.s}</div></div>`).join('');
+}
+
+function filtrarPorTipo(tipo){
+  const map = {total:'',ativo:'ativo',passivo:'passivo',patrimônio:'patrimonio',receita:'receita',custo:'custo',despesa:'despesa'};
+  document.getElementById('filtroTipo').value = map[tipo] || '';
+  filtrar();
+}
+
+function setTab(tab){
+  ['arvore','lista','cc','dist'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('on',t===tab);
+    document.getElementById('pane-'+t).style.display = t===tab?'block':'none';
+  });
+  if(tab==='cc') renderCC();
+  if(tab==='dist') renderDistribuicao();
+}
+
+function getContasFiltradas(){
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const tipo = document.getElementById('filtroTipo').value;
+  const nivel = document.getElementById('filtroNivel').value;
+  const aceita = document.getElementById('filtroAceita').value;
+
+  return allContas.filter(c=>{
+    if(search && !(c.codigo.toLowerCase().includes(search) || c.descricao.toLowerCase().includes(search))) return false;
+    if(tipo && c.tipo !== tipo) return false;
+    if(nivel && c.nivel !== +nivel) return false;
+    if(aceita==='sim' && c.aceita_lancamento===false) return false;
+    if(aceita==='nao' && c.aceita_lancamento!==false) return false;
+    return true;
+  });
+}
+
+function filtrar(){
+  const filtradas = getContasFiltradas();
+  renderArvore(filtradas);
+  renderLista(filtradas);
+}
+
+function limparFiltros(){
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filtroTipo').value = '';
+  document.getElementById('filtroNivel').value = '';
+  document.getElementById('filtroAceita').value = '';
+  filtrar();
+}
+
+function renderArvore(contas){
+  if(!contas.length){
+    document.getElementById('arvoreBody').innerHTML = '<div class="empty"><div class="empty-ic">🌳</div><div class="empty-t">Nenhuma conta encontrada</div><div style="font-size:12px">Ajuste os filtros ou clique em <strong>⬇ Carregar NBC</strong> para popular o plano padrão</div></div>';
+    return;
+  }
+  // Agrupa por código pai
+  const ordenadas = contas.slice().sort((a,b)=>a.codigo.localeCompare(b.codigo,undefined,{numeric:true}));
+  const html = ordenadas.map(c=>{
+    const lvl = c.nivel || (c.codigo.split('.').length);
+    const aceita = c.aceita_lancamento !== false;
+    const isOrigem = c.padrao_nbc ? 'NBC' : 'Empresa';
+    const isOrigemPill = c.padrao_nbc ? 'pill-nbc' : 'pill-empresa';
+    const temFilhos = ordenadas.some(x=>x._id!==c._id && x.codigo.startsWith(c.codigo+'.'));
+    return `<div class="tree-node lvl-${lvl} ${temFilhos?'has-children':''}" onclick="abrirEditarConta('${c._id}')">
+      <span class="toggle-btn">${temFilhos?'▼':'•'}</span>
+      <span class="tree-cod">${c.codigo}</span>
+      <span class="tree-desc">${TIPO_ICON[c.tipo]||''} ${c.descricao}</span>
+      <div class="tree-meta">
+        <span class="pill ${TIPO_PILL[c.tipo]||''}">${TIPO_LABEL[c.tipo]||c.tipo}</span>
+        ${aceita ? '<span class="pill pill-lan">📝 Lançável</span>' : '<span class="pill pill-tot">📊 Totalizadora</span>'}
+        <span class="pill ${isOrigemPill}">${isOrigem}</span>
+        <button class="act-btn" onclick="event.stopPropagation();abrirEditarConta('${c._id}')">✏</button>
+        ${!c.padrao_nbc?`<button class="act-btn danger" onclick="event.stopPropagation();removerConta('${c._id}','${c.descricao.replace(/'/g,"\\'")}')">🗑</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('arvoreBody').innerHTML = html;
+}
+
+function renderLista(contas){
+  if(!contas.length){
+    document.getElementById('listaBody').innerHTML = '<tr><td colspan="8" class="empty">Nenhuma conta</td></tr>';
+    return;
+  }
+  document.getElementById('listaBody').innerHTML = contas.slice().sort((a,b)=>a.codigo.localeCompare(b.codigo,undefined,{numeric:true})).map(c=>`
+    <tr style="cursor:pointer" onclick="abrirEditarConta('${c._id}')">
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--bl);font-weight:600">${c.codigo}</td>
+      <td style="font-size:13px;font-weight:500">${TIPO_ICON[c.tipo]||''} ${c.descricao}</td>
+      <td><span class="pill ${TIPO_PILL[c.tipo]||''}">${TIPO_LABEL[c.tipo]||c.tipo}</span></td>
+      <td style="font-size:12px;color:var(--txt2);text-transform:capitalize">${c.natureza}</td>
+      <td style="text-align:center;font-weight:600;color:var(--bl)">${c.nivel||'-'}</td>
+      <td>${c.aceita_lancamento!==false ? '<span class="pill pill-lan">📝 Lançável</span>' : '<span class="pill pill-tot">📊 Totalizadora</span>'}</td>
+      <td>${c.padrao_nbc?'<span class="pill pill-nbc">NBC</span>':'<span class="pill pill-empresa">Empresa</span>'}</td>
+      <td style="text-align:right">
+        <button class="act-btn" onclick="event.stopPropagation();abrirEditarConta('${c._id}')">✏</button>
+        ${!c.padrao_nbc?`<button class="act-btn danger" onclick="event.stopPropagation();removerConta('${c._id}','${c.descricao.replace(/'/g,"\\'")}')">🗑</button>`:''}
+      </td>
+    </tr>`).join('');
+}
+
+function popularContaPai(){
+  const sel = document.getElementById('contaParent');
+  if(!sel) return;
+  const sintetic = allContas.filter(c=>c.aceita_lancamento===false).sort((a,b)=>a.codigo.localeCompare(b.codigo,undefined,{numeric:true}));
+  sel.innerHTML = '<option value="">— Nenhuma (raiz)</option>' + sintetic.map(c=>`<option value="${c.codigo}">${c.codigo} — ${c.descricao}</option>`).join('');
+}
+
+// ── CRUD CONTA ───────────────────────────────────────────────
+function abrirNovaConta(){
+  editContaId = null;
+  document.getElementById('ovContaT').textContent = '+ Nova Conta Contábil';
+  ['contaCodigo','contaDescricao'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('contaTipo').value = 'ativo';
+  document.getElementById('contaNatureza').value = 'devedora';
+  document.getElementById('contaNivel').value = '4';
+  document.getElementById('contaParent').value = '';
+  document.getElementById('contaAceita').checked = true;
+  ui.openModal('ovConta');
+}
+
+function abrirEditarConta(id){
+  const c = allContas.find(x=>x._id===id);
+  if(!c) return;
+  if(c.padrao_nbc){ ui.toast('ℹ️','Conta NBC padrão — apenas visualização'); return; }
+  editContaId = id;
+  document.getElementById('ovContaT').textContent = '✏ Editar Conta Contábil';
+  document.getElementById('contaCodigo').value = c.codigo;
+  document.getElementById('contaDescricao').value = c.descricao;
+  document.getElementById('contaTipo').value = c.tipo;
+  document.getElementById('contaNatureza').value = c.natureza;
+  document.getElementById('contaNivel').value = c.nivel || 4;
+  document.getElementById('contaAceita').checked = c.aceita_lancamento !== false;
+  ui.openModal('ovConta');
+}
+
+document.getElementById('contaTipo').addEventListener('change', function(){
+  // Auto-sugerir natureza
+  const nat = ['ativo','custo','despesa'].includes(this.value) ? 'devedora' : 'credora';
+  document.getElementById('contaNatureza').value = nat;
+  // Auto-sugerir código baseado no tipo
+  if(!editContaId){
+    const codBase = {ativo:'1',passivo:'2',patrimonio:'3',receita:'4',custo:'5',despesa:'6'}[this.value]||'';
+    const cod = document.getElementById('contaCodigo').value;
+    if(!cod || /^[1-6]/.test(cod)){
+      document.getElementById('contaCodigo').focus();
+    }
+  }
+});
+
+async function salvarConta(){
+  const data = {
+    codigo:        document.getElementById('contaCodigo').value.trim(),
+    descricao:     document.getElementById('contaDescricao').value.trim(),
+    tipo:          document.getElementById('contaTipo').value,
+    natureza:      document.getElementById('contaNatureza').value,
+    nivel:         +document.getElementById('contaNivel').value || 4,
+    aceita_lancamento: document.getElementById('contaAceita').checked,
+  };
+  if(curEmpId) data.company = curEmpId;
+  if(!data.codigo || !data.descricao){ ui.toast('⚠️','Código e descrição são obrigatórios'); return; }
+
+  const btn = document.getElementById('contaBtn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const r = editContaId
+    ? await API.planoConta.update(editContaId, data)
+    : await API.planoConta.create(data);
+  btn.disabled = false; btn.textContent = 'Salvar';
+
+  if(r?.success){
+    ui.toast('✅', editContaId?'Conta atualizada':'Conta criada');
+    ui.closeModal('ovConta');
+    loadContas();
+  } else {
+    ui.toast('❌', r?.message||'Erro ao salvar');
+  }
+}
+
+async function removerConta(id, nome){
+  if(!confirm(`Remover a conta "${nome}"?\n\nEsta ação não pode ser desfeita.`)) return;
+  const r = await API.planoConta.remove(id);
+  if(r?.success){ ui.toast('✅','Conta removida'); loadContas(); }
+  else ui.toast('❌', r?.message||'Erro ao remover');
+}
+
+async function seedNBC(){
+  if(!confirm('Carregar o Plano de Contas NBC padrão?\n\nServem como base inicial — você pode customizar depois.')) return;
+  ui.toast('⏳','Carregando plano NBC...');
+  const r = await API.planoConta.seed();
+  if(r?.success){ ui.toast('✅', r.message||'Plano NBC carregado'); loadContas(); }
+  else ui.toast('❌', r?.message||'Erro');
+}
+
+// ── CENTRO DE CUSTO ──────────────────────────────────────────
+function renderCC(){
+  const search = document.getElementById('ccSearch').value.toLowerCase().trim();
+  const tipo = document.getElementById('ccFiltroTipo').value;
+  let lista = allCC.filter(c=>{
+    if(search && !(c.codigo.toLowerCase().includes(search) || c.descricao.toLowerCase().includes(search))) return false;
+    if(tipo && c.tipo !== tipo) return false;
+    return true;
+  });
+
+  const TIPO_CC = {operacional:'⚙️',administrativo:'🏢',comercial:'💼',producao:'🏭',financeiro:'💰'};
+  const TIPO_COR = {operacional:'var(--bl)',administrativo:'var(--purple)',comercial:'var(--green)',producao:'var(--amber)',financeiro:'#a855f7'};
+
+  if(!lista.length){
+    document.getElementById('ccBody').innerHTML = `<div class="empty"><div class="empty-ic">🎯</div><div class="empty-t">Nenhum centro de custo</div><div style="font-size:12px;margin-top:8px"><button class="btn primary sm" onclick="abrirNovoCC()">+ Criar primeiro centro</button></div></div>`;
+    return;
+  }
+
+  document.getElementById('ccBody').innerHTML = `<div class="cc-grid">${lista.map(c=>`
+    <div class="cc-card" onclick="abrirEditarCC('${c._id}')">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:42px;height:42px;border-radius:10px;background:${TIPO_COR[c.tipo]||'var(--bl)'}22;display:flex;align-items:center;justify-content:center;font-size:20px">${TIPO_CC[c.tipo]||'🎯'}</div>
+        <div style="flex:1">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--bl);font-weight:600">${c.codigo}</div>
+          <div style="font-size:13.5px;font-weight:600;color:var(--txt);margin-top:2px">${c.descricao}</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+        <span style="text-transform:capitalize;color:var(--txt3)">${c.tipo}</span>
+        ${c.ativo!==false?'<span class="pill pill-lan">✓ Ativo</span>':'<span class="pill pill-tot">○ Inativo</span>'}
+      </div>
+      ${c.responsavel?`<div style="font-size:11px;color:var(--txt3);margin-top:6px">👤 ${c.responsavel}</div>`:''}
+    </div>
+  `).join('')}</div>`;
+}
+
+function abrirNovoCC(){
+  editCCId = null;
+  document.getElementById('ovCCT').textContent = '+ Novo Centro de Custo';
+  ['ccCodigo','ccDescricao','ccResp'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ccTipo').value = 'operacional';
+  document.getElementById('ccAtivo').checked = true;
+  // Sugerir próximo código
+  const nums = allCC.map(c=>parseInt((c.codigo||'').replace(/\D/g,''))||0);
+  const next = (nums.length?Math.max(...nums)+1:1).toString().padStart(3,'0');
+  document.getElementById('ccCodigo').value = 'CC-'+next;
+  ui.openModal('ovCC');
+}
+
+function abrirEditarCC(id){
+  const c = allCC.find(x=>x._id===id);
+  if(!c) return;
+  editCCId = id;
+  document.getElementById('ovCCT').textContent = '✏ Editar Centro de Custo';
+  document.getElementById('ccCodigo').value = c.codigo;
+  document.getElementById('ccDescricao').value = c.descricao;
+  document.getElementById('ccTipo').value = c.tipo || 'operacional';
+  document.getElementById('ccResp').value = c.responsavel || '';
+  document.getElementById('ccAtivo').checked = c.ativo !== false;
+  ui.openModal('ovCC');
+}
+
+async function salvarCC(){
+  const data = {
+    codigo:      document.getElementById('ccCodigo').value.trim(),
+    descricao:   document.getElementById('ccDescricao').value.trim(),
+    tipo:        document.getElementById('ccTipo').value,
+    responsavel: document.getElementById('ccResp').value.trim(),
+    ativo:       document.getElementById('ccAtivo').checked,
+  };
+  if(curEmpId) data.company = curEmpId;
+  if(!data.codigo || !data.descricao){ ui.toast('⚠️','Código e descrição obrigatórios'); return; }
+  const r = editCCId ? await API.centroCusto.update(editCCId, data) : await API.centroCusto.create(data);
+  if(r?.success){ ui.toast('✅', editCCId?'Atualizado':'Criado'); ui.closeModal('ovCC'); loadCC(); }
+  else ui.toast('❌', r?.message||'Erro');
+}
+
+// ── DISTRIBUIÇÃO ─────────────────────────────────────────────
+function renderDistribuicao(){
+  const total = allContas.length || 1;
+  const tipos = ['ativo','passivo','patrimonio','receita','custo','despesa'];
+  const cores = {ativo:'#3b90e8',passivo:'var(--amber)',patrimonio:'var(--purple)',receita:'var(--green)',custo:'#a855f7',despesa:'var(--red)'};
+  const distTipo = tipos.map(t=>{
+    const qtd = allContas.filter(c=>c.tipo===t).length;
+    const pct = Math.round(qtd/total*100);
+    return {tipo:t,qtd,pct,cor:cores[t]};
+  }).filter(d=>d.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+
+  document.getElementById('distTipo').innerHTML = `
+    <div class="dist-bar">
+      ${distTipo.map(d=>`<div class="dist-seg" style="width:${d.pct}%;background:${d.cor}" title="${TIPO_LABEL[d.tipo]}: ${d.qtd}"></div>`).join('')}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+      ${distTipo.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px">
+        <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:2px;background:${d.cor}"></div><span style="color:var(--txt)">${TIPO_ICON[d.tipo]} ${TIPO_LABEL[d.tipo]}</span></div>
+        <div style="display:flex;gap:14px;align-items:center">
+          <span style="font-family:'JetBrains Mono',monospace;color:var(--txt2)">${d.qtd}</span>
+          <span style="color:${d.cor};font-weight:600;min-width:36px;text-align:right">${d.pct}%</span>
+        </div>
+      </div>`).join('')}
+    </div>`;
+
+  // Por nível
+  const niveis = [1,2,3,4];
+  document.getElementById('distNivel').innerHTML = niveis.map(n=>{
+    const qtd = allContas.filter(c=>(c.nivel||c.codigo.split('.').length)===n).length;
+    const pct = Math.round(qtd/total*100);
+    const lbl = n===1?'Sintética 1º grau':n===2?'Sintética 2º grau':n===3?'Sintética 3º grau':'Analítica (lançável)';
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
+        <span style="color:var(--txt)">Nível ${n} — ${lbl}</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:var(--bl);font-weight:600">${qtd} (${pct}%)</span>
+      </div>
+      <div style="background:var(--bg4);border-radius:20px;height:6px;overflow:hidden"><div style="height:100%;background:linear-gradient(90deg,var(--bl),var(--teal));width:${pct}%;transition:width .8s"></div></div>
+    </div>`;
+  }).join('');
+
+  // Saúde
+  const aceita = allContas.filter(c=>c.aceita_lancamento!==false).length;
+  const sintet = allContas.length - aceita;
+  const padraoNbc = allContas.filter(c=>c.padrao_nbc).length;
+  const customizadas = allContas.length - padraoNbc;
+  const ccAtivos = allCC.filter(c=>c.ativo!==false).length;
+
+  const checks = [
+    {l:'Plano NBC carregado',v:padraoNbc>0,d:padraoNbc>0?`${padraoNbc} contas NBC`:'Clique em ⬇ Carregar NBC'},
+    {l:'Contas analíticas (lançáveis)',v:aceita>=10,d:`${aceita} contas`,sub:'Mínimo recomendado: 10'},
+    {l:'Contas sintéticas (totalizadoras)',v:sintet>=5,d:`${sintet} contas`,sub:'Mínimo recomendado: 5'},
+    {l:'Centros de custo configurados',v:ccAtivos>0,d:`${ccAtivos} centros ativos`,sub:'Útil para análise gerencial'},
+    {l:'Contas customizadas',v:customizadas>=0,d:`${customizadas} criadas pela empresa`,sub:'Adicione conforme necessidade'},
+  ];
+
+  document.getElementById('saudePlano').innerHTML = checks.map(c=>`
+    <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${c.v?'rgba(0,201,167,.15)':'rgba(245,158,11,.15)'}">
+        ${c.v?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--amber)">!</span>'}
+      </div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--txt)">${c.l}</div>
+        ${c.sub?`<div style="font-size:10.5px;color:var(--txt3);margin-top:2px">${c.sub}</div>`:''}
+      </div>
+      <div style="font-size:12px;color:${c.v?'var(--green)':'var(--amber)'};font-weight:600">${c.d}</div>
+    </div>`).join('');
+}
+
+// ── EXPORTAR / IMPRIMIR ──────────────────────────────────────
+function exportarPlano(){
+  const dados = getContasFiltradas().sort((a,b)=>a.codigo.localeCompare(b.codigo,undefined,{numeric:true}));
+  const headers = ['Código','Descrição','Tipo','Natureza','Nível','Aceita Lançamento','Origem'];
+  const rows = dados.map(c=>[c.codigo,c.descricao,TIPO_LABEL[c.tipo]||c.tipo,c.natureza,c.nivel||'',c.aceita_lancamento!==false?'Sim':'Não',c.padrao_nbc?'NBC':'Empresa']);
+  const csv = [headers,...rows].map(r=>r.map(v=>`"${(v+'').replace(/"/g,'""')}"`).join(';')).join(String.fromCharCode(13,10));
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,%EF%BB%BF'+encodeURIComponent(csv);
+  a.download = `plano-contas-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  ui.toast('✅','CSV exportado');
+}
+
+function imprimirPlano(){
+  const empNome = document.querySelector('#filtroEmpresa option:checked')?.textContent || 'Plano NBC Padrão';
+  const dados = getContasFiltradas().sort((a,b)=>a.codigo.localeCompare(b.codigo,undefined,{numeric:true}));
+  const j = window.open('','_blank','width=950,height=720');
+  j.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Plano de Contas — ${empNome}</title>
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:11.5px;color:#1a1a2e;padding:24px;background:#fff}
+  .header{display:flex;justify-content:space-between;border-bottom:3px solid #1a6fc4;padding-bottom:12px;margin-bottom:18px}
+  .logo{font-size:18px;font-weight:900;color:#1a6fc4;font-family:'Arial Black',sans-serif}
+  .logo span{font-size:11px;display:block;font-weight:400;color:#666}
+  .meta{text-align:right;font-size:10.5px;color:#666;line-height:1.7}
+  .meta strong{font-size:13px;color:#1a1a2e;display:block;margin-bottom:2px}
+  table{width:100%;border-collapse:collapse;font-size:10.5px}
+  th{background:#eff6ff;color:#1d4ed8;padding:7px;text-align:left;border:1px solid #dde3ec;font-weight:700}
+  td{padding:5px 7px;border:1px solid #eef0f5}
+  .lvl-1{background:#dbeafe;font-weight:700}.lvl-2{background:#eff6ff;font-weight:600}
+  .lvl-3{padding-left:18px}.lvl-4{padding-left:28px;color:#374151}
+  .footer{margin-top:18px;padding-top:8px;border-top:1px solid #dde3ec;font-size:9px;color:#999;display:flex;justify-content:space-between}
+  @page{margin:14mm;size:A4}</style></head><body>
+  <div class="header">
+    <div><div class="logo">DTP Contábil <span>ERP — Plano de Contas</span></div></div>
+    <div class="meta"><strong>${empNome}</strong>${dados.length} contas · Padrão NBC<br>${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  </div>
+  <table><thead><tr><th width="80">Código</th><th>Descrição</th><th width="80">Tipo</th><th width="80">Natureza</th><th width="60">Nível</th><th width="70">Lançável</th></tr></thead>
+  <tbody>${dados.map(c=>`<tr class="lvl-${c.nivel||4}"><td><strong>${c.codigo}</strong></td><td>${c.descricao}</td><td style="text-transform:capitalize">${c.tipo}</td><td style="text-transform:capitalize">${c.natureza}</td><td style="text-align:center">${c.nivel||'-'}</td><td style="text-align:center">${c.aceita_lancamento!==false?'Sim':'Não'}</td></tr>`).join('')}</tbody></table>
+  <div class="footer"><span>DTP Contábil ERP</span><span>Plano NBC v1.0 — ${new Date().toLocaleDateString('pt-BR')}</span></div>
+  </body></html>`);
+  j.document.close();
+  setTimeout(()=>{ j.focus(); j.print(); }, 600);
+}
+</script>
+</body>
+</html>
