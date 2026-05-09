@@ -7,6 +7,7 @@ const path        = require('path');
 const connectDB   = require('./config/db');
 
 const app = express();
+app.set('trust proxy', 1);
 connectDB();
 
 // ── CORS ─────────────────────────────────────────────────────
